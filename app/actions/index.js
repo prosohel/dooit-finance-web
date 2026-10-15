@@ -50,30 +50,60 @@ export const chatWithNissa = async (message) => {
   return response.json();
 };
 
-export const getChatStreams = async (message, onMessage) => {
-  const response = await fetchWithAuth(
-    "ask_stream_response_v1",
-    {
-      method: "POST",
-      body: JSON.stringify(message),
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Key": process.env.NEXT_PUBLIC_NISA_API_KEY,
-      },
+// export const getChatStreams = async (body, onChunk, signal) => {
+//   const response = await fetch(`${process.env.NEXT_PUBLIC_CHAT_URL}/ask_stream_response_v1`, {
+//     method: "POST",
+//     body: JSON.stringify(body),
+//     headers: {
+//       "Content-Type": "application/json",
+//       "X-API-Key": process.env.NEXT_PUBLIC_NISA_API_KEY,
+//     },
+//   });
+//   if (!response.ok || !response.body) {
+//     throw new Error("Network response was not ok");
+//   }
+//   const reader = response.body.getReader();
+//   const decoder = new TextDecoder("utf-8");
+//   let buffer = "";
+
+// };
+export const getChatStreams = async (body, onChunk, signal) => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_CHAT_URL}/ask_stream_response_v1`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": process.env.NEXT_PUBLIC_NISA_API_KEY,
     },
-    false,
-    true,
-  );
-  if (!response.ok) {
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  if (!response.ok || !response.body) {
     throw new Error("Network response was not ok");
   }
+
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
-  let done = false;
-  while (!done) {
-    const { value, done: doneReading } = await reader.read();
-    done = doneReading;
-    const chunkValue = decoder.decode(value);
-    onMessage(chunkValue);
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Pass each newly received text chunk to the client.
+      onChunk(buffer);
+    }
+
+    buffer += decoder.decode();
+
+    if (buffer) {
+      onChunk(buffer);
+    }
+  } finally {
+    reader.releaseLock();
   }
 };

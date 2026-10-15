@@ -4,8 +4,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { ArrowUp, Mic, Paperclip, X } from 'lucide-react';
-import { chatWithNissa } from '@/app/actions';
+// import { getChatStreams } from '@/services/nisaStream';
 import Convos from './Convos';
+import { useLoggedInUser } from '@/app/store/useLoggedInUser';
+import { getChatStreams } from '@/app/actions';
 
 const NisaIntro = () => {
   return (
@@ -44,6 +46,9 @@ export default function Chat({ prompt }) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const endRef = useRef(null);
+  const streamAbortRef = useRef(null);
+  const { loggedInUser } = useLoggedInUser();
+  console.log('loggedInUser', loggedInUser);
 
   const handleFileInput = (e) => {
     const file = e.target.files?.[0];
@@ -105,38 +110,58 @@ export default function Chat({ prompt }) {
 
     setChat((prev) => [...prev, myMsg]);
 
-    const payload = {
-      query: msg || message,
-      session_id: 'msg',
-    };
+    const aiId = randomIdGenerator();
+    const updateAiMsg = (updater) =>
+      setChat((prev) =>
+        prev.map((m) => (m.id === aiId ? { ...m, ...updater(m) } : m))
+      );
 
+    streamAbortRef.current?.abort();
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+
+    let started = false;
     try {
       setLoading(true);
-      const res = await chatWithNissa(payload);
-      console.log('res', res);
-
-      const data = res.success
-        ? {
-            msg: res.answer,
-            type: 'ai',
-            id: randomIdGenerator(),
-            timeStamp: new Date(),
+      await getChatStreams(
+        {
+          question: myMsg.msg,
+          email: loggedInUser?.email,
+        },
+        (chunk) => {
+          console.log('chunk', chunk);
+          if (!started) {
+            started = true;
+            setLoading(false);
+            setChat((prev) => [
+              ...prev,
+              { msg: chunk, type: 'ai', id: aiId, timeStamp: new Date() },
+            ]);
+            return;
           }
-        : {
-            msg: 'Something went wrong',
-            type: 'ai',
-            id: randomIdGenerator(),
-            timeStamp: new Date(),
-            error: true,
-          };
-
-      setChat((prev) => [...prev, data]);
+          updateAiMsg((m) => ({ msg: m.msg + chunk }));
+        },
+        controller.signal
+      );
     } catch (err) {
+      if (err?.name === 'AbortError') return;
       console.log(err);
+      const errorMsg = { msg: 'Something went wrong', error: true };
+      if (started) {
+        updateAiMsg(() => errorMsg);
+      } else {
+        setChat((prev) => [
+          ...prev,
+          { ...errorMsg, type: 'ai', id: aiId, timeStamp: new Date() },
+        ]);
+      }
     } finally {
+      if (streamAbortRef.current === controller) streamAbortRef.current = null;
       setLoading(false);
     }
   };
+
+  useEffect(() => () => streamAbortRef.current?.abort(), []);
 
   const canSend = Boolean(message.trim());
 
@@ -277,7 +302,7 @@ export default function Chat({ prompt }) {
               type="button"
               size="icon"
               disabled={!canSend}
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage()}
               aria-label="Send message"
               className={cn(
                 'size-8 rounded-xl shadow-none transition-all',
