@@ -7,13 +7,17 @@ The backend owns all Xero logic. Full architecture, flows and runbook:
 | File | Purpose |
 |---|---|
 | `app/dashboard/client/system-settings/xero/{page.js,actions.js}` | Settings route + server actions |
-| `views/xero/index.jsx` | Connect / Sync Now / Disconnect card, status polling, error list |
+| `views/xero/index.jsx` | Connect / Sync Now / Disconnect card, status polling, Sync activity (Errors / All) |
+| `views/xero/XeroMappingCard.jsx` | Finish setup / Bill settings: expense account, tax rate, bill status, payments, customers — dropdowns fed by `GET /xero/settings`, saved with `PUT /xero/settings` |
 | `app/auth/xero/{page.js,actions.js}` | Public sign-up landing + server actions |
 | `views/auth/xero/index.jsx` | Pre-filled signup form + automatic sign-in; "waiting for confirmation" screen when the org already belongs to a client |
 | `app/auth/xero/confirm/[token]/page.js`, `views/auth/xero/confirm/index.jsx` | Approval page opened from the email sent to the existing client's admin |
 | `auth.js` | NextAuth `xero` Credentials provider (redeems a one-time login code) |
 | `components/login-form.jsx` | "Continue with Xero" button |
 | `components/…/ClientSidebar.js` | System Settings → Xero entry |
+
+## What the integration does
+The connected organisation is the client's own Xero, so Dooit invoices go in as **bills** from a Dooit.ai supplier contact, coded to the account and tax rate the client picks. Nothing is sent until the mapping is saved; customer contacts and payments are opt-in; nothing in Xero changes Dooit data. Xero certification forbids typed or assumed account codes — keep every code field a dropdown.
 
 ## Conventions
 - Calls go through server actions (`fetchWithAuth` / `BASE_URL`) so the JWT never reaches client code. Every action returns `{ ok, status, ...body }`.

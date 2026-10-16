@@ -35,6 +35,16 @@ export const disconnectXero = async () => call("xero/disconnect", { method: "POS
 
 export const refreshXeroConnection = async () => call("xero/refresh", { method: "POST" });
 
+/** Saved mapping + the organisation's live accounts, tax rates and currencies. */
+export const getXeroSettings = async () => call("xero/settings");
+
+/**
+ * Save the mapping. Only codes/ids taken from `getXeroSettings().options` are
+ * accepted by the API — nothing typed by the user is trusted.
+ */
+export const saveXeroSettings = async (settings) =>
+  call("xero/settings", { method: "PUT", body: JSON.stringify(settings) });
+
 /** Recent sync log rows. Pass `{ status: "failed" }` to list only failures. */
 export const getXeroLogs = async ({ status, limit = 20 } = {}) => {
   const qs = new URLSearchParams({ limit, ...(status ? { status } : {}) }).toString();

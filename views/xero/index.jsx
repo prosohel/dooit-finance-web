@@ -3,11 +3,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle, CheckCircle2, Link2, Loader2, RefreshCw, Unplug } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Link2, Loader2, RefreshCw, Unplug } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -36,6 +37,8 @@ import {
   syncXeroNow,
 } from "@/app/dashboard/client/system-settings/xero/actions";
 
+import XeroMappingCard from "./XeroMappingCard";
+
 const POLL_MS = 2500;
 
 const SYNC_STATUS = {
@@ -47,13 +50,22 @@ const SYNC_STATUS = {
 };
 
 const CALLBACK_MESSAGES = {
-  connected: (p) => ({ type: "success", text: `Connected to ${p.get("org") || "Xero"}` }),
+  connected: (p) => ({ type: "success", text: `Connected to ${p.get("org") || "Xero"} — finish setup below` }),
   denied: () => ({ type: "error", text: "Xero authorisation was cancelled" }),
   invalid_state: () => ({ type: "error", text: "The connection request expired. Please try again." }),
   error: (p) => ({ type: "error", text: p.get("message") || "Could not connect to Xero" }),
 };
 
 const formatDate = (d) => (d ? new Date(d).toLocaleString() : "—");
+
+// Status is carried by text as well as colour.
+const LOG_STATUS = {
+  success: { label: "Done", variant: "success" },
+  skipped: { label: "Note", variant: "outline" },
+  failed: { label: "Error", variant: "danger" },
+};
+
+const ENTITY_LABELS = { invoice: "Bill", contact: "Contact", payment: "Payment", connection: "Connection", settings: "Settings", sync: "Sync", webhook: "Xero update" };
 
 const totals = (summary) => {
   if (!summary) return null;
@@ -78,6 +90,7 @@ export default function XeroSettings() {
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [logs, setLogs] = useState([]);
+  const [logFilter, setLogFilter] = useState("failed"); // "failed" | "all"
   const timer = useRef(null);
 
   const load = useCallback(async () => {
@@ -94,9 +107,9 @@ export default function XeroSettings() {
   }, []);
 
   const loadLogs = useCallback(async () => {
-    const res = await getXeroLogs({ status: "failed", limit: 10 });
+    const res = await getXeroLogs({ status: logFilter === "failed" ? "failed" : undefined, limit: 50 });
     if (res.ok) setLogs(res.data || []);
-  }, []);
+  }, [logFilter]);
 
   // Surface the OAuth callback result once, then clean the URL.
   useEffect(() => {
@@ -201,7 +214,7 @@ export default function XeroSettings() {
       <div>
         <h1 className="text-2xl font-semibold">Xero</h1>
         <p className="text-sm text-muted-foreground">
-          Sync contacts, invoices and payments with your Xero organisation.
+          Send your Dooit invoices to Xero as bills, coded to your own accounts and tax rates.
         </p>
       </div>
 
@@ -230,7 +243,7 @@ export default function XeroSettings() {
               </CardTitle>
               <CardDescription>
                 {connected
-                  ? "Your Dooit data is synchronised with the organisation below."
+                  ? "Dooit is connected to the Xero organisation below."
                   : needsReconnect
                     ? "Xero access was revoked or has expired. Connect again to resume syncing."
                     : "Connect your Xero organisation to start syncing."}
@@ -275,7 +288,7 @@ export default function XeroSettings() {
           {connected && syncing && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
               <Loader2 className="size-4 animate-spin" />
-              Synchronising contacts, invoices and payments…
+              Sending bills to Xero…
             </p>
           )}
 
@@ -308,7 +321,7 @@ export default function XeroSettings() {
             {(!connected || needsReconnect) && (
               <Button onClick={handleConnect} disabled={connecting || state?.configured === false}>
                 {connecting ? <Loader2 className="animate-spin" /> : <Link2 />}
-                {needsReconnect ? "Reconnect Xero" : "Connect Xero"}
+                {needsReconnect ? "Reconnect to Xero" : "Connect to Xero"}
               </Button>
             )}
             {connected && (
@@ -319,45 +332,82 @@ export default function XeroSettings() {
                 </Button>
                 <Button variant="outline" onClick={() => setConfirmDisconnect(true)} disabled={syncing}>
                   <Unplug />
-                  Disconnect
+                  Disconnect from Xero
                 </Button>
+                {state.xeroUrl && (
+                  <Button variant="ghost" asChild>
+                    <a href={state.xeroUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink />
+                      Open in Xero
+                      <span className="sr-only">(opens in a new tab)</span>
+                    </a>
+                  </Button>
+                )}
               </>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {connected && logs.length > 0 && (
+      {connected && <XeroMappingCard setupComplete={!!state.setupComplete} onSaved={load} />}
+
+      {connected && (
         <Card className="max-w-3xl">
           <CardHeader>
-            <CardTitle>Recent errors</CardTitle>
-            <CardDescription>The latest items that failed to sync.</CardDescription>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle>Sync activity</CardTitle>
+                <CardDescription>What Dooit sent to Xero, and anything that needs your attention.</CardDescription>
+              </div>
+              <Tabs value={logFilter} onValueChange={setLogFilter}>
+                <TabsList>
+                  <TabsTrigger value="failed">Errors</TabsTrigger>
+                  <TabsTrigger value="all">All activity</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </CardHeader>
           <CardContent>
+            {logs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {logFilter === "failed" ? "No errors — everything sent successfully." : "No activity yet."}
+              </p>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>When</TableHead>
                   <TableHead>Item</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Error</TableHead>
+                  <TableHead>Result</TableHead>
+                  <TableHead>Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {logs.map((l) => (
                   <TableRow key={l._id}>
                     <TableCell className="whitespace-nowrap">{formatDate(l.timestamp)}</TableCell>
-                    <TableCell className="capitalize">{l.entity}</TableCell>
                     <TableCell>
-                      {l.direction} {l.action}
+                      {ENTITY_LABELS[l.entity] || l.entity}
+                      {l.meta?.invoiceNumber ? ` ${l.meta.invoiceNumber}` : ""}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate" title={l.error || ""}>
-                      {l.error || "—"}
+                    <TableCell className="whitespace-nowrap">
+                      {l.direction === "inbound" ? "from Xero · " : ""}
+                      {String(l.action).replace(/_/g, " ")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={(LOG_STATUS[l.status] || LOG_STATUS.skipped).variant}>
+                        {(LOG_STATUS[l.status] || LOG_STATUS.skipped).label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-xs whitespace-normal break-words text-sm">
+                      {l.error || (l.meta?.reason ? `Archived in Xero: ${l.meta.reason}` : "—")}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            )}
           </CardContent>
         </Card>
       )}
@@ -367,8 +417,8 @@ export default function XeroSettings() {
           <AlertDialogHeader>
             <AlertDialogTitle>Disconnect Xero?</AlertDialogTitle>
             <AlertDialogDescription>
-              Syncing will stop and Dooit&apos;s access to {state?.tenantName || "your organisation"} will be revoked.
-              Data already in Xero is not deleted. You can reconnect at any time.
+              Dooit will stop sending bills and its access to {state?.tenantName || "your organisation"} will be
+              revoked in Xero. Bills and contacts already in Xero are not deleted. You can reconnect at any time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
