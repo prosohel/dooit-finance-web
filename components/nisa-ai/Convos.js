@@ -37,25 +37,27 @@ export default function Convos({ chat, loading }) {
                 className={cn(
                   'rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed',
                   {
-                    'rounded-br-md bg-primary text-white shadow-[0_4px_16px_rgba(0,89,100,0.18)]':
-                      isMe,
-                    'rounded-bl-md border border-border/70 bg-white text-foreground shadow-sm':
-                      isAi && !msg.error,
+                    'rounded-br-md bg-zinc-100 text-zinc-800 ': isMe,
+                    'rounded-bl-md  text-foreground p-0': isAi && !msg.error,
                     'rounded-bl-md border border-danger/20 bg-red-50 text-foreground':
                       isAi && msg.error,
                   }
                 )}
               >
-                <p className="flex items-start gap-2">
-                  {msg.error && (
-                    <span className="mt-0.5 shrink-0">
-                      <ExclamationCircleIcon className="size-4 text-danger" />
+                {isAi ? (
+                  <p dangerouslySetInnerHTML={{ __html: msg.msg }}></p>
+                ) : (
+                  <p className="flex items-start gap-2">
+                    {msg.error && (
+                      <span className="mt-0.5 shrink-0">
+                        <ExclamationCircleIcon className="size-4 text-danger" />
+                      </span>
+                    )}
+                    <span className="min-w-0 whitespace-pre-wrap break-words">
+                      {msg.msg}
                     </span>
-                  )}
-                  <span className="min-w-0 whitespace-pre-wrap break-words">
-                    {msg.msg}
-                  </span>
-                </p>
+                  </p>
+                )}
               </div>
 
               {isAi && msg.is_relevant ? (
@@ -67,7 +69,7 @@ export default function Convos({ chat, loading }) {
           </div>
         );
       })}
-
+      {/*
       {loading ? (
         <div className="flex items-start gap-2.5">
           <div
@@ -85,7 +87,7 @@ export default function Convos({ chat, loading }) {
             <span className="sr-only">Thinking…</span>
           </div>
         </div>
-      ) : null}
+      ) : null} */}
     </div>
   );
 }

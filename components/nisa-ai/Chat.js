@@ -7,7 +7,8 @@ import { ArrowUp, Mic, Paperclip, X } from 'lucide-react';
 // import { getChatStreams } from '@/services/nisaStream';
 import Convos from './Convos';
 import { useLoggedInUser } from '@/app/store/useLoggedInUser';
-import { getChatStreams } from '@/app/actions';
+import { getChatStreams } from '@/services/nisaStream';
+// import { getChatStreams } from '@/app/actions';
 
 const NisaIntro = () => {
   return (
@@ -129,17 +130,22 @@ export default function Chat({ prompt }) {
           email: loggedInUser?.email,
         },
         (chunk) => {
-          console.log('chunk', chunk);
+          if (chunk?.type === 'done') {
+            const { sources, features, language } = chunk;
+            if (started) updateAiMsg(() => ({ sources, features, language }));
+            return;
+          }
+          if (chunk?.type !== 'chunk' || !chunk.text) return;
           if (!started) {
             started = true;
             setLoading(false);
             setChat((prev) => [
               ...prev,
-              { msg: chunk, type: 'ai', id: aiId, timeStamp: new Date() },
+              { msg: chunk.text, type: 'ai', id: aiId, timeStamp: new Date() },
             ]);
             return;
           }
-          updateAiMsg((m) => ({ msg: m.msg + chunk }));
+          updateAiMsg((m) => ({ msg: m.msg + chunk.text }));
         },
         controller.signal
       );
