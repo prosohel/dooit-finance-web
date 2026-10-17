@@ -373,3 +373,46 @@ div[data-slot="sidebar-content"] {
     height: 100%;
   }
 }
+
+/* Nisa AI — streaming response reveal */
+.nisa-reveal {
+  animation: nisa-reveal 420ms cubic-bezier(0.25, 0.8, 0.3, 1) both;
+}
+/* Only `from` is defined, so each word eases into its normal style. */
+@keyframes nisa-reveal {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+.nisa-caret {
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  margin-left: 0.3em;
+  vertical-align: middle;
+  border-radius: 9999px;
+  background: linear-gradient(120deg, var(--primary), var(--accent), var(--primary));
+  background-size: 200% 200%;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 45%, transparent);
+  animation:
+    nisa-caret-shift 1.6s ease-in-out infinite,
+    nisa-caret-pulse 1.6s ease-in-out infinite;
+}
+@keyframes nisa-caret-shift {
+  50% {
+    background-position: 100% 50%;
+  }
+}
+@keyframes nisa-caret-pulse {
+  50% {
+    transform: scale(0.75);
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nisa-reveal,
+  .nisa-caret {
+    animation: none;
+  }
+}

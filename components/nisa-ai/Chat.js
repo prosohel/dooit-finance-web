@@ -6,37 +6,14 @@ import { Textarea } from '../ui/textarea';
 import { ArrowUp, Mic, Paperclip, X } from 'lucide-react';
 // import { getChatStreams } from '@/services/nisaStream';
 import Convos from './Convos';
+import useStickToBottom from './useStickToBottom';
 import { useLoggedInUser } from '@/app/store/useLoggedInUser';
 import { getChatStreams } from '@/services/nisaStream';
 // import { getChatStreams } from '@/app/actions';
 
 const NisaIntro = () => {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
-      <div className="relative mb-5">
-        <div className="absolute inset-0 scale-110 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 blur-md" />
-        <div className="relative flex size-14 items-center justify-center rounded-2xl border border-primary/15 bg-gradient-to-br from-white to-primary/5 shadow-[0_8px_30px_rgba(0,89,100,0.12)]">
-          <span className="bg-gradient-to-br from-primary to-accent bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-            N
-          </span>
-        </div>
-        <span className="absolute -right-0.5 -bottom-0.5 flex size-3.5 items-center justify-center rounded-full border-2 border-white bg-accent shadow-sm">
-          <span className="size-1.5 animate-pulse rounded-full bg-white motion-reduce:animate-none" />
-        </span>
-      </div>
-      <p className="mb-1 text-[11px] font-semibold tracking-[0.18em] text-primary/70 uppercase">
-        Risk & Compliance AI
-      </p>
-      <h1 className="text-xl font-bold tracking-tight text-heading">
-        Hi, I&apos;m{' '}
-        <span className="bg-gradient-to-r from-primary via-primary-light to-accent bg-clip-text text-transparent">
-          Nisa
-        </span>
-      </h1>
-      <p className="mt-2 max-w-[260px] text-sm leading-relaxed text-muted-foreground">
-        Ask me anything about Risk & Compliance
-      </p>
-    </div>
+    <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center"></div>
   );
 };
 
@@ -46,10 +23,9 @@ export default function Chat({ prompt }) {
   const [fileInput, setFileInput] = useState(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const endRef = useRef(null);
   const streamAbortRef = useRef(null);
+  const { scrollRef, contentRef, stickToBottom } = useStickToBottom();
   const { loggedInUser } = useLoggedInUser();
-  console.log('loggedInUser', loggedInUser);
 
   const handleFileInput = (e) => {
     const file = e.target.files?.[0];
@@ -70,19 +46,12 @@ export default function Chat({ prompt }) {
 
     e.target.value = null;
   };
-  const scrollToBottom = () => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
     if (prompt) {
       // setMessage(prompt);
       handleSendMessage(prompt);
     }
   }, [prompt]);
-  useEffect(() => {
-    scrollToBottom();
-  }, [chat]);
 
   //onenter the message should send
   const handleKeyDown = (e) => {
@@ -101,7 +70,6 @@ export default function Chat({ prompt }) {
   const handleSendMessage = async (msg) => {
     if (!message.trim() && !msg) return;
     setMessage('');
-    console.log('message', message);
     const myMsg = {
       msg: msg || message,
       type: 'me',
@@ -110,6 +78,8 @@ export default function Chat({ prompt }) {
     };
 
     setChat((prev) => [...prev, myMsg]);
+    // Sending always re-engages auto-follow, even if the user had scrolled up.
+    stickToBottom();
 
     const aiId = randomIdGenerator();
     const updateAiMsg = (updater) =>
@@ -132,7 +102,13 @@ export default function Chat({ prompt }) {
         (chunk) => {
           if (chunk?.type === 'done') {
             const { sources, features, language } = chunk;
-            if (started) updateAiMsg(() => ({ sources, features, language }));
+            if (started)
+              updateAiMsg(() => ({
+                sources,
+                features,
+                language,
+                streaming: false,
+              }));
             return;
           }
           if (chunk?.type !== 'chunk' || !chunk.text) return;
@@ -141,7 +117,13 @@ export default function Chat({ prompt }) {
             setLoading(false);
             setChat((prev) => [
               ...prev,
-              { msg: chunk.text, type: 'ai', id: aiId, timeStamp: new Date() },
+              {
+                msg: chunk.text,
+                type: 'ai',
+                id: aiId,
+                timeStamp: new Date(),
+                streaming: true,
+              },
             ]);
             return;
           }
@@ -163,6 +145,7 @@ export default function Chat({ prompt }) {
       }
     } finally {
       if (streamAbortRef.current === controller) streamAbortRef.current = null;
+      if (started) updateAiMsg(() => ({ streaming: false }));
       setLoading(false);
     }
   };
@@ -182,13 +165,15 @@ export default function Chat({ prompt }) {
       </div>
 
       {/* Messages */}
-      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-3 pt-14 pb-3">
+      <div
+        ref={scrollRef}
+        className="relative z-10 min-h-0 flex-1 overflow-y-auto px-3 pt-14 pb-3 [overflow-anchor:none]"
+      >
         {chat.length === 0 ? (
           <NisaIntro />
         ) : (
-          <div className="mx-auto w-full max-w-2xl">
-            <Convos chat={chat} loading={loading} />
-            <div ref={endRef} />
+          <div ref={contentRef} className="mx-auto w-full max-w-2xl">
+            <Convos chat={chat} />
           </div>
         )}
       </div>

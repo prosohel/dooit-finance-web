@@ -207,7 +207,7 @@ export default function Modal({ isOpen, setIsOpen }) {
           onPointerDown={startDrag}
           onDoubleClick={(e) => !e.target.closest('button') && resetPosition()}
           className={cn(
-            'absolute py-2 top-0 left-0 flex items-center justify-between w-full gap-2 px-2 z-[99] select-none touch-none',
+            'absolute py-2 top-0 left-0 flex items-center justify-between w-full gap-2 px-2 z-[99] select-none touch-none bg-white',
             isDragging ? 'cursor-grabbing' : 'cursor-grab'
           )}
         >
@@ -242,7 +242,7 @@ export default function Modal({ isOpen, setIsOpen }) {
             <Button
               size="icon"
               variant="ghost"
-              className="  size-7 cursor-pointer"
+              className="  size-7 cursor-pointer text-zinc-500"
               onClick={toggleMaximize}
             >
               {maximize ? <Minimize /> : <Maximize2 size={12} />}
