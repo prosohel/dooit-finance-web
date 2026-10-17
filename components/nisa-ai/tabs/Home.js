@@ -45,9 +45,7 @@ export default function ChatHome({ onPromptSelect, setOpenChat }) {
         <div className="mb-6 flex size-[60px] items-center justify-center rounded-full bg-zinc-100">
           <IconUser size={24} stroke={1.5} className="text-zinc-400" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-          Hi, Nisa Here
-        </h1>
+        <p className="text-2xl  tracking-tight text-zinc-900">Hi, Nisa Here</p>
       </header>
 
       {/* Suggested prompts */}

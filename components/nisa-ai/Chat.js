@@ -11,9 +11,26 @@ import { useLoggedInUser } from '@/app/store/useLoggedInUser';
 import { getChatStreams } from '@/services/nisaStream';
 // import { getChatStreams } from '@/app/actions';
 
+const getGreetingBasedOnTime = (name) => {
+  const firstName = name?.split(' ')[0] || 'there';
+  const hour = new Date().getHours();
+  if (hour < 12) {
+    return `Good morning, ${firstName}!`;
+  } else if (hour < 18) {
+    return `Good afternoon, ${firstName}!`;
+  } else {
+    return `Good evening, ${firstName}!`;
+  }
+};
+
 const NisaIntro = () => {
+  const { loggedInUser } = useLoggedInUser();
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center"></div>
+    <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
+      <p className="font-regular text-2xl">
+        {getGreetingBasedOnTime(loggedInUser?.name)}
+      </p>
+    </div>
   );
 };
 
