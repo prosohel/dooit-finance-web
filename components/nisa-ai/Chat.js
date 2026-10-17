@@ -161,9 +161,12 @@ export default function Chat({ prompt }) {
         ]);
       }
     } finally {
-      if (streamAbortRef.current === controller) streamAbortRef.current = null;
       if (started) updateAiMsg(() => ({ streaming: false }));
-      setLoading(false);
+      // An aborted request must not clear the loading state of the one that replaced it.
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+        setLoading(false);
+      }
     }
   };
 
@@ -190,7 +193,7 @@ export default function Chat({ prompt }) {
           <NisaIntro />
         ) : (
           <div ref={contentRef} className="mx-auto w-full max-w-2xl">
-            <Convos chat={chat} />
+            <Convos chat={chat} thinking={loading} />
           </div>
         )}
       </div>

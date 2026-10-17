@@ -77,13 +77,43 @@ const MessageRow = memo(function MessageRow({ msg }) {
   );
 });
 
-export default function Convos({ chat }) {
+// Shown between sending a message and the first streamed chunk.
+function ThinkingRow() {
+  return (
+    <motion.div
+      {...entrance}
+      role="status"
+      aria-label="Nisa is thinking"
+      className="flex items-center gap-2 text-[13.5px] text-muted-foreground"
+    >
+      <span className="flex items-center gap-1" aria-hidden>
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="size-1.5 rounded-full bg-primary/70"
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
+            transition={{
+              duration: 1,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: i * 0.15,
+            }}
+          />
+        ))}
+      </span>
+      <span>Thinking…</span>
+    </motion.div>
+  );
+}
+
+export default function Convos({ chat, thinking }) {
   return (
     <MotionConfig reducedMotion="user">
       <div className="space-y-4 px-4">
         {chat.map((msg) => (
           <MessageRow key={msg.id} msg={msg} />
         ))}
+        {thinking && <ThinkingRow />}
       </div>
     </MotionConfig>
   );
