@@ -95,7 +95,6 @@ export default function Chat({ prompt }) {
   const handleSendMessage = async (msg) => {
     if (!message.trim() && !msg) return;
     setMessage('');
-    console.log('message', message);
     const myMsg = {
       msg: msg || message,
       type: 'me',
