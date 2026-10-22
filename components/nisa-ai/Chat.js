@@ -4,34 +4,31 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { ArrowUp, Mic, Paperclip, X } from 'lucide-react';
-import { chatWithNissa } from '@/app/actions';
+// import { getChatStreams } from '@/services/nisaStream';
 import Convos from './Convos';
+import useStickToBottom from './useStickToBottom';
+import { useLoggedInUser } from '@/app/store/useLoggedInUser';
+import { getChatStreams } from '@/services/nisaStream';
+// import { getChatStreams } from '@/app/actions';
+
+const getGreetingBasedOnTime = (name) => {
+  const firstName = name?.split(' ')[0] || 'there';
+  const hour = new Date().getHours();
+  if (hour < 12) {
+    return `Good morning, ${firstName}!`;
+  } else if (hour < 18) {
+    return `Good afternoon, ${firstName}!`;
+  } else {
+    return `Good evening, ${firstName}!`;
+  }
+};
 
 const NisaIntro = () => {
+  const { loggedInUser } = useLoggedInUser();
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
-      <div className="relative mb-5">
-        <div className="absolute inset-0 scale-110 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 blur-md" />
-        <div className="relative flex size-14 items-center justify-center rounded-2xl border border-primary/15 bg-gradient-to-br from-white to-primary/5 shadow-[0_8px_30px_rgba(0,89,100,0.12)]">
-          <span className="bg-gradient-to-br from-primary to-accent bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-            N
-          </span>
-        </div>
-        <span className="absolute -right-0.5 -bottom-0.5 flex size-3.5 items-center justify-center rounded-full border-2 border-white bg-accent shadow-sm">
-          <span className="size-1.5 animate-pulse rounded-full bg-white motion-reduce:animate-none" />
-        </span>
-      </div>
-      <p className="mb-1 text-[11px] font-semibold tracking-[0.18em] text-primary/70 uppercase">
-        Risk & Compliance AI
-      </p>
-      <h1 className="text-xl font-bold tracking-tight text-heading">
-        Hi, I&apos;m{' '}
-        <span className="bg-gradient-to-r from-primary via-primary-light to-accent bg-clip-text text-transparent">
-          Nisa
-        </span>
-      </h1>
-      <p className="mt-2 max-w-[260px] text-sm leading-relaxed text-muted-foreground">
-        Ask me anything about Risk & Compliance
+      <p className="font-regular text-2xl">
+        {getGreetingBasedOnTime(loggedInUser?.name)}
       </p>
     </div>
   );
@@ -43,7 +40,9 @@ export default function Chat({ prompt }) {
   const [fileInput, setFileInput] = useState(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const endRef = useRef(null);
+  const streamAbortRef = useRef(null);
+  const { scrollRef, contentRef, stickToBottom } = useStickToBottom();
+  const { loggedInUser } = useLoggedInUser();
 
   const handleFileInput = (e) => {
     const file = e.target.files?.[0];
@@ -64,19 +63,12 @@ export default function Chat({ prompt }) {
 
     e.target.value = null;
   };
-  const scrollToBottom = () => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
     if (prompt) {
       // setMessage(prompt);
       handleSendMessage(prompt);
     }
   }, [prompt]);
-  useEffect(() => {
-    scrollToBottom();
-  }, [chat]);
 
   //onenter the message should send
   const handleKeyDown = (e) => {
@@ -103,39 +95,82 @@ export default function Chat({ prompt }) {
     };
 
     setChat((prev) => [...prev, myMsg]);
+    // Sending always re-engages auto-follow, even if the user had scrolled up.
+    stickToBottom();
 
-    const payload = {
-      query: msg || message,
-      session_id: 'msg',
-    };
+    const aiId = randomIdGenerator();
+    const updateAiMsg = (updater) =>
+      setChat((prev) =>
+        prev.map((m) => (m.id === aiId ? { ...m, ...updater(m) } : m))
+      );
 
+    streamAbortRef.current?.abort();
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+
+    let started = false;
     try {
       setLoading(true);
-      const res = await chatWithNissa(payload);
-      console.log('res', res);
-
-      const data = res.success
-        ? {
-            msg: res.answer,
-            type: 'ai',
-            id: randomIdGenerator(),
-            timeStamp: new Date(),
+      await getChatStreams(
+        {
+          question: myMsg.msg,
+          email: loggedInUser?.email,
+        },
+        (chunk) => {
+          if (chunk?.type === 'done') {
+            const { sources, features, language } = chunk;
+            if (started)
+              updateAiMsg(() => ({
+                sources,
+                features,
+                language,
+                streaming: false,
+              }));
+            return;
           }
-        : {
-            msg: 'Something went wrong',
-            type: 'ai',
-            id: randomIdGenerator(),
-            timeStamp: new Date(),
-            error: true,
-          };
-
-      setChat((prev) => [...prev, data]);
+          if (chunk?.type !== 'chunk' || !chunk.text) return;
+          if (!started) {
+            started = true;
+            setLoading(false);
+            setChat((prev) => [
+              ...prev,
+              {
+                msg: chunk.text,
+                type: 'ai',
+                id: aiId,
+                timeStamp: new Date(),
+                streaming: true,
+              },
+            ]);
+            return;
+          }
+          updateAiMsg((m) => ({ msg: m.msg + chunk.text }));
+        },
+        controller.signal
+      );
     } catch (err) {
+      if (err?.name === 'AbortError') return;
       console.log(err);
+      const errorMsg = { msg: 'Something went wrong', error: true };
+      if (started) {
+        updateAiMsg(() => errorMsg);
+      } else {
+        setChat((prev) => [
+          ...prev,
+          { ...errorMsg, type: 'ai', id: aiId, timeStamp: new Date() },
+        ]);
+      }
     } finally {
-      setLoading(false);
+      if (started) updateAiMsg(() => ({ streaming: false }));
+      // An aborted request must not clear the loading state of the one that replaced it.
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+        setLoading(false);
+      }
     }
   };
+
+  useEffect(() => () => streamAbortRef.current?.abort(), []);
 
   const canSend = Boolean(message.trim());
 
@@ -150,13 +185,15 @@ export default function Chat({ prompt }) {
       </div>
 
       {/* Messages */}
-      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-3 pt-14 pb-3">
+      <div
+        ref={scrollRef}
+        className="relative z-10 min-h-0 flex-1 overflow-y-auto px-3 pt-14 pb-3 [overflow-anchor:none]"
+      >
         {chat.length === 0 ? (
           <NisaIntro />
         ) : (
-          <div className="mx-auto w-full max-w-2xl">
-            <Convos chat={chat} loading={loading} />
-            <div ref={endRef} />
+          <div ref={contentRef} className="mx-auto w-full max-w-2xl">
+            <Convos chat={chat} thinking={loading} />
           </div>
         )}
       </div>
@@ -276,7 +313,7 @@ export default function Chat({ prompt }) {
               type="button"
               size="icon"
               disabled={!canSend}
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage()}
               aria-label="Send message"
               className={cn(
                 'size-8 rounded-xl shadow-none transition-all',
