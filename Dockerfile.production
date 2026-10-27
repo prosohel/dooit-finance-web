@@ -17,11 +17,7 @@ COPY --from=deps /app/node_modules ./node_modules
 # NEXT_PUBLIC_* vars are inlined into the client bundle at build time,
 # and .env is excluded by .dockerignore, so they must be passed as build args.
 ARG NEXT_PUBLIC_APP=production
-ARG NEXT_PUBLIC_API_BASE_URL
-ARG NEXT_PUBLIC_AI_BASE_URL
-ENV NEXT_PUBLIC_APP=$NEXT_PUBLIC_APP \
-    NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
-    NEXT_PUBLIC_AI_BASE_URL=$NEXT_PUBLIC_AI_BASE_URL
+ENV NEXT_PUBLIC_APP=$NEXT_PUBLIC_APP
 
 # Build the Next.js app
 RUN npm run build
@@ -47,4 +43,3 @@ USER app
 
 # Start Next.js f
 CMD ["npm", "start"]
- 
