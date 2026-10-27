@@ -46,6 +46,7 @@ import { transformToGraph } from "@/views/onboarding/customer-queue/details/d3/l
 import partyEntities from "@/views/onboarding/customer-queue/details/demo.json";
 import { FingerprintIcon } from "lucide-react";
 import TbmlOsintReport from "./tabs/components/TbmlOsintReport";
+import useBreadcrumbLabel from "@/hooks/useBreadcrumbLabel";
 
 const FilesTab = lazy(() => import("./tabs/FilesTab"));
 // Pulls in the OCR detail dialog and its table — only loaded if the tab opens.
@@ -67,6 +68,7 @@ export default function CaseDetails({ caseId }) {
   const [caseData, setCaseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  useBreadcrumbLabel(caseData && `Case ${caseData.displayId || caseData.uid}`);
 
   const [status, setStatus] = useState(caseData?.status);
   const [priority, setPriority] = useState(caseData?.priority);
@@ -139,33 +141,32 @@ export default function CaseDetails({ caseId }) {
 
   useEffect(() => {
     if (!caseId) return;
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
       setReportsLoading(true);
       setAnalysisLoading(true);
       setError(null);
+      // Server actions from one client run one at a time, so firing all five
+      // up front makes the case document queue behind four companions and the
+      // page sit on "Loading case..." for the sum of them. The case loads
+      // alone first and paints; the companions follow and merge in.
+      const settle = () => {
+        if (cancelled) return;
+        setReportsLoading(false);
+        setAnalysisLoading(false);
+      };
       try {
-        // One round trip each, in parallel — a failure in any companion
-        // endpoint must not stop the case itself from rendering.
-        const [res, reportsRes, notesRes, auditRes, analysisRes] = await Promise.all([
-          getCaseById(caseId),
-          getCaseReports(caseId).catch(() => null),
-          getCaseNotes(caseId).catch(() => null),
-          getAuditLog(caseId).catch(() => null),
-          getCaseAnalysis(caseId).catch(() => null),
-        ]);
-
-        setAnalysis(analysisRes?.succeed ? analysisRes.data : null);
-
-        const filings = reportsRes?.succeed ? reportsRes.data : null;
+        const res = await getCaseById(caseId);
+        if (cancelled) return;
 
         if (res?.succeed) {
+          const reportsReq = getCaseReports(caseId).catch(() => null);
+          const notesReq = getCaseNotes(caseId).catch(() => null);
+          const auditReq = getAuditLog(caseId).catch(() => null);
+          const analysisReq = getCaseAnalysis(caseId).catch(() => null);
           // Normalise the API document into the shape the sections expect.
           const loaded = adaptCase(res.data);
-          loaded.rfis = adaptRfis(filings?.rfi);
-          loaded.previousSARs = adaptPreviousSARs(filings?.smr);
-          loaded.notes = notesRes?.succeed ? adaptNotes(notesRes.data) : [];
-          loaded.auditLog = auditRes?.succeed ? adaptAuditLog(auditRes.data) : [];
           setCaseData(loaded);
           setSelectedCase(loaded);
           // Seed the action state from the loaded case. These drive the header
@@ -181,12 +182,47 @@ export default function CaseDetails({ caseId }) {
           setActivities(loaded?.activities || []);
           setAuditLog(loaded?.auditLog || []);
 
+          // Companions merge in as each lands. Attached only after the case is
+          // on screen, so a fast companion can never be overwritten by the
+          // case's own empty defaults.
+          notesReq.then((notesRes) => {
+            if (cancelled || !notesRes?.succeed) return;
+            const adapted = adaptNotes(notesRes.data);
+            setNotes(adapted);
+            setCaseData((prev) => (prev ? { ...prev, notes: adapted } : prev));
+          });
+          auditReq.then((auditRes) => {
+            if (cancelled || !auditRes?.succeed) return;
+            const adapted = adaptAuditLog(auditRes.data);
+            setAuditLog(adapted);
+            setCaseData((prev) => (prev ? { ...prev, auditLog: adapted } : prev));
+          });
+          reportsReq
+            .then((reportsRes) => {
+              if (cancelled) return;
+              const filings = reportsRes?.succeed ? reportsRes.data : null;
+              const adaptedRfis = adaptRfis(filings?.rfi);
+              const sars = adaptPreviousSARs(filings?.smr);
+              setRfis(adaptedRfis);
+              setCaseData((prev) =>
+                prev ? { ...prev, rfis: adaptedRfis, previousSARs: sars } : prev
+              );
+            })
+            .finally(() => !cancelled && setReportsLoading(false));
+          analysisReq
+            .then((analysisRes) => {
+              if (cancelled) return;
+              setAnalysis(analysisRes?.succeed ? analysisRes.data : null);
+            })
+            .finally(() => !cancelled && setAnalysisLoading(false));
+
           // Device telemetry for the primary linked customer — loaded after
           // first paint; the tab just stays empty if the user lacks DEVICE.GET.
           const primaryCustomerId = res.data?.linkedCustomers?.[0]?._id;
           if (primaryCustomerId) {
             getCustomerDevices(primaryCustomerId)
               .then((devRes) => {
+                if (cancelled) return;
                 if (devRes?.success && devRes.data?.length) {
                   setCaseData((prev) =>
                     prev ? { ...prev, devices: adaptDevices(devRes.data) } : prev
@@ -197,17 +233,20 @@ export default function CaseDetails({ caseId }) {
           }
         } else {
           setError(res?.message || "Case not found");
+          settle();
         }
       } catch {
-        setError("Failed to load case");
+        if (!cancelled) setError("Failed to load case");
+        settle();
       } finally {
-        setLoading(false);
-        setReportsLoading(false);
-        setAnalysisLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-    return () => setSelectedCase(null);
+    return () => {
+      cancelled = true;
+      setSelectedCase(null);
+    };
   }, [caseId, setSelectedCase]);
 
   const logAction = ({

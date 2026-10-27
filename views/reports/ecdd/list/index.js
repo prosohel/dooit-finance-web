@@ -57,25 +57,12 @@ const EcddList = () => {
 
     }, [currentPage, limit])
 
-    // The case-list details route is alert-centric: it loads `alert/{id}` into
-    // the alert store and every tab reads from it. Passing a Case id there makes
-    // the lookup 404 and leaves all tabs blank, so route by what the report has.
     const idOf = (ref) => (ref && typeof ref === 'object' ? ref._id : ref) || null;
 
+    // Opens the report by its own id, so alert-origin, case-origin and
+    // standalone ECDDs all land on the same review page.
     const handleView = (row) => {
-        const alertId = idOf(row?.alert);
-        if (alertId) {
-            router.push(`/dashboard/client/monitoring-and-cases/alerts/${alertId}?tab=ecdd-review`);
-            return;
-        }
-        // Case-origin ECDD (no triggering alert): the case-centric view lists it
-        // under Regulatory Filings.
-        const caseId = idOf(row?.caseId);
-        if (caseId) {
-            router.push(`/dashboard/client/monitoring-and-cases/case-manager/${caseId}`);
-            return;
-        }
-        toast.error('This ECDD is not linked to an alert or a case yet.');
+        router.push(`/dashboard/client/report-compliance/ecdd/${row?._id}`);
     }
     const handleEdit = (id) => {
         // router.push(`/dashboard/client/report-compliance/ecdd/form?caseNumber=${caseNumber}`);

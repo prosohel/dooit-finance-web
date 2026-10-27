@@ -665,6 +665,32 @@ export default function ReportDetailView() {
                             </span>
                           </Pill>
                         </div>
+                        {p.otherNames?.length ? (
+                          <div className="mt-1 text-[12.5px] text-[#6b6f78]">Also known as {p.otherNames.join(", ")}</div>
+                        ) : null}
+                        {/* Role, relationship and provenance, as recorded on the case. */}
+                        {p.documentation ? (
+                          <div className="mt-1.5 text-[13px] text-[#3d4048]">{p.documentation}</div>
+                        ) : null}
+                        {p.personDetails?.dateOfBirth || p.personDetails?.nationality ? (
+                          <div className="mt-1.5 text-[13px] text-[#3d4048]">
+                            {[
+                              p.personDetails.dateOfBirth && `Born ${fmtDate(p.personDetails.dateOfBirth)}`,
+                              p.personDetails.nationality && `Citizen of ${p.personDetails.nationality}`,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </div>
+                        ) : null}
+                        {p.identityVerification?.documents?.length ? (
+                          <div className="mt-1.5 flex flex-col gap-0.5 text-[13px] text-[#3d4048]">
+                            {p.identityVerification.documents.map((d, di) => (
+                              <div key={di}>
+                                {[d.type, d.number, d.country].filter(Boolean).join(" · ")}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                         {fmtAddress(p.businessAddress) ? (
                           <div className="mt-2 text-[13.5px] text-[#3d4048]">
                             {fmtAddress(p.businessAddress)}

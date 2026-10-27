@@ -46,7 +46,9 @@ const dateOnly = (value) => (value ? String(value).split('T')[0] : '');
  * large, read-only, and would otherwise ride along in every form reset.
  */
 const stripHeavyFields = (doc = {}) => {
-  const { analysisSnapshot, alerts, aiMeta, ipAddresses, settings, metadata, ...rest } = doc;
+  // personsOfInterest is read-only here (drafted from the case), so it stays
+  // out of the form values and is never written back by a save.
+  const { analysisSnapshot, alerts, aiMeta, ipAddresses, settings, metadata, personsOfInterest, ...rest } = doc;
   return rest;
 };
 
@@ -170,6 +172,8 @@ export function ECDDForm({ caseNumber, id }) {
   });
 
   const [lastSaved, setLastSaved] = useState(null);
+  // Who the ECDD covers, as drafted from the case's persons of interest.
+  const [personsOfInterest, setPersonsOfInterest] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
 
@@ -215,6 +219,7 @@ export function ECDDForm({ caseNumber, id }) {
       const response = await draftEcddReport(caseNumber);
       if (response?.succeed && response.data) {
         reset(mapReportToForm(response.data));
+        setPersonsOfInterest(response.data.personsOfInterest || []);
       } else {
         setValue('caseNumber', caseNumber);
         toast.error(response?.message || 'Could not draft this ECDD');
@@ -232,6 +237,7 @@ export function ECDDForm({ caseNumber, id }) {
     setFetching(true);
     try {
       const response = await getEcddById(id);
+      setPersonsOfInterest(response?.data?.personsOfInterest || []);
       const {
         caseNumber,
         caseId,
@@ -769,6 +775,7 @@ export function ECDDForm({ caseNumber, id }) {
                 </div>
               )}
             />
+            <PersonsOfInterestTable persons={personsOfInterest} />
           </div>
         </Card>
 
@@ -1104,5 +1111,49 @@ export function ECDDForm({ caseNumber, id }) {
         </div>
       </div>
     </UILoader>
+  );
+}
+
+/**
+ * The persons of interest drafted from the case — its customers and the
+ * non-customer POIs recorded in the Investigation Hub. Read-only: they are
+ * managed on the case, and a redraft picks up any change.
+ */
+function PersonsOfInterestTable({ persons = [] }) {
+  if (!persons.length) return null;
+  return (
+    <div>
+      <Label>Persons of Interest</Label>
+      <p className="mb-2 text-xs text-muted-foreground">
+        From the case. Add or edit persons of interest in the case&apos;s Investigation Hub, then redraft.
+      </p>
+      <div className="overflow-x-auto rounded-md border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 font-medium">Name</th>
+              <th className="px-3 py-2 font-medium">Role</th>
+              <th className="px-3 py-2 font-medium">Relationship</th>
+              <th className="px-3 py-2 font-medium">Nationality / country</th>
+              <th className="px-3 py-2 font-medium">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {persons.map((p, i) => (
+              <tr key={p.poi || p.customer || i} className="border-t">
+                <td className="px-3 py-2 font-medium">
+                  {p.name || '—'}
+                  {p.kind === 'entity' && <span className="ml-1 text-xs text-muted-foreground">(entity)</span>}
+                </td>
+                <td className="px-3 py-2">{p.role || '—'}</td>
+                <td className="px-3 py-2">{p.relationship || '—'}</td>
+                <td className="px-3 py-2">{[p.nationality, p.country].filter(Boolean).join(' / ') || '—'}</td>
+                <td className="px-3 py-2 capitalize">{p.source === 'alert' ? 'Alert party' : p.source || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

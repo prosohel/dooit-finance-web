@@ -1,83 +1,182 @@
 "use client";
 
+// Customer profile — who this person is, their screening posture, and the
+// declared financial profile the case's activity is read against.
+//
+// Every row here is backed by a field GET /cases/:id actually returns
+// (see caseAdapter.adaptCustomer). Encrypted KYC contact fields never render:
+// a lean read returns ciphertext, so email comes from the linked user record
+// and phone is not shown at all.
+
 import CollapsibleSection from "../components/CollapsibleSection";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { StatusPill } from "@/components/ui/StatusPill";
 import {
   IconUser,
   IconMail,
-  IconPhone,
-  IconMapPin,
-  IconId,
-  IconBuildingBank,
-  IconUsers,
-  IconShieldCheck,
-  IconShieldX,
+  IconBuildingStore,
+  IconScale,
+  IconActivity,
 } from "@tabler/icons-react";
 import { cn, dateShowFormat, formatAUD, getInitials } from "@/lib/utils";
 
-function InfoRow({ icon: Icon, label, value }) {
+/** Label/value row that renders nothing when the field has no data. */
+function Row({ label, value }) {
+  if (value == null || value === "") return null;
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b last:border-0">
-      <div className="mt-0.5 shrink-0 rounded-md bg-muted p-1.5">
-        <Icon className="size-3.5 text-muted-foreground" />
-      </div>
-      <div className="flex flex-1 items-center justify-between gap-2">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <span className="text-sm font-medium text-heading text-right">{value ?? "—"}</span>
-      </div>
+    <div className="flex items-start justify-between gap-3 border-b py-2 last:border-0">
+      <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
+      <span className="text-right text-sm font-medium text-heading">{value}</span>
     </div>
   );
 }
 
-function computeBadges(caseData) {
-  const badges = [];
-  if (caseData.riskTag === "High") badges.push({ label: "High Risk", variant: "danger" });
-  if (caseData.kycStatus === "Verified") badges.push({ label: "KYC Verified", variant: "success" });
-  if (caseData.kycStatus === "Pending Review") badges.push({ label: "KYC Pending Review", variant: "warning" });
-  if (caseData.kycStatus === "Expired") badges.push({ label: "KYC Expired", variant: "danger" });
-  if (caseData.pepStatus && caseData.pepStatus !== "Not a PEP")
-    badges.push({ label: caseData.pepStatus, variant: "warning" });
-  if (caseData.sanctionsStatus === "Confirmed Match")
-    badges.push({ label: "Sanction Match", variant: "danger" });
-  if (caseData.sanctionsStatus === "Potential Match")
-    badges.push({ label: "Sanction Match (Potential)", variant: "warning" });
-  return badges;
+function ColumnHeading({ children }) {
+  return <p className="mb-1 text-xs font-semibold text-heading">{children}</p>;
 }
 
-function StatCard({ label, value, colorClass }) {
+// ── Screening strip ──────────────────────────────────────────────────────────
+// Clean results are stated, not hidden: "No match" on sanctions is a finding
+// the analyst needs to see, the same as a hit.
+
+const KYC_VARIANTS = {
+  Verified: "success",
+  Pending: "warning",
+  "Pending Review": "warning",
+  Rejected: "danger",
+};
+
+const RISK_VARIANTS = { Critical: "danger", High: "danger", Medium: "warning", Low: "success" };
+
+function ScreeningTile({ label, value, variant }) {
   return (
-    <div className="rounded-lg border border-border bg-white p-4">
-      <p className="mb-1.5 text-[11px] text-muted-foreground">{label}</p>
-      <p className={cn("text-xl font-bold", colorClass)}>{value}</p>
+    <div className="flex flex-col gap-1.5 rounded-lg border border-border px-3 py-2.5">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <StatusPill variant={variant}>{value || "Not screened"}</StatusPill>
     </div>
   );
 }
+
+function ScreeningStrip({ caseData }) {
+  const tiles = [
+    {
+      label: "KYC",
+      value: caseData.kycStatus,
+      variant: KYC_VARIANTS[caseData.kycStatus] || "muted",
+    },
+    {
+      label: "PEP screening",
+      value: caseData.pepStatus,
+      variant: caseData.pepStatus === "PEP" ? "warning" : caseData.pepStatus ? "success" : "muted",
+    },
+    {
+      label: "Sanctions",
+      value: caseData.sanctionsStatus,
+      variant:
+        caseData.sanctionsStatus === "Confirmed Match"
+          ? "danger"
+          : caseData.sanctionsStatus
+            ? "success"
+            : "muted",
+    },
+    {
+      label: "Risk rating",
+      value: caseData.riskTag,
+      variant: RISK_VARIANTS[caseData.riskTag] || "muted",
+    },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {tiles.map((t) => (
+        <ScreeningTile key={t.label} {...t} />
+      ))}
+    </div>
+  );
+}
+
+// ── Declared profile vs observed activity ────────────────────────────────────
+
+function DeclaredProfilePanel({ declared }) {
+  const hasAny =
+    declared &&
+    (declared.sourceOfFunds ||
+      declared.sourceOfWealth ||
+      declared.accountPurpose ||
+      declared.estimatedTradingVolume);
+  return (
+    <div className="rounded-lg border border-border p-4">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-heading">
+        <IconScale className="size-3.5" />
+        Declared at onboarding
+      </p>
+      {!hasAny ? (
+        <p className="text-sm text-muted-foreground">
+          No financial profile was declared at onboarding.
+        </p>
+      ) : (
+        <div>
+          <Row label="Source of funds" value={declared.sourceOfFunds} />
+          <Row label="Source of wealth" value={declared.sourceOfWealth} />
+          <Row label="Account purpose" value={declared.accountPurpose} />
+          <Row label="Expected volume" value={declared.estimatedTradingVolume} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActivityStat({ label, value, colorClass }) {
+  return (
+    <div>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className={cn("text-lg font-bold", colorClass)}>{value}</p>
+    </div>
+  );
+}
+
+function CaseActivityPanel({ caseData }) {
+  const transactions = caseData.transactions || [];
+  const flaggedCount = transactions.filter((t) => t.status === "flagged").length;
+  return (
+    <div className="rounded-lg border border-border p-4">
+      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-heading">
+        <IconActivity className="size-3.5" />
+        Observed on this case
+      </p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <ActivityStat
+          label="Net activity"
+          value={formatAUD(caseData.totalExposure || 0)}
+          colorClass="text-primary"
+        />
+        <ActivityStat
+          label="Flagged transactions"
+          value={`${flaggedCount} of ${transactions.length}`}
+          colorClass={flaggedCount > 0 ? "text-danger" : "text-heading"}
+        />
+        <ActivityStat label="Linked alerts" value={caseData.relatedAlertsCount ?? 0} colorClass="text-warning" />
+        <ActivityStat
+          label="Related cases"
+          value={caseData.previousInvestigationsCount ?? 0}
+          colorClass="text-heading"
+        />
+      </div>
+      {caseData.detectionRule && (
+        <p className="mt-3 border-t pt-2 text-xs text-muted-foreground">{caseData.detectionRule}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Section ──────────────────────────────────────────────────────────────────
 
 export default function CustomerProfileSection({ caseData, sectionRef, collapsible = true }) {
   const c = caseData?.customer;
   if (!c) return null;
 
-  const badges = computeBadges(caseData);
-  const linkedAccounts = caseData.atm?.linkedAccounts || [];
-  const beneficialOwners = caseData.beneficialOwners || [];
-  const transactions = caseData.transactions || [];
-  const flaggedCount = transactions.filter((t) => t.status === "flagged").length;
-
-  const stats = [
-    {
-      label: "Total exposure",
-      value: formatAUD(caseData.totalExposure || 0),
-      colorClass: "text-primary",
-    },
-    {
-      label: "Flagged transactions",
-      value: `${flaggedCount} of ${transactions.length}`,
-      colorClass: "text-danger",
-    },
-    { label: "Risk score", value: `${caseData.riskScore ?? "—"} · ${caseData.riskTag || "—"}`, colorClass: "text-warning" },
-    { label: "Open alerts", value: caseData.relatedAlertsCount ?? 0, colorClass: "text-indigo-600" },
-  ];
+  const dob = c.dateOfBirth
+    ? `${dateShowFormat(c.dateOfBirth)}${c.age ? ` · ${c.age} years` : ""}`
+    : null;
 
   return (
     <CollapsibleSection
@@ -87,125 +186,80 @@ export default function CustomerProfileSection({ caseData, sectionRef, collapsib
       sectionRef={sectionRef}
       collapsible={collapsible}
     >
-      <div className="mb-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s) => (
-          <StatCard key={s.label} {...s} />
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="flex shrink-0 flex-col items-center gap-2 lg:w-40">
-          <Avatar className="size-20">
-            <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
+      {/* Identity band */}
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3">
+          <Avatar className="size-14">
+            <AvatarFallback className="bg-primary/10 text-base font-semibold text-primary">
               {getInitials(c.name)}
             </AvatarFallback>
           </Avatar>
-          <p className="text-center text-sm font-semibold text-heading">{c.name}</p>
-          <p className="text-center text-xs text-muted-foreground">{caseData.customerType}</p>
-          <div className="flex flex-wrap justify-center gap-1.5">
-            {badges.map((b) => (
-              <StatusPill key={b.label} variant={b.variant}>
-                {b.label}
-              </StatusPill>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid flex-1 gap-4 md:grid-cols-2">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Identity
+            <p className="text-base font-semibold text-heading">{c.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {[caseData.uid, caseData.customerType].filter(Boolean).join(" · ")}
             </p>
-            <InfoRow icon={IconUser} label="Customer ID" value={caseData.uid} />
-            {c.age && <InfoRow icon={IconUser} label="Age" value={`${c.age} years`} />}
-            {c.nationality && <InfoRow icon={IconUser} label="Nationality" value={c.nationality} />}
-            {c.occupation && <InfoRow icon={IconUser} label="Occupation" value={c.occupation} />}
-            {c.industry && <InfoRow icon={IconUser} label="Industry" value={c.industry} />}
-            {c.accountOpeningDate && (
-              <InfoRow icon={IconUser} label="Account Opened" value={dateShowFormat(c.accountOpeningDate)} />
+            {c.email && (
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                <IconMail className="size-3" />
+                {c.email}
+              </p>
             )}
-            <InfoRow icon={IconUser} label="Risk Rating" value={c.riskRating || caseData.riskTag} />
-            <InfoRow
-              icon={IconShieldCheck}
-              label="CDD Status"
-              value={caseData.cddStatus}
-            />
-            <InfoRow icon={IconShieldX} label="EDD Status" value={caseData.eddStatus} />
           </div>
+        </div>
+        <ScreeningStrip caseData={caseData} />
+      </div>
 
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Contact & Registration
-            </p>
-            <InfoRow icon={IconMail} label="Email" value={c.email} />
-            <InfoRow icon={IconPhone} label="Phone" value={c.phone} />
-            <InfoRow icon={IconMapPin} label="Registered Address" value={c.address} />
-            {c.idType && <InfoRow icon={IconId} label="ID Type" value={c.idType} />}
-            {c.idNumber && <InfoRow icon={IconId} label="ID Number" value={c.idNumber} />}
-            {c.registrationNo && <InfoRow icon={IconId} label="Registration No." value={c.registrationNo} />}
-          </div>
+      {/* Declared profile against what the case actually saw */}
+      <div className="mb-5 grid gap-3 md:grid-cols-2">
+        <DeclaredProfilePanel declared={c.declaredProfile} />
+        <CaseActivityPanel caseData={caseData} />
+      </div>
+
+      {/* Detail columns */}
+      <div className="grid gap-x-6 gap-y-4 md:grid-cols-3">
+        <div>
+          <ColumnHeading>Identity</ColumnHeading>
+          <Row label="Date of birth" value={dob} />
+          <Row label="Other names" value={c.otherNames} />
+          <Row label="Nationality" value={c.nationality} />
+          <Row label="Residential address" value={c.address} />
+          <Row label="Mailing address" value={c.mailingAddress} />
+        </div>
+        <div>
+          <ColumnHeading>Employment</ColumnHeading>
+          <Row label="Occupation" value={c.occupation} />
+          <Row label="Industry" value={c.industry} />
+          <Row label="Employer" value={c.employerName} />
+          {!c.occupation && !c.industry && !c.employerName && (
+            <p className="text-sm text-muted-foreground">No employment details on file.</p>
+          )}
+        </div>
+        <div>
+          <ColumnHeading>Relationship</ColumnHeading>
+          <Row
+            label="Customer since"
+            value={c.accountOpeningDate ? dateShowFormat(c.accountOpeningDate) : null}
+          />
+          <Row label="Onboarding channel" value={c.onboardingChannel} />
+          <Row label="Customer type" value={caseData.customerType} />
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <div>
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <IconBuildingBank className="size-3.5" />
-            Linked Accounts ({linkedAccounts.length})
+      {/* Sole-trader business, only when declared */}
+      {c.soleTrader && (
+        <div className="mt-5 rounded-lg border border-border p-4">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-heading">
+            <IconBuildingStore className="size-3.5" />
+            Trades as sole trader
           </p>
-          {linkedAccounts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No linked accounts on file.</p>
-          ) : (
-            <div className="divide-y rounded-lg border">
-              {linkedAccounts.map((acc) => (
-                <div key={acc.accountNo} className="flex items-center justify-between px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium text-heading">{acc.bank}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{acc.accountNo}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{acc.type}</p>
-                    <p className="text-sm font-semibold text-heading">
-                      {new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(
-                        acc.balance,
-                      )}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="grid gap-x-6 md:grid-cols-3">
+            <Row label="Business name" value={c.soleTrader.businessName} />
+            <Row label="ABN" value={c.soleTrader.abn} />
+            <Row label="Business address" value={c.soleTrader.address} />
+          </div>
         </div>
-
-        <div>
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <IconUsers className="size-3.5" />
-            Beneficial Owners ({beneficialOwners.length})
-          </p>
-          {beneficialOwners.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {caseData.customerType === "Business" ? "No beneficial owners on file." : "Not applicable for individual customers."}
-            </p>
-          ) : (
-            <div className="divide-y rounded-lg border">
-              {beneficialOwners.map((bo) => (
-                <div key={bo.name} className="flex items-center justify-between px-3 py-2">
-                  <div>
-                    <p className="text-sm font-medium text-heading">{bo.name}</p>
-                    <p className="text-xs text-muted-foreground">{bo.nationality}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-heading">{bo.ownershipPct}%</p>
-                    {bo.pepStatus && bo.pepStatus !== "Not a PEP" && bo.pepStatus !== "N/A" && (
-                      <StatusPill variant="warning">{bo.pepStatus}</StatusPill>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </CollapsibleSection>
   );
 }

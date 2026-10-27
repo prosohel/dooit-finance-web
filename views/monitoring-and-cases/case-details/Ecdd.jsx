@@ -2,13 +2,14 @@
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import useAlertStore from "@/app/store/alerts";
-import { getEcddByCaseNumber } from "@/app/dashboard/client/report-compliance/ecdd/actions";
+import { getEcddByCaseNumber, getEcddById } from "@/app/dashboard/client/report-compliance/ecdd/actions";
 
 import UILoader from "@/components/UILoader";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { downloadReportPdf } from "@/lib/downloadReportPdf";
+import useBreadcrumbLabel from "@/hooks/useBreadcrumbLabel";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Design primitives
@@ -166,21 +167,28 @@ const STATUS_TONE = {
 
 /* ────────────────────────────────────────────────────────────────────────── */
 
-const Ecdd = () => {
+// Rendered two ways: as the alert's "ECDD Review" tab (report looked up by the
+// alert uid from the store), or standalone at /report-compliance/ecdd/[id]
+// where `ecddId` names the report directly.
+const Ecdd = ({ ecddId } = {}) => {
   const [caseData, setCaseData] = useState(null);
   const [fetching, setFetching] = useState(true);
   const [exporting, setExporting] = useState(false);
   const { details } = useAlertStore();
   const router = useRouter();
 
+  const lookupKey = ecddId || details?.uid;
+
   useEffect(() => {
-    if (!details?.uid) return;
+    if (!lookupKey) return;
 
     let cancelled = false;
     const fetchEcddData = async () => {
       setFetching(true);
       try {
-        const response = await getEcddByCaseNumber(details.uid);
+        const response = ecddId
+          ? await getEcddById(ecddId)
+          : await getEcddByCaseNumber(details.uid);
         if (cancelled) return;
         if (response?.data) setCaseData(response.data);
         else toast.error("No data found");
@@ -195,9 +203,13 @@ const Ecdd = () => {
     return () => {
       cancelled = true;
     };
-  }, [details?.uid]);
+  }, [lookupKey]);
 
   const handleGenerateEcdd = () => {
+    if (ecddId) {
+      router.push("/dashboard/client/report-compliance/ecdd/form");
+      return;
+    }
     router.push(`/dashboard/client/report-compliance/ecdd/form?caseNumber=${details?.uid}`);
   };
 
@@ -239,6 +251,9 @@ const Ecdd = () => {
   const ai = useMemo(() => caseData?.metadata?.ecddReport || {}, [caseData]);
   const txn = useMemo(() => caseData?.transaction || {}, [caseData]);
 
+  // Only the standalone page names its crumb; as an alert tab the alert owns it.
+  useBreadcrumbLabel(ecddId && caseData?.uid && `ECDD #${caseData.uid}`);
+
   const isPep = String(caseData?.isPEP || "No") === "Yes";
   const isSanctioned = String(caseData?.isSanctioned || "No") === "Yes";
 
@@ -248,7 +263,9 @@ const Ecdd = () => {
         <div>
           <h4 className="text-lg font-semibold text-[#313132]">No ECDD report for this case</h4>
           <p className="mt-1 text-[12.5px] text-[#696969]">
-            Nothing has been filed against {details?.uid || "this alert"} yet.
+            {ecddId
+              ? "This ECDD report could not be found. It may have been deleted."
+              : `Nothing has been filed against ${details?.uid || "this alert"} yet.`}
           </p>
         </div>
         <Button onClick={handleGenerateEcdd}>Generate ECDD</Button>

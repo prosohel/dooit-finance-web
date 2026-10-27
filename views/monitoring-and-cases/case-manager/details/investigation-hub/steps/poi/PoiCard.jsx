@@ -23,6 +23,13 @@ const ROLE_STYLE = {
   beneficiary: "bg-amber-100 text-amber-800",
 };
 
+// Stored as "yyyy-mm-dd"; a masked value ("***") is shown as it is.
+const formatDob = (value) => {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("en-AU", { timeZone: "UTC" });
+};
+
 const Pill = ({ className, children }) => (
   <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-semibold", className)}>{children}</span>
 );
@@ -92,7 +99,7 @@ export function ExternalPoiCard({ poi, onEdit, onRemove, busy }) {
   const details = [
     ["Also known as", (poi.aliases || []).join(", ")],
     ["Relationship", poi.relationship],
-    ["Date of birth", poi.dateOfBirth ? new Date(poi.dateOfBirth).toLocaleDateString("en-AU", { timeZone: "UTC" }) : null],
+    ["Date of birth", formatDob(poi.dateOfBirth)],
     ["Nationality", poi.nationality],
     ["Occupation", poi.occupation],
     [

@@ -318,11 +318,20 @@ export default function GFSFormDetailPage() {
                 <div key={i} className="flex items-start gap-3.5 py-3 first:pt-0 last:pb-0">
                   <span className="font-mono text-[10px] uppercase tracking-wide text-[#ababab] w-10 flex-none pt-0.5">{p.kind}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-[#313132]">{p.name || '—'}</div>
+                    <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-[#313132]">
+                      {p.name || '—'}
+                      {/* Subject / Linked customer / Counterparty / Director … */}
+                      {p.kind === 'POI' && p.relationship && (
+                        <span className="rounded-full border border-[#e0e5e5] bg-[#f5f7f7] px-2 py-0.5 text-[10.5px] font-medium text-[#4a4a4a]">
+                          {p.relationship}
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-[#696969] mt-0.5">
                       {p.kind === 'OFI'
                         ? (p.scamType || '—')
-                        : [p.bank, p.account].filter(Boolean).join(' · ') || '—'}
+                        // Drafts write `institution`; hand-entered rows use `bank`.
+                        : [p.bank || p.institution, p.account, p.country].filter(Boolean).join(' · ') || '—'}
                     </div>
                   </div>
                   <div className="font-mono text-[11.5px] text-[#4a4a4a] flex-none">

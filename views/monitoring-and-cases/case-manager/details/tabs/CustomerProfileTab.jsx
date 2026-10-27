@@ -9,9 +9,55 @@
 // built in caseAdapter). Same switcher shape as the Source of Funds tab.
 
 import { useState } from "react";
-import { IconUser } from "@tabler/icons-react";
+import { IconBuilding, IconUser, IconUsersGroup } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import { StatusPill } from "@/components/ui/StatusPill";
+import CollapsibleSection from "../components/CollapsibleSection";
 import CustomerProfileSection from "../sections/CustomerProfileSection";
+
+/**
+ * Non-customer persons of interest (Case.externalPois) — counterparties,
+ * directors, third parties. Case-level, so they sit outside the per-customer
+ * switcher. PII renders as "***" when the viewer has no decrypt grant.
+ */
+function ExternalPartiesSection({ pois }) {
+  if (!pois.length) return null;
+  return (
+    <CollapsibleSection
+      id="external-parties"
+      title="Other parties on this case"
+      icon={IconUsersGroup}
+      badge={pois.length}
+    >
+      <div className="divide-y rounded-lg border">
+        {pois.map((p) => {
+          const Icon = p.kind === "entity" ? IconBuilding : IconUser;
+          return (
+            <div key={p.id} className="flex items-start justify-between gap-3 px-4 py-3">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-md bg-muted p-1.5">
+                  <Icon className="size-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-heading">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[p.kindLabel, "Not a customer", p.sourceLabel].filter(Boolean).join(" · ")}
+                  </p>
+                  {p.relationshipToSubject && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Relationship: {p.relationshipToSubject}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {p.roleLabel && <StatusPill variant="warning">{p.roleLabel}</StatusPill>}
+            </div>
+          );
+        })}
+      </div>
+    </CollapsibleSection>
+  );
+}
 
 export default function CustomerProfileTab({ caseData, sectionRef }) {
   const pois = caseData?.pois || [];
@@ -54,6 +100,8 @@ export default function CustomerProfileTab({ caseData, sectionRef }) {
 
       {/* Remount on switch so the section cannot keep the previous POI's state. */}
       <CustomerProfileSection key={active?.id || "single"} caseData={view} sectionRef={sectionRef} />
+
+      <ExternalPartiesSection pois={caseData?.externalPois || []} />
     </div>
   );
 }

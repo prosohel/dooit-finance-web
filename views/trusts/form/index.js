@@ -1,8 +1,8 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
+import useBreadcrumbLabel from "@/hooks/useBreadcrumbLabel";
 import { getTrustById, createTrust, updateTrust } from "@/app/dashboard/client/companies/actions";
 import { C } from "@/views/kyb/form-kit";
 import {
@@ -80,6 +80,7 @@ export default function TrustForm() {
   const id = params.get("id");
 
   const [trust, setTrust] = useState(emptyTrust());
+  useBreadcrumbLabel(id ? String(trust.full_trust_name || "").trim() || "Edit trust" : "New trust");
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(Boolean(id));
   const [saving, setSaving] = useState(false);
@@ -224,15 +225,6 @@ export default function TrustForm() {
         style={{ background: "#fff", borderBottom: `1px solid ${C.line}`, padding: "22px 40px", borderRadius: "14px 14px 0 0" }}
       >
         <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: C.sub, marginBottom: 8 }}>
-            <Link href="/dashboard/client/trusts" style={{ color: C.sub, textDecoration: "none" }}>
-              Trusts
-            </Link>
-            <span style={{ color: "#c4c8c1" }}>/</span>
-            <span>{id ? "Edit trust" : "New trust"}</span>
-            <span style={{ color: "#c4c8c1" }}>/</span>
-            <span style={{ color: C.ink, fontWeight: 500 }}>{trust.full_trust_name.trim() || "Untitled"}</span>
-          </div>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
             <div>
               <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: "-.01em" }}>

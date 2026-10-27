@@ -12,6 +12,6 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['views/**/__tests__/**/*.test.js'],
+    include: ['views/**/__tests__/**/*.test.js', 'lib/**/__tests__/**/*.test.js'],
   },
 })

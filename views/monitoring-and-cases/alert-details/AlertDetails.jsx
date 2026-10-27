@@ -24,6 +24,7 @@ import RfiTab from "./tabs/RfiTab";
 import DispositionTab from "./tabs/DispositionTab";
 import ReportsTab from "./tabs/ReportsTab";
 import Ecdd from "@/views/monitoring-and-cases/case-details/Ecdd";
+import useBreadcrumbLabel from "@/hooks/useBreadcrumbLabel";
 
 const TABS = [
   { id: "overview", label: "Overview", Component: OverviewTab },
@@ -112,6 +113,7 @@ export default function AlertDetails({ id, initialTab }) {
   }, [load, setDetails, setFetching]);
 
   const alert = useMemo(() => adaptAlert(raw), [raw]);
+  useBreadcrumbLabel(raw?.uid && `Alert #${raw.uid}`);
   const refresh = useCallback(() => load({ silent: true }), [load]);
 
   if (loading && !raw) return <PageSkeleton />;

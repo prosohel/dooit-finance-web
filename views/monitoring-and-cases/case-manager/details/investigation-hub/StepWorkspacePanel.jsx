@@ -41,7 +41,7 @@ export default function StepWorkspacePanel({ caseData, caseId, onCaseChange, wiz
         <div className="mb-5 text-[13px] text-muted-foreground">{step.subtitle}</div>
 
         {step.kind === "smr" ? (
-          <SmrStep caseData={caseData} wizard={wizard} />
+          <SmrStep caseId={caseId} wizard={wizard} />
         ) : (
           <>
             {StepBody && (

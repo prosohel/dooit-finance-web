@@ -68,8 +68,9 @@ const toForm = (poi = {}) => ({
       .map((k) => [k, poi[k]])
   ),
   aliases: (poi.aliases || []).join(", "),
-  // <input type="date"> wants yyyy-mm-dd; the API stores UTC midnight.
-  dateOfBirth: poi.dateOfBirth ? String(poi.dateOfBirth).slice(0, 10) : "",
+  // <input type="date"> wants yyyy-mm-dd; anything else (the "***" mask shown
+  // to a user without the decrypt grant) starts blank.
+  dateOfBirth: /^\d{4}-\d{2}-\d{2}/.test(String(poi.dateOfBirth || "")) ? String(poi.dateOfBirth).slice(0, 10) : "",
   idType: poi.idDocument?.type || "",
   idNumber: poi.idDocument?.number || "",
   idCountry: poi.idDocument?.country || "",
@@ -146,11 +147,27 @@ export default function PoiForm({
     const found = validate(form);
     setErrors(found);
     if (Object.keys(found).length) return;
-    onSubmit(toPayload(form));
+    const payload = toPayload(form);
+    if (!initial?.id) return onSubmit(payload);
+    // Editing: send only what changed. Fields shown masked ("***") or blank
+    // because the user cannot decrypt them are then never written back.
+    const before = toPayload(toForm(initial));
+    const changed = Object.fromEntries(
+      Object.entries(payload).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k]))
+    );
+    onSubmit(changed);
   };
+
+  const masked = Object.values(toForm(initial)).includes("***");
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {masked && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Some details are hidden (***) because your role cannot view protected data. Fields you leave untouched keep
+          their stored values.
+        </p>
+      )}
       {/* Kind toggle */}
       <div className="flex gap-1.5 rounded-lg bg-muted p-1">
         {[

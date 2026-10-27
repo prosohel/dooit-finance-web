@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Trash2, HelpCircle } from "lucide-react";
 
+// The API returns ISO strings; <input type="date"> wants yyyy-mm-dd.
+const toDateInput = (value) => (value ? String(value).slice(0, 10) : "");
+
 export function PersonOrganisationForm({
   data,
   onUpdate,
@@ -46,6 +49,32 @@ export function PersonOrganisationForm({
     setFormData(updated);
     onUpdate(updated);
   };
+
+  const handlePersonDetailsChange = (field, value) => {
+    // Drop the legacy top-level keys once the real ones are written.
+    const { dateOfBirth, citizenship, ...rest } = formData;
+    const updated = {
+      ...rest,
+      personDetails: {
+        dateOfBirth: formData.personDetails?.dateOfBirth ?? dateOfBirth ?? null,
+        nationality: formData.personDetails?.nationality ?? citizenship ?? "",
+        [field]: value,
+      },
+    };
+    setFormData(updated);
+    onUpdate(updated);
+  };
+
+  const setDocuments = (documents) =>
+    handleChange("identityVerification", { ...(formData.identityVerification || {}), documents });
+  const addDocument = () =>
+    setDocuments([...(formData.identityVerification?.documents || []), { type: "", number: "", country: "" }]);
+  const removeDocument = (index) =>
+    setDocuments((formData.identityVerification?.documents || []).filter((_, i) => i !== index));
+  const handleDocumentChange = (index, field, value) =>
+    setDocuments(
+      (formData.identityVerification?.documents || []).map((d, i) => (i === index ? { ...d, [field]: value } : d))
+    );
 
   const addArrayItem = (field, defaultValue = "") => {
     const current = formData[field] || [];
@@ -124,22 +153,58 @@ export function PersonOrganisationForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="text-sm">Date of birth</Label>
+            {/* Stored as personDetails.{dateOfBirth,nationality} (SMR model).
+                The old top-level dateOfBirth / citizenship keys were not in
+                the schema, so drafted values never showed and edits were lost. */}
             <Input
               type="date"
-              value={formData.dateOfBirth}
-              onChange={(e) => handleChange("dateOfBirth", e.target.value)}
+              value={toDateInput(formData.personDetails?.dateOfBirth ?? formData.dateOfBirth)}
+              onChange={(e) => handlePersonDetailsChange("dateOfBirth", e.target.value || null)}
               className="mt-1 border"
             />
           </div>
           <div>
             <Label className="text-sm">Country of citizenship</Label>
             <Input
-              value={formData.citizenship}
-              onChange={(e) => handleChange("citizenship", e.target.value)}
+              value={formData.personDetails?.nationality ?? formData.citizenship ?? ""}
+              onChange={(e) => handlePersonDetailsChange("nationality", e.target.value)}
               className="mt-1 border"
             />
           </div>
         </div>
+      </div>
+
+      {/* Identity documents */}
+      <div className="space-y-3 pt-4 border-t border-muted">
+        <Label className="font-semibold">Identity documents</Label>
+        {(formData.identityVerification?.documents || []).map((doc, i) => (
+          <div key={i} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2">
+            <Input
+              placeholder="Type (e.g. passport)"
+              value={doc.type || ""}
+              onChange={(e) => handleDocumentChange(i, "type", e.target.value)}
+              className="border"
+            />
+            <Input
+              placeholder="Number"
+              value={doc.number || ""}
+              onChange={(e) => handleDocumentChange(i, "number", e.target.value)}
+              className="border"
+            />
+            <Input
+              placeholder="Issuing country"
+              value={doc.country || ""}
+              onChange={(e) => handleDocumentChange(i, "country", e.target.value)}
+              className="border"
+            />
+            <Button type="button" variant="outline" size="icon" onClick={() => removeDocument(i)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={addDocument}>
+          <Plus className="h-4 w-4 mr-1" /> Add document
+        </Button>
       </div>
 
       {/* Contact details */}
@@ -268,6 +333,18 @@ export function PersonOrganisationForm({
           className="border"
         />
       </div> */}
+
+      {/* Documentation — drafts record the POI's role, relationship and
+          where they were identified here. */}
+      <div className="space-y-2 pt-4 border-t border-muted">
+        <Label className="font-semibold">Notes on this person / organisation</Label>
+        <Input
+          value={formData.documentation || ""}
+          onChange={(e) => handleChange("documentation", e.target.value)}
+          placeholder="Role in the matter, relationship to the subject, how identified"
+          className="border"
+        />
+      </div>
 
       {/* Customer question */}
       {showCustomerQuestion && (

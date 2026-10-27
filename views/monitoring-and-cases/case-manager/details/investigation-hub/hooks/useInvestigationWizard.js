@@ -71,6 +71,9 @@ export function useInvestigationWizard(caseData, caseId) {
   const [activeStep, setActiveStep] = useState(0); // start at Triage, not mid-way
   const [narrativeTpl, setNarrativeTpl] = useState("ecdd");
   const [smrPart, setSmrPart] = useState("A");
+  // The case's real SMR draft the hub's SMR step edits (docs/74 phase C9),
+  // recorded so CaseInvestigation.smr.report links progress to the record.
+  const [smrReportId, setSmrReportId] = useState(null);
   const [typoDraft, setTypoDraft] = useState("");
   const [reasonDraft, setReasonDraft] = useState("");
   const [customTypologies, setCustomTypologies] = useState([]);
@@ -134,6 +137,7 @@ export function useInvestigationWizard(caseData, caseId) {
           if (saved.customReasons?.length) setCustomReasons(saved.customReasons);
           if (saved.narrativeTemplate) setNarrativeTpl(saved.narrativeTemplate);
           if (saved.smr?.part) setSmrPart(saved.smr.part);
+          if (saved.smr?.report) setSmrReportId(saved.smr.report);
           setSaveState({ saving: false, savedAt: saved.updatedAt || null, error: null });
         }
       })
@@ -162,7 +166,7 @@ export function useInvestigationWizard(caseData, caseId) {
     customTypologies,
     customReasons,
     narrativeTemplate: narrativeTpl,
-    smr: { part: smrPart },
+    smr: { part: smrPart, report: smrReportId },
   };
 
   const flush = useCallback(async () => {
@@ -191,7 +195,7 @@ export function useInvestigationWizard(caseData, caseId) {
   }, [
     loaded, caseId, flush, saveState.error,
     activeStep, stepsDone, checklist, sel, dateRange, customTypologies, customReasons,
-    narrativeTpl, smrPart,
+    narrativeTpl, smrPart, smrReportId,
   ]);
 
   const caseAlerts = useMemo(() => caseAlertsOf(caseData), [caseData]);
@@ -294,6 +298,7 @@ export function useInvestigationWizard(caseData, caseId) {
     smrPart,
     setSmrPart,
     smrGo,
+    setSmrReportId,
 
     sel,
     setRadio,

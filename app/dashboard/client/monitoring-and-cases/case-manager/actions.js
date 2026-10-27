@@ -44,6 +44,14 @@ export const updateCase = async (id, payload) => {
   return res.json();
 };
 
+// A fresh investigation over the same facts — classification, customer POIs
+// and linked transactions come across; alerts, reports, notes and the audit
+// trail stay with the source case.
+export const duplicateCase = async (id) => {
+  const res = await fetchWithAuth(`cases/${id}/duplicate`, { method: 'POST' });
+  return res.json();
+};
+
 export const updateCaseStatus = async (id, status, closureReason) => {
   const res = await fetchWithAuth(`cases/${id}/status`, {
     method: 'PATCH',
@@ -130,6 +138,23 @@ export const draftCaseReport = async (ref, type, { alertId, dismissalType, regen
     method: 'POST',
     body: JSON.stringify({ alertId, dismissalType, regenerate }),
   });
+  return res.json();
+};
+
+// Save an analyst's edits to the case's draft. Only the fields in `patch` are
+// sent; each one that changes is marked analyst-owned, so a re-draft keeps it.
+export const saveCaseReportEdits = async (caseId, type, patch) => {
+  const res = await fetchWithAuth(`cases/${caseId}/reports/${type}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+  return res.json();
+};
+
+// Fresh AI prose for the case — returned for the analyst to pick from, never
+// saved by this call.
+export const suggestCaseReportNarrative = async (caseId, type) => {
+  const res = await fetchWithAuth(`cases/${caseId}/reports/${type}/suggest`, { method: 'POST' });
   return res.json();
 };
 

@@ -53,6 +53,9 @@ const pickRelation = (customer, clientId) => {
   return relations.find((r) => id && String(r.client) === id) || relations[0];
 };
 
+const joinAddress = (addr = {}) =>
+  joinNonEmpty([addr.address, addr.suburb, addr.state, addr.postcode, humanize(addr.country)]);
+
 const adaptCustomer = (customer, clientId) => {
   if (!customer) return null;
 
@@ -60,7 +63,12 @@ const adaptCustomer = (customer, clientId) => {
   const details = form.customer_details || {};
   const employment = form.employment_details || {};
   const address = form.residential_address || {};
+  const mailing = form.mailing_address || {};
+  const funds = customer.personalKyc?.funds_wealth || {};
+  const soleTrader = customer.personalKyc?.sole_trader || {};
   const relation = pickRelation(customer, clientId);
+  const residentialAddress = joinAddress(address);
+  const mailingAddress = joinAddress(mailing);
 
   return {
     // Fall back to the customer reference so an unnamed record still shows
@@ -71,32 +79,74 @@ const adaptCustomer = (customer, clientId) => {
       joinNonEmpty([details.given_name, details.middle_name, details.surname], " ") ||
       customer.uid ||
       null,
+    dateOfBirth: details.date_of_birth || null,
     age: ageFrom(details.date_of_birth),
-    nationality: humanize(address.country),
+    otherNames: details.other_names || null,
+    nationality: humanize(address.country) || humanize(customer.country),
     occupation: employment.occupation || null,
     industry: employment.industry || null,
+    employerName: employment.employer_name || null,
     accountOpeningDate: relation?.registeredAt || null,
+    onboardingChannel: relation?.onboardingChannel || null,
     email: customer.user?.email || null,
     // Customer.phone is AES-encrypted and a lean() query bypasses
     // decryptForRole, so the API deliberately does not send it.
     phone: null,
-    address: joinNonEmpty([
-      address.address,
-      address.suburb,
-      address.state,
-      address.postcode,
-      humanize(address.country),
-    ]),
+    address: residentialAddress,
+    // Only worth a row when it differs from where they live.
+    mailingAddress: mailingAddress && mailingAddress !== residentialAddress ? mailingAddress : null,
+    // What the customer declared at onboarding — the baseline every
+    // profile-inconsistency alert is read against.
+    declaredProfile: {
+      sourceOfFunds: funds.source_of_funds || null,
+      sourceOfWealth: funds.source_of_wealth || null,
+      accountPurpose: funds.account_purpose || null,
+      estimatedTradingVolume: funds.estimated_trading_volume || null,
+    },
+    soleTrader: soleTrader.is_sole_trader
+      ? {
+          businessName: soleTrader.business_details?.business_name || null,
+          abn: soleTrader.business_details?.abn || null,
+          address: joinAddress(soleTrader.business_details?.business_address),
+        }
+      : null,
     riskRating: null, // filled in by adaptCase from the case-level risk label
   };
 };
 
-const adaptTransaction = (txn) => {
+// ObjectId | populated doc | string → string id (for party.customer compares).
+const refId = (v) => (v && v._id ? String(v._id) : v ? String(v) : null);
+
+const adaptTransaction = (txn, caseCustomerIds = new Set()) => {
   const flags = txn.riskFlags || [];
+
+  // Direction relative to the case's customers: a party slot referencing one
+  // of them decides it; failing that, the transaction type does (a deposit
+  // lands with the customer, a withdrawal leaves them). Neither → null, and
+  // the table shows the type instead of guessing.
+  const senderIsCase = caseCustomerIds.has(refId(txn.sender?.customer));
+  const receiverIsCase = caseCustomerIds.has(refId(txn.receiver?.customer));
+  const direction =
+    senderIsCase && receiverIsCase
+      ? "internal"
+      : receiverIsCase
+        ? "in"
+        : senderIsCase
+          ? "out"
+          : txn.type === "deposit"
+            ? "in"
+            : txn.type === "withdrawal"
+              ? "out"
+              : null;
+
   return {
     ...txn,
     id: txn.uid || txn._id,
     date: txn.timestamp,
+    // Totals, the chart and cross-row sums all need one currency; the server
+    // converts foreign-currency rows into convertedAmountAUD.
+    amountAUD: txn.convertedAmountAUD ?? txn.amount,
+    direction,
     country: txn.receiver?.institutionCountry || txn.sender?.institutionCountry || null,
     paymentChannel: txn.channel || humanize(txn.type),
     riskIndicator: flags,
@@ -238,7 +288,12 @@ export function adaptCase(api) {
     confidenceScore: null, // no equivalent metric exists
 
     // ── Collections ───────────────────────────────────────────────────────────
-    transactions: (api.linkedTransactions || []).map(adaptTransaction),
+    transactions: (() => {
+      const ids = new Set(
+        [api.customer, ...customers].map((c) => refId(c?._id ? c._id : c)).filter(Boolean),
+      );
+      return (api.linkedTransactions || []).map((t) => adaptTransaction(t, ids));
+    })(),
     assignedAnalyst: api.assignedTo?.name || null,
     // "Connected" means the other parties on the case — the primary customer is
     // already rendered by the profile section.
