@@ -5,7 +5,13 @@ import { auth } from "@/auth";
 
 const safeJson = async (res) => {
   try {
-    return await res.json();
+    const data = await res.json();
+    // API errors arrive as { success:false, error:"…" } — the UI reads
+    // `message`, so normalise or every server error shows as a generic toast.
+    if (data && data.message === undefined && typeof data.error === "string") {
+      data.message = data.error;
+    }
+    return data;
   } catch {
     return { success: false, message: `HTTP ${res.status}` };
   }

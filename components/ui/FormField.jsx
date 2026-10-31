@@ -4,17 +4,11 @@ import { Controller } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { get } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import CustomSelect from '../AsyncPaginatedSelect';
+import CreatableSelect from './CreatableSelect';
 
 export function FormField({
   form,
@@ -91,6 +85,41 @@ export function FormField({
           )}
         />
         {error && <p className="text-sm text-destructive">{error}</p>}
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Dropdown of known options that also lets the user type a new one.
+  // Bound value stays a plain string — options: string[] | {value,label}[].
+  if (type === 'creatable') {
+    return (
+      <div className={cn('flex flex-col ', { 'animate-pulse': loading })}>
+        {label && (
+          <Label htmlFor={name}>
+            {label}
+            {required && <span className="text-destructive ml-1">*</span>}
+          </Label>
+        )}
+        <Controller
+          control={control}
+          name={name}
+          render={({ field }) => (
+            <CreatableSelect
+              options={options}
+              value={field.value}
+              onChange={(value) => {
+                field.onChange(value);
+                onChange?.(value);
+              }}
+              placeholder={placeholder}
+              error={error}
+              {...props}
+            />
+          )}
+        />
         {description && (
           <p className="text-sm text-muted-foreground">{description}</p>
         )}

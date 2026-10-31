@@ -91,8 +91,11 @@ export default function RelatedCasesSection({ caseData, sectionRef }) {
                         size="sm"
                         className="h-7 w-7 p-0"
                         onClick={() =>
+                          // `targetId` is the resolved case id computed above;
+                          // this referenced an undefined `fullCase`, so opening
+                          // a related case threw instead of navigating.
                           router.push(
-                            `/dashboard/client/monitoring-and-cases/case-manager/${fullCase._id}`,
+                            `/dashboard/client/monitoring-and-cases/case-manager/${targetId}`,
                           )
                         }
                       >

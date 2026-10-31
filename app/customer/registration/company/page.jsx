@@ -92,7 +92,6 @@ const CompanyRegistration = () => {
     mode: "onChange",
   });
 
-  console.log("errors", form.formState.errors);
   const onSubmit = (data) => {
     const payload = {
       token: "",

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import useAlertStore from "@/app/store/alerts";
 import {
-  autoPopulateRFI,
+  draftRfiReport,
   createRFI,
   getRFIById,
 } from "@/app/dashboard/client/monitoring-and-cases/case-list/actions";
@@ -62,30 +62,34 @@ export function CaseRequestForm({ open, setOpen, getRFI, caseNumber, setCaseNumb
     name: "requestedItems",
   });
 
+  /**
+   * Draft the RFI for this alert's case. The AI proposes what to ask for and
+   * drafts the covering letter; the addressee, the reply-to mailbox, the
+   * deadlines and the tipping-off check are ours (docs/74 §4.4).
+   */
   const getData = async () => {
     try {
-      const response = await autoPopulateRFI(details?.uid);
-      setValue("primaryContactName", response.primary_contact_name);
-      setValue("replyToEmail", response.reply_to_email);
-      const existingTexts = fields.map((f) => f.text);
+      const response = await draftRfiReport(details?.uid);
+      const doc = response?.succeed ? response.data : null;
+      if (!doc) {
+        console.error("Failed to draft RFI", response?.message);
+        return;
+      }
 
-      // response.requested_items?.forEach((item) => {
-      //   if (!existingTexts.includes(item)) {
-      //     append({ text: item });
-      //   }
-      // });
+      setValue("primaryContactName", doc.primaryContactName || "");
+      setValue("replyToEmail", doc.replyToEmail || "");
       setValue(
         "requestedItems",
-        response.requested_items.map((text) => ({ text })),
+        (doc.requestedItems || []).map((item) => ({ text: item.text })),
       );
-      // response.requested_items.forEach((item) => {
-      //   append({ text: item });
-      // });
-      console.log("response from auto populate rfi", response);
+
+      // Sending an RFI can tip off the subject of a suspicious matter report,
+      // so the API blocks delivery while one is live on the case.
+      if (doc.deliveryBlocked) {
+        toast.warning(doc.deliveryBlockReason || "Sending is blocked for this case.");
+      }
     } catch (error) {
-      console.error("Failed to auto populate rfi", error);
-    } finally {
-      // setIsSubmitting(false);
+      console.error("Failed to draft RFI", error);
     }
   };
 

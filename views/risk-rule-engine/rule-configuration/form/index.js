@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils'
 import { FormField } from '@/components/ui/FormField'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -24,11 +23,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+import CreatableSelect from '@/components/ui/CreatableSelect'
 import {
   createRule,
   getRuleById,
+  getRuleDomains,
   updateRule,
 } from '@/app/dashboard/client/risk-rule-engine/rule-configuration/actions'
+import { CONDITION_FIELD_OPTIONS } from './fieldCatalog'
 
 // ── Enums (mirror server-side) ─────────────────────────────────────────────
 export const CASE_TYPES = ['Fraud', 'AML', 'Compliance', 'TF']
@@ -36,20 +38,22 @@ export const RISK_LABELS = ['Low', 'Medium', 'High', 'Critical', 'Info']
 export const APPLIES_TO = ['transaction', 'customer', 'account']
 export const STATUSES = ['draft', 'active', 'paused', 'archived']
 const WINDOW_UNITS = ['minute', 'hour', 'day']
-const ACTION_TYPES = ['create_alert', 'assign', 'notify', 'escalate', 'block']
+const ACTION_TYPES = ['create_alert', 'assign', 'notify', 'escalate', 'block', 'create_report']
 const ACTION_LABELS = {
-  create_alert: 'Create Alert',
-  assign:       'Assign',
-  notify:       'Send Notification',
-  escalate:     'Escalate',
-  block:        'Block',
+  create_alert:  'Create Alert',
+  assign:        'Assign',
+  notify:        'Send Notification',
+  escalate:      'Escalate',
+  block:         'Block',
+  create_report: 'Create Report',
 }
 const ACTION_DESC = {
-  create_alert: 'Opens a new alert case for review',
-  assign:       'Assigns the case to a team member',
-  notify:       'Sends a notification to configured recipients',
-  escalate:     'Escalates to a higher review tier',
-  block:        'Blocks the transaction immediately',
+  create_alert:  'Opens a new alert case for review',
+  assign:        'Assigns the case to a team member',
+  notify:        'Sends a notification to configured recipients',
+  escalate:      'Escalates to a higher review tier',
+  block:         'Blocks the transaction immediately',
+  create_report: 'Auto-drafts a TTR/IFTI report for analyst review',
 }
 const STATUS_DESC = {
   draft:    'Not yet active — safe to edit without affecting live processing',
@@ -138,15 +142,35 @@ const buildDSL = (conditions) =>
       return i === 0 ? expr : `${acc} ${c.combinator || 'AND'} ${expr}`
     }, '')
 
+// Text inputs give us strings, but the evaluator compares against real
+// numbers/booleans on the transaction — emit typed values so "true" matches
+// isPep:true and "50,000" matches 50000. Mirrors the API's DSL coerceValue.
+const coerceLeafValue = (raw) => {
+  const t = String(raw).trim()
+  if (t === '') return t
+  const stripped = t.replace(/,(?=\d{3}(\D|$))/g, '') // "50,000" → "50000"
+  if (/^-?\d+(\.\d+)?$/.test(stripped)) return Number(stripped)
+  if (t.toLowerCase() === 'true') return true
+  if (t.toLowerCase() === 'false') return false
+  return t
+}
+
+// Text-matching operators keep the raw string ("true" as a substring is not
+// a boolean) — only comparison operators get typed values.
+const TEXT_OPERATORS = ['contains', 'startsWith', 'endsWith', 'regex']
+
 const conditionToLeaf = (c) => {
   const leaf = { field: c.field, operator: c.operator }
   if (needsValueList(c.operator)) {
-    leaf.values = c.valueList.split(',').map((v) => v.trim()).filter(Boolean)
+    leaf.values = c.valueList
+      .split(',')
+      .map((v) => coerceLeafValue(v.trim()))
+      .filter((v) => v !== '')
   } else if (needsRange(c.operator)) {
-    leaf.min = c.valueMin
-    leaf.max = c.valueMax
+    leaf.min = coerceLeafValue(c.valueMin)
+    leaf.max = coerceLeafValue(c.valueMax)
   } else if (!needsNoValue(c.operator)) {
-    leaf.value = c.value
+    leaf.value = TEXT_OPERATORS.includes(c.operator) ? c.value : coerceLeafValue(c.value)
   }
   return leaf
 }
@@ -180,15 +204,24 @@ const buildLogicTree = (conditions) => {
 
 const hydrateConditions = (apiConditions) => {
   if (!Array.isArray(apiConditions) || !apiConditions.length) return [emptyCondition()]
-  return apiConditions.map((c, i) => ({
+  return apiConditions.map((c) => ({
     field:      c.field    || '',
     operator:   c.operator || 'gt',
     value:      c.value    !== undefined ? String(c.value) : '',
     valueMin:   c.min      !== undefined ? String(c.min)   : '',
     valueMax:   c.max      !== undefined ? String(c.max)   : '',
     valueList:  Array.isArray(c.values) ? c.values.join(', ') : '',
-    combinator: i === 0 ? 'AND' : 'AND',
+    combinator: 'AND', // conditions[] is an implicit AND list
   }))
+}
+
+// depth: leaf = 1, AND/OR node = 1 + deepest child. Depth > 2 means nested
+// groups (e.g. A AND (B OR C)) that the linear builder cannot represent.
+const treeDepth = (node) => {
+  if (!node || typeof node !== 'object') return 0
+  if (node.field) return 1
+  const children = Array.isArray(node.children) ? node.children : []
+  return 1 + Math.max(0, ...children.map(treeDepth))
 }
 
 const hydrateFromLogicTree = (tree) => {
@@ -216,28 +249,34 @@ const hydrateFromLogicTree = (tree) => {
   return rows
 }
 
+// Render as LOCAL time for <input type="datetime-local"> — the browser parses
+// the value back as local time on save, so rendering UTC via toISOString()
+// here would shift the stored date by the timezone offset on every edit.
 const toDateInput = (val) => {
   if (!val) return ''
   const d = new Date(val)
   if (Number.isNaN(d.getTime())) return ''
-  return d.toISOString().slice(0, 16)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-const flattenAggregation = (agg) => {
-  if (!agg) return {}
-  return {
-    'aggregation.window.value': agg.window?.value ?? '',
-    'aggregation.window.unit':  agg.window?.unit  ?? 'hour',
-    'aggregation.count':        agg.count         ?? '',
-    'aggregation.sumThreshold': agg.sumThreshold  ?? '',
-  }
-}
+// Form state keeps aggregation as a real nested object — react-hook-form
+// resolves dotted field names ("aggregation.window.value") as nested paths,
+// so flat dotted keys would never round-trip through reset/submit.
+const hydrateAggregation = (agg) => ({
+  window: {
+    value: agg?.window?.value ?? '',
+    unit:  agg?.window?.unit  ?? 'hour',
+  },
+  count:        agg?.count        ?? '',
+  sumThreshold: agg?.sumThreshold ?? '',
+})
 
-const buildAggregationPayload = (values) => {
-  const wv    = values['aggregation.window.value']
-  const wu    = values['aggregation.window.unit']
-  const count = values['aggregation.count']
-  const sum   = values['aggregation.sumThreshold']
+const buildAggregationPayload = (agg) => {
+  const wv    = agg?.window?.value
+  const wu    = agg?.window?.unit
+  const count = agg?.count
+  const sum   = agg?.sumThreshold
   if (!wv && !count && !sum) return undefined
   return {
     ...(wv    ? { window: { value: Number(wv), unit: wu || 'hour' } } : {}),
@@ -249,6 +288,10 @@ const buildAggregationPayload = (values) => {
 const toOptions = (values) => values.map((v) => ({ label: v, value: v }))
 
 // ── Zod schema ─────────────────────────────────────────────────────────────
+// Blank ('') must be tried BEFORE number coercion — z.coerce.number() turns
+// '' into 0, which would silently make an untouched threshold input a real 0.
+const blankOrNumber = (min) => z.literal('').or(z.coerce.number().min(min)).optional()
+
 const schema = z.object({
   ruleId:                 z.string().trim().min(1, 'Rule ID is required'),
   ruleName:               z.string().trim().min(1, 'Name is required'),
@@ -264,10 +307,14 @@ const schema = z.object({
   status:                 z.enum(STATUSES).optional(),
   effectiveFrom:          z.string().optional().or(z.literal('')),
   effectiveTo:            z.string().optional().or(z.literal('')),
-  'aggregation.window.value': z.coerce.number().min(1).optional().or(z.literal('')),
-  'aggregation.window.unit':  z.enum(['minute', 'hour', 'day']).optional(),
-  'aggregation.count':        z.coerce.number().min(1).optional().or(z.literal('')),
-  'aggregation.sumThreshold': z.coerce.number().min(0).optional().or(z.literal('')),
+  aggregation: z.object({
+    window: z.object({
+      value: blankOrNumber(1),
+      unit:  z.enum(['minute', 'hour', 'day']).optional(),
+    }),
+    count:        blankOrNumber(1),
+    sumThreshold: blankOrNumber(0),
+  }),
 })
 
 const EMPTY = {
@@ -276,8 +323,7 @@ const EMPTY = {
   caseType: '', riskScore: 0, riskLabel: '',
   appliesTo: 'transaction', status: 'active',
   effectiveFrom: '', effectiveTo: '',
-  'aggregation.window.value': '', 'aggregation.window.unit': 'hour',
-  'aggregation.count': '', 'aggregation.sumThreshold': '',
+  aggregation: hydrateAggregation(null),
 }
 
 // ── Step sidebar item ──────────────────────────────────────────────────────
@@ -364,8 +410,10 @@ function IdentityStep({ form }) {
 }
 
 // ── Step 2: Logic ──────────────────────────────────────────────────────────
-function LogicStep({ form, conditions, setConditions }) {
+function LogicStep({ form, conditions, setConditions, storedLogicIsNested }) {
   const dslPreview = buildDSL(conditions)
+  const dslValue   = form.watch('ruleCondition')
+  const dslOutOfSync = !!dslPreview && !!dslValue?.trim() && dslValue.trim() !== dslPreview
 
   const addCondition    = () => setConditions((p) => [...p, emptyCondition()])
   const removeCondition = (i) => setConditions((p) => p.filter((_, idx) => idx !== i))
@@ -379,6 +427,15 @@ function LogicStep({ form, conditions, setConditions }) {
 
   return (
     <div className="space-y-6">
+
+      {storedLogicIsNested && (
+        <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-sm">
+          This rule stores nested logic groups (e.g. A AND (B OR C)) that this
+          linear builder cannot fully represent. Your saved logic stays
+          untouched unless you edit the conditions below — editing rebuilds it
+          as AND-groups joined by OR.
+        </div>
+      )}
 
       {/* Visual builder */}
       <div>
@@ -420,11 +477,12 @@ function LogicStep({ form, conditions, setConditions }) {
               {/* Condition row */}
               <div className="flex items-start gap-2 p-3 rounded-xl border bg-muted/20 hover:bg-muted/30 transition-colors">
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <Input
-                    placeholder="Field  (e.g. amount)"
+                  {/* Known evaluator fields, creatable for raw schema paths */}
+                  <CreatableSelect
+                    options={CONDITION_FIELD_OPTIONS}
                     value={cond.field}
-                    onChange={(e) => updateCondition(i, 'field', e.target.value)}
-                    className="h-8 text-xs"
+                    onChange={(v) => updateCondition(i, 'field', v)}
+                    placeholder="Field (e.g. amount)"
                   />
                   <Select value={cond.operator} onValueChange={(v) => updateCondition(i, 'operator', v)}>
                     <SelectTrigger className="h-8 text-xs">
@@ -514,6 +572,12 @@ function LogicStep({ form, conditions, setConditions }) {
             required
             placeholder='e.g. "amount > 50000 AND country IN [IR, KP]"'
           />
+          {dslOutOfSync && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 -mt-2 px-0.5">
+              The engine executes the visual builder logic above, not this text —
+              click <strong>Sync to DSL</strong> to keep them aligned.
+            </p>
+          )}
           <FormField
             form={form}
             name="descriptiveExplanation"
@@ -529,7 +593,7 @@ function LogicStep({ form, conditions, setConditions }) {
 }
 
 // ── Step 3: Classification ─────────────────────────────────────────────────
-function ClassificationStep({ form }) {
+function ClassificationStep({ form, domains, domainsLoading }) {
   const riskScore = form.watch('riskScore')
   const riskLabel = form.watch('riskLabel')
 
@@ -573,13 +637,17 @@ function ClassificationStep({ form }) {
 
       <Separator />
 
-      {/* Domain */}
+      {/* Domain — existing tenant values as options, creatable for new ones */}
       <div>
         <SectionLabel>Domain</SectionLabel>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField form={form} name="mainDomain"          label="Main Domain"
+          <FormField form={form} name="mainDomain" label="Main Domain"
+            type="creatable" options={domains.mainDomains}
+            loading={domainsLoading}
             placeholder="e.g. AML, Fraud Detection" />
           <FormField form={form} name="ruleDomainSubdomain" label="Sub Domain"
+            type="creatable" options={domains.subDomains}
+            loading={domainsLoading}
             placeholder="e.g. Velocity, Geographic" />
         </div>
       </div>
@@ -592,7 +660,9 @@ function ClassificationStep({ form }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField form={form} name="appliesTo" label="Applies To"
             type="select" options={toOptions(APPLIES_TO)} />
-          <FormField form={form} name="category"  label="Category"
+          <FormField form={form} name="category" label="Category"
+            type="creatable" options={domains.categories}
+            loading={domainsLoading}
             placeholder="threshold, velocity, geography, …" />
         </div>
       </div>
@@ -772,9 +842,38 @@ export default function RuleForm({ mode = 'create', id, onCancel, onSaved }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading,    setIsLoading]    = useState(mode === 'edit')
   const [conditions,   setConditions]   = useState([emptyCondition()])
-  const [actions,      setActions]      = useState([{ type: 'create_alert' }])
+  const [actions,      setActions]      = useState([{ type: 'create_alert', params: {} }])
+
+  // The linear builder can't represent nested logic (A AND (B OR C)) — keep
+  // the stored tree and only rebuild when the user actually edits conditions,
+  // so opening Edit + Save never silently rewrites a rule's semantics.
+  const [originalLogic, setOriginalLogic] = useState(null)
+  const [builderDirty,  setBuilderDirty]  = useState(false)
+
+  const editConditions = (updater) => {
+    setBuilderDirty(true)
+    setConditions(updater)
+  }
+
+  // Existing tenant values feeding the creatable domain/category dropdowns
+  const [domains,        setDomains]        = useState({ mainDomains: [], subDomains: [], categories: [] })
+  const [domainsLoading, setDomainsLoading] = useState(true)
 
   const form = useForm({ defaultValues: EMPTY, resolver: zodResolver(schema) })
+
+  useEffect(() => {
+    getRuleDomains()
+      .then((res) => {
+        if (res?.success) {
+          setDomains({
+            mainDomains: res.mainDomains ?? [],
+            subDomains:  res.subDomains  ?? [],
+            categories:  res.categories  ?? [],
+          })
+        }
+      })
+      .finally(() => setDomainsLoading(false))
+  }, [])
 
   // ── Hydrate (edit mode) ──────────────────────────────────────────────────
   useEffect(() => {
@@ -786,21 +885,32 @@ export default function RuleForm({ mode = 'create', id, onCancel, onSaved }) {
         const res = await getRuleById(id)
         if (cancelled) return
         if (res?.success && res.data) {
+          // Only lift form-owned keys out of the API document — server-only
+          // fields (_id, client, hitCount, …) stay out of the form state.
+          const fromServer = {}
+          for (const key of Object.keys(EMPTY)) {
+            if (res.data[key] !== undefined && res.data[key] !== null) {
+              fromServer[key] = res.data[key]
+            }
+          }
           form.reset({
             ...EMPTY,
-            ...res.data,
+            ...fromServer,
             effectiveFrom: toDateInput(res.data.effectiveFrom),
             effectiveTo:   toDateInput(res.data.effectiveTo),
-            ...flattenAggregation(res.data.aggregation),
+            aggregation:   hydrateAggregation(res.data.aggregation),
           })
           const logicTree = res.data.logic
+          setOriginalLogic(logicTree ?? null)
           if (logicTree && (logicTree.logic || logicTree.field)) {
             setConditions(hydrateFromLogicTree(logicTree))
           } else {
             setConditions(hydrateConditions(res.data.conditions))
           }
           if (Array.isArray(res.data.actions) && res.data.actions.length) {
-            setActions(res.data.actions.map((a) => ({ type: a.type })))
+            // Keep params — dropping them here would silently wipe existing
+            // action configuration on the next save.
+            setActions(res.data.actions.map((a) => ({ type: a.type, params: a.params || {} })))
           }
         } else {
           toast.error(res?.message || 'Failed to load rule')
@@ -818,9 +928,13 @@ export default function RuleForm({ mode = 'create', id, onCancel, onSaved }) {
   const onSubmit = async (values) => {
     setIsSubmitting(true)
     try {
-      const aggregation          = buildAggregationPayload(values)
+      const aggregation          = buildAggregationPayload(values.aggregation)
       const structuredConditions = buildConditions(conditions)
       const logicTree            = buildLogicTree(conditions)
+
+      // Builder untouched on edit → leave stored logic/conditions exactly as
+      // they are (protects nested trees the builder can't round-trip).
+      const keepStoredLogic = mode === 'edit' && !builderDirty && !!originalLogic
 
       const payload = {
         ruleId:                 values.ruleId,
@@ -837,10 +951,13 @@ export default function RuleForm({ mode = 'create', id, onCancel, onSaved }) {
         status:                 values.status,
         effectiveFrom:          values.effectiveFrom ? new Date(values.effectiveFrom) : null,
         effectiveTo:            values.effectiveTo   ? new Date(values.effectiveTo)   : null,
-        ...(aggregation                 ? { aggregation }                           : {}),
-        ...(structuredConditions.length ? { conditions: structuredConditions }      : {}),
-        logic:   logicTree ?? null,
-        actions: actions.filter((a) => a.type).map((a) => ({ type: a.type, params: {} })),
+        // Always send these keys — omitting them on edit would leave the
+        // previously saved value on the server after the user cleared it.
+        aggregation: aggregation ?? null,
+        ...(keepStoredLogic
+          ? {} // stored logic/conditions stay verbatim
+          : { conditions: structuredConditions, logic: logicTree ?? null }),
+        actions: actions.filter((a) => a.type).map((a) => ({ type: a.type, params: a.params || {} })),
       }
 
       const res = mode === 'edit' ? await updateRule(id, payload) : await createRule(payload)
@@ -858,17 +975,40 @@ export default function RuleForm({ mode = 'create', id, onCancel, onSaved }) {
   }
 
   // ── Action handlers ──────────────────────────────────────────────────────
-  const addAction    = () => setActions((p) => [...p, { type: 'create_alert' }])
+  const addAction    = () => setActions((p) => [...p, { type: 'create_alert', params: {} }])
   const removeAction = (i) => setActions((p) => p.filter((_, idx) => idx !== i))
   const updateAction = (i, type) =>
     setActions((p) => p.map((a, idx) => (idx === i ? { ...a, type } : a)))
+
+  // ── Invalid submit ───────────────────────────────────────────────────────
+  // Jump to the step holding the first invalid field — without this, a failed
+  // save triggered from another step looks like a dead Save button.
+  const FIELD_STEP = {
+    ruleId: 1, ruleName: 1,
+    ruleCondition: 2, descriptiveExplanation: 2,
+    caseType: 3, riskScore: 3, riskLabel: 3,
+    mainDomain: 3, ruleDomainSubdomain: 3, category: 3, appliesTo: 3,
+    status: 4, effectiveFrom: 4, effectiveTo: 4, aggregation: 4,
+  }
+  const onInvalid = (errors) => {
+    const firstField = Object.keys(errors)[0]
+    if (FIELD_STEP[firstField]) setStep(FIELD_STEP[firstField])
+    toast.error('Some required fields are missing or invalid')
+  }
 
   // ── Step content ─────────────────────────────────────────────────────────
   const renderStep = () => {
     switch (step) {
       case 1: return <IdentityStep form={form} />
-      case 2: return <LogicStep form={form} conditions={conditions} setConditions={setConditions} />
-      case 3: return <ClassificationStep form={form} />
+      case 2: return (
+        <LogicStep
+          form={form}
+          conditions={conditions}
+          setConditions={editConditions}
+          storedLogicIsNested={treeDepth(originalLogic) > 2}
+        />
+      )
+      case 3: return <ClassificationStep form={form} domains={domains} domainsLoading={domainsLoading} />
       case 4: return <LifecycleStep form={form} />
       case 5: return <ActionsStep actions={actions} addAction={addAction} removeAction={removeAction} updateAction={updateAction} />
       default: return null
@@ -893,7 +1033,7 @@ export default function RuleForm({ mode = 'create', id, onCancel, onSaved }) {
   const StepIcon = currentStepInfo.icon
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    <form onSubmit={form.handleSubmit(onSubmit, onInvalid)}>
       <div className="flex gap-6">
 
         {/* ── Sidebar (desktop) ───────────────────────────────────────────── */}
@@ -957,7 +1097,7 @@ export default function RuleForm({ mode = 'create', id, onCancel, onSaved }) {
           {/* Step header */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="hidden lg:inline">
-              {STEPS.slice(0, step - 1).map((s, i) => (
+              {STEPS.slice(0, step - 1).map((s) => (
                 <React.Fragment key={s.id}>
                   <button type="button" onClick={() => setStep(s.id)}
                     className="hover:text-foreground transition-colors">

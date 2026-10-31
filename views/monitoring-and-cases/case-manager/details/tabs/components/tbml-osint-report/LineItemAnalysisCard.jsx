@@ -120,12 +120,24 @@ export default function LineItemAnalysisCard({ lineItem, defaultOpen = true }) {
                 </div>
               </>
             )}
+            {/* Two different questions the engine answers separately: whether
+                the DECLARED price could be tested, and whether market data was
+                found at all. "Market SUFFICIENT / declared NONE" is the normal
+                shape of "we found a price, but not in a comparable unit". */}
             <div className="flex flex-col gap-1">
-              <span className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">Data availability</span>
+              <span className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">Price testable</span>
               <span className={cn("w-fit rounded px-1.5 py-0.5 font-semibold", chipClass(lineItem.dataAvailability?.startsWith("SUFFICIENT") ? "ok" : "mute"))}>
                 {lineItem.dataAvailability}
               </span>
             </div>
+            {lineItem.marketDataAvailability && (
+              <div className="flex flex-col gap-1">
+                <span className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">Market data</span>
+                <span className={cn("w-fit rounded px-1.5 py-0.5 font-semibold", chipClass(lineItem.marketDataAvailability.startsWith("SUFFICIENT") ? "ok" : "mute"))}>
+                  {lineItem.marketDataAvailability}
+                </span>
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <span className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">Risk</span>
               <span className={cn("w-fit rounded px-1.5 py-0.5 font-semibold", chipClass(riskChipKind))}>
@@ -149,7 +161,17 @@ export default function LineItemAnalysisCard({ lineItem, defaultOpen = true }) {
 
           {lineItem.marketEvidence?.length > 0 && (
             <div className="flex flex-col gap-1.5 border-t border-dashed border-border pt-3">
-              <span className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">Market evidence used</span>
+              <span className="text-[10.5px] font-semibold tracking-wide text-muted-foreground uppercase">
+                Market evidence used
+                {/* Say how much is not shown, so the list never reads as the
+                    whole basis when it is a sample of it. */}
+                {lineItem.marketEvidenceTotal > lineItem.marketEvidence.length && (
+                  <span className="ml-1.5 font-normal normal-case">
+                    — showing {lineItem.marketEvidence.length} of {lineItem.marketEvidenceTotal};
+                    the rest are in References
+                  </span>
+                )}
+              </span>
               {lineItem.marketEvidence.map((e, i) => (
                 <p key={i} className="text-xs leading-relaxed text-muted-foreground">
                   <span className="font-mono text-primary">{e.source}</span> — {e.quote}

@@ -8,14 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Upload } from "lucide-react";
 
-const OFFENCE_TYPES = [
-  "Financing of terrorism",
-  "Money laundering",
-  "Offence against a Commonwealth, State or Territory law",
-  "Person/agent is not who they claim to be",
-  "Proceeds of crime",
-  "Tax evasion",
-];
+// Shared with the detail view and mirrored by the seeder — a value written
+// outside this list renders as an unticked box and drops out of the report.
+import { OFFENCE_TYPES } from "./options";
 
 export function PartG({ data, updateData }) {
   const [selectedOffences, setSelectedOffences] = useState(

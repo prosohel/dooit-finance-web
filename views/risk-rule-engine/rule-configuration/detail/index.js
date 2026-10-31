@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft, Clock, Eye, Pencil, Shield, ShieldOff,
+  ArrowLeft, Clock, Eye, FlaskConical, Pencil, Shield, ShieldOff,
   Tag, Trash2, Users, Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -21,6 +21,7 @@ import {
   getRuleById,
   deleteRule,
 } from '@/app/dashboard/client/risk-rule-engine/rule-configuration/actions'
+import BackTestRunner from '@/views/risk-rule-engine/back-test/BackTestRunner'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -249,19 +250,27 @@ export default function RuleDetail({ id }) {
           </p>
         </div>
 
-        {/* Write actions — only shown when user owns this rule type */}
-        {canWrite && (
-          <div className="flex gap-2 shrink-0">
-            <Button size="sm" variant="outline"
-              onClick={() => router.push(`${LIST_PATH}/${id}/edit`)}>
-              <Pencil className="w-4 h-4 mr-1" /> Edit
-            </Button>
-            <Button size="sm" variant="destructive"
-              onClick={() => setConfirmDelete(true)}>
-              <Trash2 className="w-4 h-4 mr-1" /> Delete
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2 shrink-0">
+          {/* Back Test is read-only — available to anyone who can view the rule */}
+          <Button size="sm" variant="outline"
+            onClick={() => router.push(`/dashboard/client/risk-rule-engine/back-test?rule=${id}`)}>
+            <FlaskConical className="w-4 h-4 mr-1" /> Back Test
+          </Button>
+
+          {/* Write actions — only shown when user owns this rule type */}
+          {canWrite && (
+            <>
+              <Button size="sm" variant="outline"
+                onClick={() => router.push(`${LIST_PATH}/${id}/edit`)}>
+                <Pencil className="w-4 h-4 mr-1" /> Edit
+              </Button>
+              <Button size="sm" variant="destructive"
+                onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="w-4 h-4 mr-1" /> Delete
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Main grid ───────────────────────────────────────────────────────── */}
@@ -445,6 +454,20 @@ export default function RuleDetail({ id }) {
           </Card>
 
         </div>
+      </div>
+
+      {/* ── Back Test — replay this rule against history, in place ──────────── */}
+      <div className="space-y-2 pt-2">
+        <div>
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <FlaskConical className="w-4 h-4" /> Back Test
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Replay this rule against historical transactions — read-only, no
+            alerts are created.
+          </p>
+        </div>
+        <BackTestRunner rule={rule} />
       </div>
 
       {/* ── Delete confirmation ──────────────────────────────────────────────── */}

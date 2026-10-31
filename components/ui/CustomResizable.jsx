@@ -299,7 +299,9 @@ const CustomResizableTable = ({
                         return (
                           <TableCell
                             key={header.id}
-                            className={'    first:border-l  font-bold  '}
+                            // Same dividers as the loaded rows, so the table
+                            // does not change shape when the data arrives.
+                            className="border-r border-border font-bold last:border-r-0"
                           >
                             <Skeleton className="w-full h-10 animate-pulse" />
                           </TableCell>
@@ -325,7 +327,15 @@ const CustomResizableTable = ({
                       >
                         {orderedColumns.map((column) => {
                           return (
-                            <TableCell key={column.id} className="border-r-0">
+                            // Column dividers: the header row draws them, so a
+                            // body without them left every column open below the
+                            // first line. `border-border` is a lighter step than
+                            // the header's gray-300 — the same rule repeated down
+                            // hundreds of rows reads as a grid, not as structure.
+                            <TableCell
+                              key={column.id}
+                              className="border-r border-border last:border-r-0"
+                            >
                               {column.cell
                                 ? column.cell({
                                     row: {

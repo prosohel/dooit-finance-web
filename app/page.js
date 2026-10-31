@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 export default function HomePage() {
   const session = useSession();
   const router = useRouter();
-  console.log("session", session);
   useEffect(() => {
     if (session?.data) {
       if (session.data?.user?.userType === "dooit") {

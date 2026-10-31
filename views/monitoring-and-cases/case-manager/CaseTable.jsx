@@ -71,6 +71,58 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
 
   const columns = [
     {
+      id: "actions",
+      header: "Actions",
+      size: 90,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={(e) => { e.stopPropagation(); handleRowClick(row.original); }}
+          >
+            <IconEye className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(
+                `/dashboard/client/monitoring-and-cases/case-manager/${row.original._id}/edit`
+              );
+            }}
+          >
+            <IconEdit className="size-4" />
+          </Button>
+        </div>
+      ),
+    },
+    {
+      // The case's own reference, first after the row actions — it is what an
+      // analyst quotes in a filing, an email or a ticket, and it was not on
+      // this table at all.
+      id: "uid",
+      header: "Case ID",
+      accessorKey: "uid",
+      size: 170,
+      cell: ({ row }) => (
+        <button
+          type="button"
+          className="text-left font-mono text-xs font-semibold text-heading hover:underline"
+          onClick={() => handleRowClick(row.original)}
+          title={row.original.uid || undefined}
+        >
+          {/* A case saved before uids were minted reliably has none; show a
+              short form of its id rather than an empty cell, marked so nobody
+              mistakes it for a real case reference (docs/74 C17). */}
+          {row.original.uid || `#${String(row.original._id || "").slice(-8)}`}
+        </button>
+      ),
+    },
+    {
       id: "title",
       header: "Case Title",
       accessorKey: "title",
@@ -194,36 +246,6 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
         <span className="text-sm text-muted-foreground">
           {dateShowFormat(row.original.updatedAt)}
         </span>
-      ),
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      size: 90,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={(e) => { e.stopPropagation(); handleRowClick(row.original); }}
-          >
-            <IconEye className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(
-                `/dashboard/client/monitoring-and-cases/case-manager/${row.original._id}/edit`
-              );
-            }}
-          >
-            <IconEdit className="size-4" />
-          </Button>
-        </div>
       ),
     },
   ];

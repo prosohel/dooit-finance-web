@@ -93,6 +93,49 @@ export async function removeCustomerDocument(id, url) {
   return response.json();
 }
 
+// ── Source of Funds (SOF) verification — QR/no-login upload flow ────────────
+// The upload link/QR is keyed by customer id only (no rotating token) and is
+// auto-provisioned server-side the first time it's read — nothing to
+// "generate" from the UI.
+export async function getSofVerification(customerId) {
+  const response = await fetchWithAuth(`sof-verification/customer/${customerId}`, {
+    method: "GET",
+  });
+  return response.json();
+}
+
+// payload: { email?, caseId? } — email falls back to the customer's KYC address
+// if omitted; caseId links the RFI this raises to that case.
+export async function sendSofVerificationEmail(customerId, payload = {}) {
+  const response = await fetchWithAuth(`sof-verification/${customerId}/send-email`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return response.json();
+}
+
+// payload: { status: "verified" | "rejected" | "needs_review", note? }
+export async function reviewSofDocument(customerId, docId, payload) {
+  const response = await fetchWithAuth(
+    `sof-verification/${customerId}/documents/${docId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+  return response.json();
+}
+
+// Re-run OCR on a stored document (e.g. after an OCR outage left it
+// needs_review) — the API pulls the file back from the vault itself.
+export async function reprocessSofDocument(customerId, docId) {
+  const response = await fetchWithAuth(
+    `sof-verification/${customerId}/documents/${docId}/reprocess`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+  return response.json();
+}
+
 export async function getCustomerStats(queryParams = {}) {
   const queryString = getQueryString(queryParams);
   const url = `customer/stats${queryString ? `?${queryString}` : ""}`;
@@ -197,62 +240,77 @@ export const getCustomerRelationsGraph = async (id) => {
   });
   return response.json();
 };
-const OSINT_URL = process.env.NEXT_PUBLIC_OSINT_URL;
-const X_API_KEY = process.env.NEXT_PUBLIC_OSINT_API_KEY;
-const DB_SOURCE = process.env.NEXT_PUBLIC_DB_SOURCE;
+// ── OSINT Engine (https://osint.dooit.ai/docs) ───────────────────────────────
+// Adverse-media / open-source screening for a customer or company. Server-side
+// only: the engine authenticates with a shared X-API-Key that must never reach
+// a browser, which is why every call below lives in this "use server" module.
+//
+// TBML screening is NOT here — it goes through our own API (/api/v1/tbml),
+// which owns the key, scopes a run to a case and caches the result. See
+// app/dashboard/client/monitoring-and-cases/case-manager/tbml-actions.js.
 
-const osint_search_url = `${OSINT_URL}/osint_searx`;
-const tbml_osint_url = `${OSINT_URL}/osint/tbml`;
+// `NEXT_PUBLIC_OSINT_URL` is configured pointing at the SearXNG sub-path
+// (…/api/v1/osint_searx), but every call here appends its own path segment.
+// Taking it literally produced …/osint_searx/osint_searx, which 404s — the
+// whole OSINT tab was dead. Trim the sub-path so both spellings of the env var
+// resolve to the service root.
+const OSINT_BASE_URL = (
+  process.env.OSINT_API_URL ||
+  process.env.NEXT_PUBLIC_OSINT_URL ||
+  "https://osint.dooit.ai/api/v1"
+)
+  .replace(/\/+$/, "")
+  .replace(/\/osint_searx$/, "");
 
-export const createOSINTdata = async (data) => {
-  const url = `${osint_search_url}`;
-  const response = await fetch(url, {
-    method: "POST",
-    body: JSON.stringify({ ...data, db_source: DB_SOURCE }),
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": X_API_KEY,
-    },
-  });
-  return response.json();
+// Prefer the server-only names. The NEXT_PUBLIC_ fallbacks keep existing
+// deployments working; the prefix marks a value as safe to ship to the browser,
+// which this key is not.
+const X_API_KEY = process.env.OSINT_API_KEY || process.env.NEXT_PUBLIC_OSINT_API_KEY || "";
+
+// 1 = production records, 2 = stage. The engine has no default and rejects a
+// request that omits it rather than routing to production on the caller's
+// behalf; anything but an explicit 1 resolves to stage here for the same reason.
+const dbSource = () =>
+  Number(process.env.OSINT_DB_SOURCE ?? process.env.NEXT_PUBLIC_DB_SOURCE) === 1 ? 1 : 2;
+
+/**
+ * One request to the engine, with the key attached and the db_source stamped.
+ *
+ * Always resolves: an error page or an empty body comes back as
+ * `{ detail: ... }` rather than throwing, because these run inside server
+ * actions where a throw reaches the client as an opaque error.
+ */
+const osintFetch = async (path, { method = "GET", body } = {}) => {
+  const url = new URL(`${OSINT_BASE_URL}${path}`);
+  url.searchParams.set("db_source", String(dbSource()));
+
+  try {
+    const response = await fetch(url, {
+      method,
+      ...(body && { body: JSON.stringify({ ...body, db_source: dbSource() }) }),
+      headers: {
+        ...(body && { "Content-Type": "application/json" }),
+        "X-API-Key": X_API_KEY,
+      },
+      cache: "no-store",
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error("[osint] request failed:", path, error.message);
+    return { detail: "The OSINT service could not be reached." };
+  }
 };
 
-export const getOSINTdata = async (entityType, entityId) => {
-  const url = `${osint_search_url}/${entityType}/${entityId}?db_source=${DB_SOURCE}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "X-API-Key": X_API_KEY,
-    },
-  });
-  return response.json();
-};
-export const getOSINTdataSources = async (entityType, entityId) => {
-  const url = `${osint_search_url}/${entityType}/${entityId}/sources?db_source=${DB_SOURCE}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "X-API-Key": X_API_KEY,
-    },
-  });
-  return response.json();
-};
+export const createOSINTdata = async (data) => osintFetch("/osint_searx", { method: "POST", body: data });
 
-export const getOSINTScreenshots = async (entityType, entityId) => {
-  const url = `https://osint.dooit.ai/api/v1/osint/${entityType}/${entityId}/screenshots`;
-  const response = await fetch(url, {
-    method: "GET",
-  });
-  return response.json();
-};
+export const getOSINTdata = async (entityType, entityId) =>
+  osintFetch(`/osint_searx/${entityType}/${entityId}`);
 
-export const getTBMLosintReportDetails = async (reportId) => {
-  const url = `${tbml_osint_url}/reports/${reportId}?db_source=${DB_SOURCE}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "X-API-Key": X_API_KEY,
-    },
-  });
-  return response.json();
-};
+export const getOSINTdataSources = async (entityType, entityId) =>
+  osintFetch(`/osint_searx/${entityType}/${entityId}/sources`);
+
+// Screenshots live under /osint, not /osint_searx — and, like everything else
+// here, need the key: this call used to go out bare and come back 401.
+export const getOSINTScreenshots = async (entityType, entityId) =>
+  osintFetch(`/osint/${entityType}/${entityId}/screenshots`);

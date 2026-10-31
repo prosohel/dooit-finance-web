@@ -2,7 +2,9 @@
 
 import { cn } from "@/lib/utils";
 
-const SEVERITY_KIND = { HIGH: "danger", MEDIUM: "warn", LOW: "mute" };
+// The engine's RiskLevel enum runs to CRITICAL; without it a critical finding
+// would fall through to the muted style and read as the mildest on the card.
+const SEVERITY_KIND = { CRITICAL: "danger", HIGH: "danger", MEDIUM: "warn", LOW: "mute" };
 
 const WRAP_STYLES = {
   danger: "border-danger/20 bg-danger/5",

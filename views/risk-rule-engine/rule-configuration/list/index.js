@@ -4,15 +4,15 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  ArrowUpDown, ChevronLeft, ChevronRight,
-  Download, Eye, Pencil, Plus, Trash2, Upload, X,
+  ArrowUpDown, ChevronLeft, ChevronRight, ExternalLink,
+  Download, Eye, FlaskConical, Pencil, Plus, Trash2, Upload, X,
 } from 'lucide-react'
 import useGetUser from '@/hooks/useGetUser'
 
-import { Button }   from '@/components/ui/button'
-import { Input }    from '@/components/ui/input'
-import { Badge }    from '@/components/ui/badge'
-import { Switch }   from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -22,6 +22,10 @@ import {
   AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog'
+import BackTestRunner from '@/views/risk-rule-engine/back-test/BackTestRunner'
 import { PageDescription, PageHeader, PageTitle } from '@/components/common'
 import {
   getAllRules,
@@ -42,38 +46,41 @@ const CustomResizableTable = dynamic(
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE_PATH  = '/dashboard/client/risk-rule-engine/rule-configuration'
-const LIMIT      = 25
+const BASE_PATH = '/dashboard/client/risk-rule-engine/rule-configuration'
+const LIMIT = 25
 
-const CASE_TYPES  = ['Fraud', 'AML', 'Compliance', 'TF']
+const CASE_TYPES = ['Fraud', 'AML', 'Compliance', 'TF']
 const RISK_LABELS = ['Low', 'Medium', 'High', 'Critical', 'Info']
-const STATUSES    = ['draft', 'active', 'paused', 'archived']
+const STATUSES = ['draft', 'active', 'paused', 'archived']
+// Evaluation subjects in scope (account was dropped from the rule engine)
+const APPLIES_TO = ['transaction', 'customer']
 
 const RISK_VARIANT = {
   Critical: 'destructive',
-  High:     'destructive',
-  Medium:   'secondary',
-  Low:      'outline',
-  Info:     'outline',
+  High: 'destructive',
+  Medium: 'secondary',
+  Low: 'outline',
+  Info: 'outline',
 }
 
 const SORT_FIELDS = [
-  { value: 'createdAt',           label: 'Date Created' },
-  { value: 'ruleId',              label: 'Rule ID'      },
-  { value: 'ruleName',            label: 'Name'         },
-  { value: 'riskScore',           label: 'Risk Score'   },
-  { value: 'caseType',            label: 'Case Type'    },
-  { value: 'mainDomain',          label: 'Main Domain'  },
-  { value: 'ruleDomainSubdomain', label: 'Sub Domain'   },
-  { value: 'status',              label: 'Status'       },
+  { value: 'createdAt', label: 'Date Created' },
+  { value: 'ruleId', label: 'Rule ID' },
+  { value: 'ruleName', label: 'Name' },
+  { value: 'riskScore', label: 'Risk Score' },
+  { value: 'caseType', label: 'Case Type' },
+  { value: 'mainDomain', label: 'Main Domain' },
+  { value: 'ruleDomainSubdomain', label: 'Sub Domain' },
+  { value: 'status', label: 'Status' },
 ]
 
 const EMPTY_FILTERS = {
-  search:              '',
-  caseType:            '',
-  riskLabel:           '',
-  status:              '',
-  mainDomain:          '',
+  search: '',
+  caseType: '',
+  riskLabel: '',
+  status: '',
+  appliesTo: '',
+  mainDomain: '',
   ruleDomainSubdomain: '',
 }
 
@@ -84,15 +91,16 @@ const EMPTY_FILTERS = {
 const buildQS = (ruleType, f, sort, order, page) => {
   const p = new URLSearchParams()
   p.set('ruleType', ruleType)
-  if (f.search)              p.set('search',              f.search)
-  if (f.caseType)            p.set('caseType',            f.caseType)
-  if (f.riskLabel)           p.set('riskLabel',           f.riskLabel)
-  if (f.status)              p.set('status',              f.status)
-  if (f.mainDomain)          p.set('mainDomain',          f.mainDomain)
+  if (f.search) p.set('search', f.search)
+  if (f.caseType) p.set('caseType', f.caseType)
+  if (f.riskLabel) p.set('riskLabel', f.riskLabel)
+  if (f.status) p.set('status', f.status)
+  if (f.appliesTo) p.set('appliesTo', f.appliesTo)
+  if (f.mainDomain) p.set('mainDomain', f.mainDomain)
   if (f.ruleDomainSubdomain) p.set('ruleDomainSubdomain', f.ruleDomainSubdomain)
-  p.set('sort',  sort)
+  p.set('sort', sort)
   p.set('order', order)
-  p.set('page',  page)
+  p.set('page', page)
   p.set('limit', LIMIT)
   return p.toString()
 }
@@ -110,25 +118,26 @@ export default function RuleConfigurationList() {
   const [activeTab, setActiveTab] = useState('system')
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const [data,         setData]         = useState([])
+  const [data, setData] = useState([])
   const [totalRecords, setTotalRecords] = useState(0)
-  const [totalPages,   setTotalPages]   = useState(1)
-  const [loading,      setLoading]      = useState(false)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(false)
 
   // ── Domain options ────────────────────────────────────────────────────────
   const [mainDomainOptions, setMainDomainOptions] = useState([])
-  const [subDomainOptions,  setSubDomainOptions]  = useState([])
+  const [subDomainOptions, setSubDomainOptions] = useState([])
 
   // ── Filter / sort / page ──────────────────────────────────────────────────
   const [filters, setFilters] = useState(EMPTY_FILTERS)
-  const [sort,    setSort]    = useState('createdAt')
-  const [order,   setOrder]   = useState('desc')
-  const [page,    setPage]    = useState(1)
+  const [sort, setSort] = useState('createdAt')
+  const [order, setOrder] = useState('desc')
+  const [page, setPage] = useState(1)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [pendingDelete, setPendingDelete] = useState(null)
+  const [backtestTarget, setBacktestTarget] = useState(null) // row shown in the back-test modal
   const importInputRef = useRef(null)
-  const searchTimer    = useRef(null)
+  const searchTimer = useRef(null)
 
   // ── Access flags ──────────────────────────────────────────────────────────
   // Who may edit/delete/toggle in the active tab?
@@ -141,7 +150,7 @@ export default function RuleConfigurationList() {
     getRuleDomains().then(res => {
       if (res?.success) {
         setMainDomainOptions(res.mainDomains ?? [])
-        setSubDomainOptions(res.subDomains   ?? [])
+        setSubDomainOptions(res.subDomains ?? [])
       }
     })
   }, [])
@@ -156,7 +165,7 @@ export default function RuleConfigurationList() {
       if (!res?.success) { toast.error(res?.message || 'Failed to load rules'); return }
       setData(Array.isArray(res.data) ? res.data : [])
       setTotalRecords(res.totalRecords ?? 0)
-      setTotalPages(res.totalPages    ?? 1)
+      setTotalPages(res.totalPages ?? 1)
     } catch (e) {
       toast.error(e?.message || 'Failed to load rules')
     } finally {
@@ -240,9 +249,9 @@ export default function RuleConfigurationList() {
     const res = await exportRulesCsv()
     if (!res?.success) { toast.error(res?.message || 'Export failed'); return }
     const bytes = Uint8Array.from(atob(res.data), c => c.charCodeAt(0))
-    const blob  = new Blob([bytes], { type: 'text/csv' })
-    const url   = URL.createObjectURL(blob)
-    const a     = document.createElement('a')
+    const blob = new Blob([bytes], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
     a.href = url; a.download = res.filename || 'rule-engine.csv'
     document.body.appendChild(a); a.click(); a.remove()
     URL.revokeObjectURL(url)
@@ -257,7 +266,7 @@ export default function RuleConfigurationList() {
     if (res?.success) {
       toast.success(
         `Import: ${res.inserted} added, ${res.updated} updated` +
-        (res.skipped    ? `, ${res.skipped} skipped`        : '') +
+        (res.skipped ? `, ${res.skipped} skipped` : '') +
         (res.autoFilled ? `, ${res.autoFilled} auto-filled` : '')
       )
       refreshDomains()
@@ -272,14 +281,22 @@ export default function RuleConfigurationList() {
   const columns = useMemo(() => {
     const cols = []
 
-    // Actions column — view always; edit/delete only when canWrite
+    // Actions column — view + back test always; edit/delete only when canWrite
     cols.push({
-      id: 'actions', header: 'Actions', size: canWrite ? 130 : 80,
+      id: 'actions', header: 'Actions', size: canWrite ? 170 : 120,
       cell: ({ row }) => (
         <div className="flex gap-1">
           <Button variant="outline" size="sm" title="View"
             onClick={() => router.push(`${BASE_PATH}/${row.original._id}`)}>
             <Eye className="w-3 h-3" />
+          </Button>
+          <Button variant="outline" size="sm"
+            disabled={row.original.evaluable === false}
+            title={row.original.evaluable === false
+              ? 'No structured logic — cannot be backtested'
+              : 'Back Test'}
+            onClick={() => setBacktestTarget(row.original)}>
+            <FlaskConical className="w-3 h-3" />
           </Button>
           {canWrite && (
             <>
@@ -336,6 +353,16 @@ export default function RuleConfigurationList() {
 
     // Case type
     cols.push({ id: 'caseType', header: 'Case', accessorKey: 'caseType', size: 90 })
+
+    // Applies to — which subject the rule evaluates (transaction / customer)
+    cols.push({
+      id: 'appliesTo', header: 'Applies To', accessorKey: 'appliesTo', size: 110,
+      cell: ({ row }) => (
+        <Badge variant="outline" className="text-xs capitalize">
+          {row.original.appliesTo || 'transaction'}
+        </Badge>
+      ),
+    })
 
     // Risk label + score
     cols.push({
@@ -533,6 +560,19 @@ export default function RuleConfigurationList() {
                 </SelectContent>
               </Select>
 
+              <Select value={filters.appliesTo}
+                onValueChange={v => handleFilterChange('appliesTo', v === '__all' ? '' : v)}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Applies To" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all" className="text-muted-foreground">All subjects</SelectItem>
+                  {APPLIES_TO.map(s => (
+                    <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               {hasFilters && (
                 <Button variant="ghost" size="sm" className="gap-1 shrink-0" onClick={clearFilters}>
                   <X className="w-3.5 h-3.5" /> Clear
@@ -604,6 +644,7 @@ export default function RuleConfigurationList() {
                 <CustomResizableTable
                   columns={columns}
                   data={data}
+                  loading={loading}
                   tableId={`rule-configuration-${tab}-table`}
                   mainClass={`rule-configuration-${tab}-table-id`}
                 />
@@ -648,6 +689,28 @@ export default function RuleConfigurationList() {
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* ── Back-test modal — auto-runs the selected rule in place ──────────── */}
+      <Dialog open={!!backtestTarget} onOpenChange={o => !o && setBacktestTarget(null)}>
+        <DialogContent className="!max-w-[min(1100px,95vw)] max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex flex-wrap items-center gap-2">
+              <FlaskConical className="w-4 h-4 shrink-0" />
+              <span className="font-mono text-sm">{backtestTarget?.ruleId}</span>
+              <span className="truncate">{backtestTarget?.ruleName}</span>
+              <Button variant="ghost" size="sm" className="ml-auto gap-1 text-xs font-normal"
+                onClick={() =>
+                  router.push(`/dashboard/client/risk-rule-engine/back-test?rule=${backtestTarget?._id}`)}>
+                <ExternalLink className="w-3.5 h-3.5" /> Open full page
+              </Button>
+            </DialogTitle>
+            <DialogDescription>
+              Replaying the last 90 days of transactions — read-only, no alerts are created.
+            </DialogDescription>
+          </DialogHeader>
+          {backtestTarget && <BackTestRunner rule={backtestTarget} autoRun />}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Delete confirmation ──────────────────────────────────────────────── */}
       <AlertDialog open={!!pendingDelete} onOpenChange={o => !o && setPendingDelete(null)}>

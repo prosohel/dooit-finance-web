@@ -1,318 +1,231 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useState } from "react";
-import { SearchIcon, EyeIcon, PencilIcon, TrashIcon, PlusIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageDescription, PageHeader, PageTitle } from "@/components/common";
+import { useCallback, useEffect, useState } from 'react';
+import { IconDotsVertical, IconEdit, IconLoader2, IconPlus, IconTrash, IconUserCircle } from '@tabler/icons-react';
+import { toast } from 'sonner';
 
+import { Button } from '@/components/ui/button';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Checkbox } from "@/components/ui/checkbox";
-import { deleteUser, getAllRoles, getAllUsers } from "../actions";
-import dynamic from "next/dynamic";
-import CustomPagination from "@/components/CustomPagination";
-import UserForm from "@/views/user-and-role/form";
-import PermissionDrawer from "@/views/privacy/permissions/PermissionDrawer";
-const CustomResizableTable = dynamic(() => import("@/components/ui/CustomResizable"), {
-  ssr: false,
-});
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { StatusPill } from '@/components/ui/StatusPill';
+import CustomResizableTable from '@/components/ui/CustomResizable';
+import CustomPagination from '@/components/CustomPagination';
+import { PageDescription, PageHeader, PageTitle } from '@/components/common';
+import UserForm from '@/views/user-and-role/form';
+import {
+  deleteUser,
+  getAllRoles,
+  getAllUsers,
+} from '@/app/dashboard/client/user-and-role-management/actions';
 
-export default function UserManagementDashboard() {
-  const [activeTab, setActiveTab] = useState("all-users");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [allRoles, setAllRoles] = useState([]);
-  const [allUsers, setAllUsers] = useState(null);
-  const [loading, setLoading] = useState(true);
+const roleLabel = (user) =>
+  user?.role?.name || (typeof user?.role === 'string' ? user.role : null) || user?.userType || '—';
+
+export default function UsersPage() {
+  const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [fetching, setFetching] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [openUserForm, setOpenUserForm] = useState(false);
-  const [id, setId] = useState(null);
+  const [totalItems, setTotalItems] = useState(0);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    setFetching(true);
+    const res = await getAllUsers({ page: currentPage, limit }).catch(() => null);
+    if (res?.success) {
+      setUsers(res.data ?? []);
+      setTotalItems(res.totalRecords ?? 0);
+    } else {
+      toast.error(res?.error || 'Failed to load users');
+    }
+    setFetching(false);
+  }, [currentPage, limit]);
 
   const fetchRoles = useCallback(async () => {
-    try {
-      const roles = await getAllRoles();
-      setAllRoles(roles);
-    } catch (error) {
-      console.error("Error fetching roles:", error);
-    }
+    const res = await getAllRoles().catch(() => null);
+    if (res?.success || Array.isArray(res?.data)) setRoles(res.data ?? []);
   }, []);
-  const fetchUsers = useCallback(async () => {
-    const queryParams = {
-      page: currentPage,
-      limit: limit,
-    };
 
-    setLoading(true);
-    try {
-      const users = await getAllUsers(queryParams);
-      setAllUsers(users);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, limit]);
-  useEffect(() => {
-    fetchRoles();
-  }, []);
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, limit]);
+  }, [fetchUsers]);
 
-  const statCards = [
-    { label: "Total Users", value: "42" },
-    { label: "Active Users", value: "38" },
-    { label: "Pending", value: "3" },
-    { label: "Suspended", value: "2" },
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const res = await deleteUser(deleteTarget._id).catch(() => null);
+    if (res?.success) {
+      toast.success(`User "${deleteTarget.name}" deleted`);
+      setDeleteTarget(null);
+      fetchUsers();
+    } else {
+      toast.error(res?.error || 'Failed to delete user');
+    }
+    setDeleting(false);
+  };
+
+  const columns = [
+    {
+      id: 'actions',
+      header: 'Actions',
+      accessorKey: 'actions',
+      size: 90,
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <IconDotsVertical className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => {
+                  setEditId(row.original._id);
+                  setFormOpen(true);
+                }}
+              >
+                <IconEdit className="size-3 text-muted-foreground/70" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(row.original)}>
+                <IconTrash className="size-3" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ),
+    },
+    {
+      id: 'name',
+      header: 'Name',
+      accessorKey: 'name',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <IconUserCircle className="size-5 text-muted-foreground" />
+          <div>
+            <p className="font-bold text-gray-700">{row.original.name || '—'}</p>
+            <p className="text-sm text-muted-foreground">{row.original.email || '—'}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'role',
+      header: 'Role',
+      accessorKey: 'role',
+      cell: ({ row }) => <span className="text-sm capitalize">{roleLabel(row.original)}</span>,
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      accessorKey: 'isActive',
+      cell: ({ row }) =>
+        row.original.isActive !== false ? (
+          <StatusPill variant="success">Active</StatusPill>
+        ) : (
+          <StatusPill variant="muted">Inactive</StatusPill>
+        ),
+    },
   ];
 
-  const handleEditUser = (id) => {
-    setId(id);
-    setOpenUserForm(true);
-  };
-  const handleDeleteUser = async (id) => {
-    // try {
-    //   const response = await deleteUser(id)
-    //   if(response.success) {
-    //     fetchUsers()
-    //   }
-    // } catch (error) {
-    //   console.error("Error deleting user:", error);
-    // }
-  };
-
-  const usersColumns = [
-    {
-      id: "actions",
-      header: "Actions",
-      accessorKey: "actions",
-      cell: ({ row }) => (
-        <div className="text-sm text-gray-500 flex items-center gap-2">
-          {/* <Button size="sm" variant="outline" className="">
-            <EyeIcon />
-          </Button> */}
-          <Button
-            size="sm"
-            variant="outline"
-            className=""
-            onClick={() => handleEditUser(row.original._id)}
-          >
-            <PencilIcon />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className=""
-            onClick={() => handleDeleteUser(row.original._id)}
-          >
-            <TrashIcon />
-          </Button>
-        </div>
-      ),
-    },
-    {
-      id: "user",
-      header: "User",
-      accessorKey: "name",
-      cell: ({ row }) => (
-        <div>
-          <p className="text-sm text-gray-700 font-bold capitalize">{row.original.name}</p>
-          <p className="text-sm text-gray-500">{row.original.email}</p>
-        </div>
-      ),
-    },
-    {
-      id: "role",
-      header: "Role",
-      accessorKey: "role",
-      cell: ({ row }) => (
-        <div className=" text-gray-500 border rounded-full flex items-center gap-2 px-3 py-1 w-max">
-          <div className="size-2 rounded-full bg-gray-500" />
-          <p className="text-xs font-semibold">{row.original.role}</p>
-        </div>
-      ),
-    },
-    // {
-    //   id: 'department',
-    //   header: 'Department',
-    //   accessorKey: 'department',
-    //   cell: ({ row }) => (
-    //     <div className='text-sm text-gray-500'>
-    //       <p>{row.original.department}</p>
-    //     </div>
-    //   ),
-    // },
-    // {
-    //   id: 'lastLogin',
-    //   header: 'Last Login',
-    //   accessorKey: 'lastLogin',
-    //   cell: ({ row }) => (
-    //     <div className='text-sm text-gray-500'>
-    //       <p>{row.original.lastLogin}</p>
-    //     </div>
-    //   ),
-    // },
-    // {
-    //   id: 'status',
-    //   header: 'Status',
-    //   accessorKey: 'status',
-    //   cell: ({ row }) => (
-    //     <div className='text-sm text-gray-500'>
-    //       <p>{row.original.status}</p>
-    //     </div>
-    //   ),
-    // },
-  ];
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page.selected + 1);
-  };
-  const handleLimitChange = (limit) => {
-    setLimit(limit);
-    setCurrentPage(1);
-  };
-  const totalUsers = allUsers?.totalRecords;
   return (
-    <div className="min-h-screen ">
-      <PageHeader>
-        <PageTitle>User Management</PageTitle>
-        {/* <PageDescription>Manage users and roles in the system</PageDescription> */}
+    <div className="p-4 md:p-6">
+      <PageHeader className="flex-row items-start justify-between">
+        <div>
+          <PageTitle>Users</PageTitle>
+          <PageDescription>
+            People who can sign in to this workspace and the role each holds.
+          </PageDescription>
+        </div>
+        <Button
+          onClick={() => {
+            setEditId(null);
+            setFormOpen(true);
+          }}
+        >
+          <IconPlus className="size-4" /> Add user
+        </Button>
       </PageHeader>
 
-      <main className="">
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {statCards.map((stat) => (
-            <div key={stat.label} className="bg-smoke-200 rounded-lg p-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{stat.label}</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
-            </div>
-          ))}
-        </div> */}
-        {/* Role Management Section */}
-        {/* <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Roles</h2>
+      <CustomResizableTable
+        columns={columns}
+        data={users}
+        loading={fetching}
+        mainClass="users-table"
+        tableId="users-table"
+      />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {allRoles?.data?.map((role) => (
-              <div key={role.name} className="bg-white border border-gray-200 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 uppercase">{role.name}</h3>
-                <p className="text-sm text-gray-600 mt-3">{role.users} users</p>
-                <PermissionDrawer role={role} />
-              </div>
-            ))}
-          </div>
-        </div> */}
+      <CustomPagination
+        currentPage={currentPage}
+        totalItems={totalItems}
+        limit={limit}
+        onPageChange={(p) => setCurrentPage((p?.selected ?? 0) + 1)}
+        onChangeLimit={(value) => {
+          setLimit(Number(value) || 10);
+          setCurrentPage(1);
+        }}
+      />
 
-        {/* User Management Section */}
-        <div className="mb-12">
-          <Tabs
-            defaultValue="all-users"
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            {/* <TabsList className="border-b border-gray-200 bg-white p-0 mb-4">
-              <TabsTrigger
-                value="all-users"
+      <UserForm
+        open={formOpen}
+        setOpen={setFormOpen}
+        allRoles={roles}
+        fetchUsers={fetchUsers}
+        fetchRoles={fetchRoles}
+        id={editId}
+        setId={setEditId}
+      />
 
-              >
-                All
-              </TabsTrigger>
-              <TabsTrigger
-                value="admins"
-
-              >
-                Admins
-              </TabsTrigger>
-              <TabsTrigger
-                value="compliance"
-
-              >
-                Compliance
-              </TabsTrigger>
-              <TabsTrigger
-                value="analysts"
-
-              >
-                Analysts
-              </TabsTrigger>
-            </TabsList> */}
-
-            <TabsContent value="all-users" className="mt-4">
-              <div className="flex items-center justify-between">
-                {/* filter */}
-                <div>
-                  <div className=" flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 max-w-md w-full">
-                    <SearchIcon className="w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="Search users..."
-                      className="border-0 bg-transparent shadow-none text-sm placeholder:text-gray-400 focus-visible:ring-0"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <Button size="sm" className="" onClick={() => setOpenUserForm(true)}>
-                  <PlusIcon /> Add User
-                </Button>
-              </div>
-
-              {/* Users Table */}
-              <div className=" ">
-                <CustomResizableTable
-                  columns={usersColumns}
-                  data={allUsers?.data}
-                  loading={loading}
-                  tableId="users-table"
-                  mainClass="users-table"
-                />
-                <CustomPagination
-                  currentPage={currentPage}
-                  onPageChange={handlePageChange}
-                  totalItems={totalUsers}
-                  limit={limit}
-                  onChangeLimit={handleLimitChange}
-                />
-              </div>
-            </TabsContent>
-
-            {/* Other tab contents */}
-            {["admins", "compliance", "analysts"].map((tab) => (
-              <TabsContent key={tab} value={tab} className="mt-0">
-                <div className="mb-4 flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
-                  <SearchIcon className="w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search users..."
-                    className="border-0 bg-transparent text-sm placeholder:text-gray-400 focus-visible:ring-0"
-                  />
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                  <p className="text-sm text-gray-500">Users in this category will appear here</p>
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        </div>
-      </main>
-      {openUserForm && (
-        <UserForm
-          open={openUserForm}
-          setOpen={setOpenUserForm}
-          allRoles={allRoles?.data || []}
-          fetchUsers={fetchUsers}
-          id={id}
-          setId={setId}
-          fetchRoles={fetchRoles}
-        />
-      )}
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes {deleteTarget?.name || 'this user'} and all their role
+              memberships. The action is recorded in the audit trail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={deleting}
+              className="bg-danger text-white hover:bg-danger/90"
+            >
+              {deleting ? <IconLoader2 className="size-4 animate-spin" /> : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -20,7 +20,14 @@ import { createRule } from '@/app/dashboard/client/risk-rule-engine/rule-configu
 const CASE_TYPES = ['Fraud', 'AML', 'Compliance', 'TF']
 const RISK_LABELS = ['Low', 'Medium', 'High', 'Critical', 'Info']
 const STATUSES = ['draft', 'active', 'paused', 'archived']
-const APPLIES_TO = ['transaction', 'customer', 'account']
+const APPLIES_TO = ['transaction', 'customer']
+// How the rule evaluates (appliesTo = against what). The builder only produces
+// predicate rules; the others are stamped by the import/repair scripts.
+const ENGINES = [
+  { value: 'predicate', label: 'Predicate (per record)' },
+  { value: 'screening', label: 'Screening (list / PEP / sanctions)' },
+  { value: 'manual',    label: 'Manual (analyst typology)' },
+]
 
 const OPERATORS = [
   { value: 'gt',         label: 'Greater Than' },
@@ -141,6 +148,7 @@ const EMPTY_FORM = {
   riskLabel: 'Medium',
   riskScore: 50,
   appliesTo: 'transaction',
+  engine: 'predicate',
   status: 'active',
   isActive: true,
   effectiveFrom: '',
@@ -285,6 +293,19 @@ export default function RuleEditor({ onSaved }) {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Engine</Label>
+              <Select value={form.engine} onValueChange={(v) => set('engine', v)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ENGINES.map((e) => (
+                    <SelectItem key={e.value} value={e.value} className="text-xs">{e.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">Category</Label>
               <Input

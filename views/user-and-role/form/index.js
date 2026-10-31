@@ -27,43 +27,48 @@ import { Input } from "@/components/ui/input";
 const initialState = {
   name: "",
   email: "",
-  password: "",
   role: "",
   isActive: true,
-  userName: "",
 };
 
-export default function UserForm({ open, setOpen, allRoles, fetchUsers, id, setId, fetchRoles }) {
+export default function UserForm({
+  open,
+  setOpen,
+  allRoles,
+  fetchUsers,
+  id,
+  setId,
+  fetchRoles,
+  isSelf = false,
+}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [newRole, setNewRole] = useState("");
   const [openAddRolePopover, setOpenAddRolePopover] = useState(false);
-  const passwordOptionalSchema = z.object({
-    password: z.string().optional(),
-  });
-  const passwordRequiredSchema = z.object({
-    password: z.string().min(1, "Password is required"),
-  });
-  const commonSchema = z.object({
+  const schema = z.object({
     name: z.string().min(1, "Name is required"),
-    userName: z.string().min(1, "User Name is required"),
     email: z.string().email("Invalid email address"),
     role: z.string().min(1, "Role is required"),
     isActive: z.boolean(),
   });
 
-  const updateSchema = commonSchema.merge(passwordOptionalSchema);
-  const createSchema = commonSchema.merge(passwordRequiredSchema);
-
   const form = useForm({
     defaultValues: initialState,
-    resolver: zodResolver(id ? updateSchema : createSchema),
+    resolver: zodResolver(schema),
   });
   useEffect(() => {
     if (id) {
       const fetchUser = async () => {
-        const response = await getUserById(id);
-        console.log("response", response);
-        form.reset(response.data);
+        setIsLoadingUser(true);
+        try {
+          const response = await getUserById(id);
+          form.reset(response.data);
+        } catch (error) {
+          console.error("error", error);
+          toast.error("Failed to load user!");
+        } finally {
+          setIsLoadingUser(false);
+        }
       };
       fetchUser();
     }
@@ -74,16 +79,16 @@ export default function UserForm({ open, setOpen, allRoles, fetchUsers, id, setI
       const action = id ? updateUser(id, data) : createUser(data);
       const response = await action;
       console.log("response", response);
-      if (response.succeed) {
+      if (response.succeed || response.success) {
         fetchUsers();
         toast.success(id ? "User updated successfully!" : "User created successfully!");
         setOpen(false);
       } else {
-        toast.error("Failed to create user!");
+        toast.error(id ? "Failed to update user!" : "Failed to create user!");
       }
     } catch (error) {
       console.error("error", error);
-      toast.error("Failed to create user!");
+      toast.error(id ? "Failed to update user!" : "Failed to create user!");
     } finally {
       setIsSubmitting(false);
     }
@@ -120,69 +125,71 @@ export default function UserForm({ open, setOpen, allRoles, fetchUsers, id, setI
           <SheetTitle>User</SheetTitle>
           <SheetDescription>Add a new user</SheetDescription>
         </SheetHeader>
-        <div className="space-y-4 px-4.5">
-          <FormField form={form} name="name" label="Name" type="text" placeholder="Name" />
-          <FormField
-            form={form}
-            name="userName"
-            label="User Name"
-            type="text"
-            placeholder="User Name"
-          />
-          <FormField form={form} name="email" label="Email" type="email" placeholder="Email" />
-          <FormField
-            form={form}
-            name="password"
-            label="Password"
-            type="password"
-            placeholder="Password"
-          />
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <FormField
-                form={form}
-                name="role"
-                label="Role"
-                type="select"
-                placeholder="Select Role"
-                options={roleOptions}
-              />
-            </div>
-
-            <Popover open={openAddRolePopover} onOpenChange={setOpenAddRolePopover}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" onClick={() => setOpenAddRolePopover(true)}>
-                  <Plus />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <div>
-                  <Label>Role</Label>
-                  <Input
-                    type="text"
-                    placeholder="Enter Role"
-                    value={newRole}
-                    onChange={(e) => setNewRole(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Button variant="outline" className="w-full mt-2" onClick={handleAddRole}>
-                    Add Role
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+        {isLoadingUser ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-          <FormField form={form} name="isActive" label="Is Active" type="checkbox" />
-          <Button
-            type="submit"
-            className={"w-full"}
-            onClick={form.handleSubmit(onSubmit)}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
-          </Button>
-        </div>
+        ) : (
+          <div className="space-y-4 px-4.5">
+            <FormField form={form} name="name" label="Name" type="text" placeholder="Name" />
+            <FormField form={form} name="email" label="Email" type="email" placeholder="Email" />
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <FormField
+                  form={form}
+                  name="role"
+                  label="Role"
+                  type="select"
+                  placeholder="Select Role"
+                  options={roleOptions}
+                  // You can't change your own role — the API rejects it with 403.
+                  disabled={isSelf}
+                  description={
+                    isSelf ? "You cannot change your own role." : undefined
+                  }
+                />
+              </div>
+
+              <Popover open={openAddRolePopover} onOpenChange={setOpenAddRolePopover}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={isSelf}
+                    onClick={() => setOpenAddRolePopover(true)}
+                  >
+                    <Plus />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <div>
+                    <Label>Role</Label>
+                    <Input
+                      type="text"
+                      placeholder="Enter Role"
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Button variant="outline" className="w-full mt-2" onClick={handleAddRole}>
+                      Add Role
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <FormField form={form} name="isActive" label="Is Active" type="checkbox" />
+            <Button
+              type="submit"
+              className={"w-full"}
+              onClick={form.handleSubmit(onSubmit)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

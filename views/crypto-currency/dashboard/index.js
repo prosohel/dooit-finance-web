@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { CryptoList } from "./CryptoList";
 import { PortfolioCard } from "./PortfolioCard";

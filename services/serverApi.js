@@ -4,6 +4,30 @@ export const NISA_URL = process.env.NEXT_PUBLIC_NISA_BASE_URL || "http://localho
 export const IMAGE_SERVER_URL = process.env.NEXT_PUBLIC_IMAGE_SERVER_URL;
 
 import { auth } from "@/auth";
+import { headers as nextHeaders, cookies as nextCookies } from "next/headers";
+
+// Forward the browser's identity to the API so device/audit telemetry records
+// the real actor, not the Next.js server. Safe outside a request scope (jobs,
+// build) — returns {} when headers()/cookies() are unavailable.
+async function deviceForwardHeaders() {
+  try {
+    const [hdrs, ckies] = await Promise.all([nextHeaders(), nextCookies()]);
+    const fwd = {};
+    const ua = hdrs.get("user-agent");
+    if (ua) fwd["User-Agent"] = ua;
+    // Real client IP as seen by the Next server (left-most hop wins API-side).
+    const xff = hdrs.get("x-forwarded-for");
+    if (xff) fwd["X-Forwarded-For"] = xff;
+    const deviceId = ckies.get("dooit_device_id")?.value;
+    if (deviceId) fwd["X-Device-Id"] = deviceId;
+    const tz = ckies.get("dooit_tz")?.value;
+    if (tz) fwd["X-Timezone"] = tz;
+    return fwd;
+  } catch {
+    return {};
+  }
+}
+
 export async function fetchWithAuth(
   endpoint,
   options = {},
@@ -19,13 +43,15 @@ export async function fetchWithAuth(
       { status: 401, headers: { "Content-Type": "application/json" } }
     );
   }
+  const forward = await deviceForwardHeaders();
   const allOptions = {
+    ...options,
     headers: {
+      ...forward,
       ...options.headers,
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    ...options,
   };
   if (isFile) {
     delete allOptions.headers["Content-Type"];

@@ -2,9 +2,8 @@
 
 import {
   createEcdd,
-  autoPopulatedEcddData,
+  draftEcddReport,
   updateEcdd,
-  getAlertEcddData,
 } from '@/app/dashboard/client/report-compliance/ecdd/actions';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -37,6 +36,21 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { getEcddById } from '@/app/dashboard/client/report-compliance/ecdd/actions';
 import SelectCaseList from './ui/SelectCaseList';
 import SelectCase from './ui/SelectCase';
+
+/** "2026-08-22T14:21:03.187Z" → "2026-08-22" (what a date input wants). */
+const dateOnly = (value) => (value ? String(value).split('T')[0] : '');
+
+/**
+ * Drop the parts of a drafted report that belong to the record, not the form:
+ * the frozen analysis, the alert snapshots and the AI provenance. They are
+ * large, read-only, and would otherwise ride along in every form reset.
+ */
+const stripHeavyFields = (doc = {}) => {
+  // personsOfInterest is read-only here (drafted from the case), so it stays
+  // out of the form values and is never written back by a save.
+  const { analysisSnapshot, alerts, aiMeta, ipAddresses, settings, metadata, personsOfInterest, ...rest } = doc;
+  return rest;
+};
 
 const formSchema = z.object({
   caseNumber: z.object({
@@ -158,6 +172,8 @@ export function ECDDForm({ caseNumber, id }) {
   });
 
   const [lastSaved, setLastSaved] = useState(null);
+  // Who the ECDD covers, as drafted from the case's persons of interest.
+  const [personsOfInterest, setPersonsOfInterest] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
 
@@ -178,39 +194,40 @@ export function ECDDForm({ caseNumber, id }) {
 
   useEffect(() => {
     if (id) {
-      // getDataById();
+      // Editing a saved report. This was disabled, so opening the form from the
+      // register (which navigates with ?id=) showed an empty form and a save
+      // would have written blanks over the stored record.
+      getDataById();
     } else if (caseNumber) {
-      // getDataFromAIAnalysis();
-      getDataFromAlert();
+      // New report — draft it from the case.
+      prefillFromDraft();
     }
   }, [id, caseNumber]);
 
-  const getDataFromAIAnalysis = async () => {
+  /**
+   * Draft this case's ECDD and load it into the form.
+   *
+   * Every figure and identity is computed by our API from our own models; the
+   * AI service contributes only the narrative sections (docs/74 §6.3). This
+   * replaced two older paths that both read AI-shaped payloads in the browser —
+   * one posting to a third-party host, one reading an alert's stored ECDD blob
+   * that was copied from an unrelated alert when the alert had none of its own.
+   */
+  const prefillFromDraft = async () => {
     setFetching(true);
     try {
-      const response = await autoPopulatedEcddData(caseNumber);
-      const formattedData = getFormattedData(response);
-      reset(formattedData);
+      const response = await draftEcddReport(caseNumber);
+      if (response?.succeed && response.data) {
+        reset(mapReportToForm(response.data));
+        setPersonsOfInterest(response.data.personsOfInterest || []);
+      } else {
+        setValue('caseNumber', caseNumber);
+        toast.error(response?.message || 'Could not draft this ECDD');
+      }
     } catch (error) {
       setValue('caseNumber', caseNumber);
-      console.log('Failed to get data', error);
-      // toast.error("Failed to get data");
-    } finally {
-      setFetching(false);
-    }
-  };
-
-  const getDataFromAlert = async () => {
-    setFetching(true);
-    // console.log('caseNumber', caseNumber);
-
-    try {
-      const response = await getAlertEcddData(caseNumber);
-      // console.log('response alet ecdd data', response);
-      const formattedData = getFormattedData(response?.data);
-      reset(formattedData);
-    } catch (error) {
-      console.log('Failed to get data', error);
+      console.error('Failed to draft ECDD', error);
+      toast.error('Could not draft this ECDD');
     } finally {
       setFetching(false);
     }
@@ -220,6 +237,7 @@ export function ECDDForm({ caseNumber, id }) {
     setFetching(true);
     try {
       const response = await getEcddById(id);
+      setPersonsOfInterest(response?.data?.personsOfInterest || []);
       const {
         caseNumber,
         caseId,
@@ -230,7 +248,7 @@ export function ECDDForm({ caseNumber, id }) {
         ...data
       } = response?.data;
       const formattedData = {
-        ...data,
+        ...stripHeavyFields(data),
         caseNumber: {
           label: caseNumber,
           value: caseNumber,
@@ -247,8 +265,17 @@ export function ECDDForm({ caseNumber, id }) {
         transaction: transaction?._id,
         analyst: analyst?._id,
         customer: customer?._id,
-        onboardingDate: customer?.createdAt?.split('T')[0],
-        position: 'Compliance Officer',
+        // customerName is a stored column in its own right — destructuring it
+        // out of `data` dropped it from the form entirely, so reopening a saved
+        // report lost it. Put it back.
+        customerName,
+        // The report's own onboardingDate is authoritative. Reading the
+        // customer's createdAt unconditionally overwrote whatever was saved, so
+        // the stored value could never round-trip.
+        onboardingDate: (data?.onboardingDate || customer?.createdAt)?.split('T')[0] ?? '',
+        // Likewise, a hardcoded position discarded the preparing officer's own
+        // title every time the report was reopened.
+        position: data?.position || 'Compliance Officer',
         accountCreationDate: data?.accountCreationDate?.split('T')[0] ?? '',
         analysisEndDate: data?.analysisEndDate?.split('T')[0] ?? '',
         date: data?.date ? data?.date?.split('T')[0] : '',
@@ -263,46 +290,49 @@ export function ECDDForm({ caseNumber, id }) {
     }
   };
 
-  const getFormattedData = (data) => {
-    const formattedData = {
-      withdrawalDetails: data.withdrawal_details || '',
-      depositDetails: data.deposit_details || '',
-      profileSummary: data.recommendation || '',
-      additionalInfo: data.additional_information || '',
-      behavioralAnalysis: data.behavioral_analysis || '',
-      analystName: data.analyst_name || '',
-      position: 'Compliance Officer',
-      date: data.analysis_date || new Date().toISOString().split('T')[0],
-      caseNumber: caseNumber,
-      fullName: data.name,
-      onboardingDate: data.onboarding_date || '',
-      expectedVolume: data.Expected_Trading_Volume || '',
-      accountCreationDate: data.account_creation_date,
-      totalDepositsAUD: data.total_deposits_AUD,
-      totalWithdrawalsBTC: data.total_withdrawals_BTC,
-      totalWithdrawalsETH: data.total_withdrawals_ETH,
-      totalWithdrawalsUSDT: data.total_withdrawals_USDT,
-      ipLocations: data.ip_locations || '',
-      registeredAddress: data.registered_address || '',
-      recommendation: data.recommendation || '',
-      transactionAnalysis: data.transaction_analysis || '',
-      directors: data.director_name || '',
-      isPEP: data.pep_flag ? 'Yes' : 'No',
-      isSanctioned: data.sanction_flag ? 'Yes' : 'No',
-      userId: data.user_id,
-      accountPurpose: data.account_purpose,
-      annualIncome: data.annual_income,
-      beneficialOwner: data.beneficial_owner || '',
-      analysisEndDate: data.analysis_end_date,
-      abn: data.abn || '',
-      relatedParty: data.related_party || 'N/A',
+  /**
+   * Our EcddReport document → the form's values.
+   *
+   * The form and the model share field names, so this is mostly date
+   * normalisation plus unwrapping the populated refs. It replaced a mapper
+   * that translated the AI service's snake_case payload — the form no longer
+   * reads anything the AI computed.
+   */
+  const mapReportToForm = (doc = {}) => {
+    const {
+      caseNumber: docCaseNumber,
+      caseId,
+      transaction,
+      analyst,
+      customer,
+      generatedBy,
+      ...rest
+    } = doc;
+
+    return {
+      ...stripHeavyFields(rest),
       caseNumber: {
-        label: caseNumber,
-        value: caseNumber,
+        label: docCaseNumber || caseNumber,
+        value: docCaseNumber || caseNumber,
       },
-      customer: data?.user_id,
+      caseId: caseId
+        ? {
+            label: caseId.uid
+              ? `${caseId.uid} — ${caseId.title || 'Untitled'}`
+              : String(caseId._id || caseId),
+            value: String(caseId._id || caseId),
+          }
+        : null,
+      transaction: transaction?._id || transaction || undefined,
+      analyst: analyst?._id || analyst || undefined,
+      customer: customer?._id || customer || undefined,
+      generatedBy: generatedBy?._id || generatedBy || undefined,
+      position: doc.position || 'Compliance Officer',
+      onboardingDate: dateOnly(doc.onboardingDate),
+      accountCreationDate: dateOnly(doc.accountCreationDate),
+      analysisEndDate: dateOnly(doc.analysisEndDate),
+      date: dateOnly(doc.date) || new Date().toISOString().split('T')[0],
     };
-    return formattedData;
   };
 
   const handleSave = async (data) => {
@@ -745,6 +775,7 @@ export function ECDDForm({ caseNumber, id }) {
                 </div>
               )}
             />
+            <PersonsOfInterestTable persons={personsOfInterest} />
           </div>
         </Card>
 
@@ -1080,5 +1111,49 @@ export function ECDDForm({ caseNumber, id }) {
         </div>
       </div>
     </UILoader>
+  );
+}
+
+/**
+ * The persons of interest drafted from the case — its customers and the
+ * non-customer POIs recorded in the Investigation Hub. Read-only: they are
+ * managed on the case, and a redraft picks up any change.
+ */
+function PersonsOfInterestTable({ persons = [] }) {
+  if (!persons.length) return null;
+  return (
+    <div>
+      <Label>Persons of Interest</Label>
+      <p className="mb-2 text-xs text-muted-foreground">
+        From the case. Add or edit persons of interest in the case&apos;s Investigation Hub, then redraft.
+      </p>
+      <div className="overflow-x-auto rounded-md border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 font-medium">Name</th>
+              <th className="px-3 py-2 font-medium">Role</th>
+              <th className="px-3 py-2 font-medium">Relationship</th>
+              <th className="px-3 py-2 font-medium">Nationality / country</th>
+              <th className="px-3 py-2 font-medium">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {persons.map((p, i) => (
+              <tr key={p.poi || p.customer || i} className="border-t">
+                <td className="px-3 py-2 font-medium">
+                  {p.name || '—'}
+                  {p.kind === 'entity' && <span className="ml-1 text-xs text-muted-foreground">(entity)</span>}
+                </td>
+                <td className="px-3 py-2">{p.role || '—'}</td>
+                <td className="px-3 py-2">{p.relationship || '—'}</td>
+                <td className="px-3 py-2">{[p.nationality, p.country].filter(Boolean).join(' / ') || '—'}</td>
+                <td className="px-3 py-2 capitalize">{p.source === 'alert' ? 'Alert party' : p.source || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

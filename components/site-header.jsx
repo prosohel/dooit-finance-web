@@ -30,7 +30,9 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { signOut } from 'next-auth/react';
+import { apiLogout } from '@/app/auth/actions';
 import { useLoggedInUser } from '@/app/store/useLoggedInUser';
+import { EnvironmentBadge } from '@/components/environment-badge';
 export function SiteHeader() {
   const { loggedInUser } = useLoggedInUser();
   const pathname = usePathname();
@@ -67,11 +69,13 @@ export function SiteHeader() {
     },
     {
       name: 'Alerts',
-      href: '/dashboard/client/monitoring-and-cases/case-list',
+      href: '/dashboard/client/monitoring-and-cases/alerts',
       icon: <IconAlertTriangle size={14} />,
     },
   ];
   const logout = async () => {
+    // Record the logout in the API's device/audit trail before the session ends.
+    await apiLogout().catch(() => {});
     signOut({
       // redirect: true,
       callbackUrl: '/auth/login',
@@ -136,6 +140,7 @@ export function SiteHeader() {
               50% { box-shadow: 0 0 26px rgba(124,58,237,0.85), 0 2px 14px rgba(8,145,178,0.5); }
             }
           `}</style>
+          <EnvironmentBadge />
           <Button variant="secondary" size="sm">
             Help <IconHelpCircle />
           </Button>

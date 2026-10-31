@@ -9,69 +9,14 @@ import { Plus, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import SelectCaseList from '../ui/SelectCaseList';
 import SelectCase from '../ui/SelectCase';
-import { autoPopulatedSMRData } from '@/app/dashboard/client/report-compliance/smr-filing/smr/actions';
-
-const DESIGNATED_SERVICES = [
-  'AFSL holder arranging a designated service',
-  'Account/deposit taking services',
-  'Chequebook access facilities',
-  'Currency exchange services',
-  'Custodial/depository services',
-  'Debit card access facilities',
-  'Debt instruments',
-  'Digital currency exchange services',
-  'Electronic funds transfers',
-  'Lease/hire purchase services',
-  'Life insurance services',
-  'Loan services',
-  'Money/postal orders',
-  'Payroll services',
-  'Pension/annuity services',
-  'Remittance services (money transfers)',
-  'Retirement savings accounts',
-  'Securities market/investment services',
-  'Stored value cards',
-  'Superannuation/approved deposit funds',
-  "Traveller's cheque exchange services",
-  'Bullion dealing',
-  'Betting',
-  'Betting accounts',
-  'Chips/currency exchange',
-  'Games of chance or skill',
-  'Gaming machines',
-];
-
-const SUSPICION_REASONS = [
-  'ATM/cheque fraud',
-  'Advanced fee/scam',
-  'Avoiding reporting obligations',
-  'Corporate/investment fraud',
-  'Counterfeit currency',
-  'Country/jurisdiction risk',
-  'Credit card fraud',
-  'Credit/loan facility fraud',
-  'Currency not declared at border',
-  'DFAT watch list',
-  'False name/identity or documents',
-  'Immigration related issue',
-  'Inconsistent with customer profile',
-  'Internet fraud',
-  'National security concern',
-  'Other watch list',
-  'Phishing',
-  'Refusal to show identification',
-  'Social security issue',
-  'Suspected/known criminal',
-  'Suspicious behaviour',
-  'Unauthorised account transactions',
-  'Unusual account activity',
-  'Unusual financial instrument',
-  'Unusual gambling activity',
-  'Unusual use/exchange of cash',
-  'Unusually large FX transaction',
-  'Unusually large cash transaction',
-  'Unusually large transfer',
-];
+import { draftSmrReport } from '@/app/dashboard/client/report-compliance/smr-filing/smr/actions';
+// Shared with the detail view so a label edited here cannot drift out of sync
+// and silently render as unticked there.
+import {
+  DESIGNATED_SERVICES,
+  SUSPICION_REASONS,
+  SERVICE_STATUSES,
+} from './options';
 
 export function PartA({ data, updateData }) {
   const [selectedServices, setSelectedServices] = useState(
@@ -120,57 +65,48 @@ export function PartA({ data, updateData }) {
     setOtherReasons(updated);
     updateData({ otherReasons: updated.filter((r) => r.trim() !== '') });
   };
+  /**
+   * Draft the SMR for the chosen case and load it into the form.
+   *
+   * Parts A, C, D and F are built by our API from the case's own alerts,
+   * customer KYC and transactions; only the grounds-for-suspicion narrative
+   * comes from the AI service (docs/74 §4.2). The draft already uses this
+   * form's own shapes, so the parts are handed over as they are rather than
+   * being translated out of a third-party payload.
+   */
   const handleCaseNumberChange = async (value) => {
     setIsLoading(true);
-    console.log('value', value);
     updateData({ caseNumber: value });
     try {
-      const response = await autoPopulatedSMRData(value.value);
+      const response = await draftSmrReport(value.value);
+      const doc = response?.succeed ? response.data : null;
+      if (!doc) {
+        console.error('Failed to draft SMR', response?.message);
+        return;
+      }
 
+      const person = doc.partC?.personOrganisation || {};
       updateData({
-        groundsForSuspicion: response.narrative,
+        // ours
+        designatedServices: doc.partA?.designatedServices || [],
+        suspicionReasons: doc.partA?.suspicionReasons || [],
+        serviceStatus: doc.partA?.serviceStatus || '',
         personOrganisation: {
           ...data.personOrganisation,
-          name: response.name,
-          emails: [response.email_address],
-          phoneNumbers: [...response.phone_numbers],
-          dateOfBirth: response.dob,
-          citizenship: response.country_of_citizenship,
+          name: person.name || '',
+          emails: person.emails || [],
+          phoneNumbers: person.phoneNumbers || [],
+          dateOfBirth: person.personDetails?.dateOfBirth || '',
+          citizenship: person.personDetails?.nationality || '',
+          occupation: person.occupation || '',
         },
-        transactions: [
-          {
-            date: response.transaction_details?.date_of_transaction ?? '',
-            type: response.transaction_details?.transaction_type ?? '',
-            referenceNumber:
-              response.transaction_details?.transaction_reference_number ?? '',
-            totalAmount: {
-              currencyCode: response.transaction_details?.currency ?? '',
-              amount: response.transaction_details?.total_amount ?? 0,
-            },
-            cashAmount: {
-              currencyCode: response.transaction_details?.currency ?? '',
-              amount: response.transaction_details?.total_cash_involved ?? 0,
-            },
-            completed: false,
-            foreignCurrencies: [],
-            digitalCurrencies: [],
-            sender: {
-              name: response.parties?.sender?.name ?? '',
-              institutions: [response.parties?.sender?.institution ?? ''],
-            },
-            payee: {
-              name: response.parties?.payee ?? '',
-              institutions: [],
-            },
-            beneficiary: {
-              name: response.parties?.beneficiary?.name ?? '',
-              institutions: [response.parties?.beneficiary?.institution ?? ''],
-            },
-          },
-        ],
+        // every transaction on the case, not just the one that alerted
+        transactions: doc.partF?.transactions || [],
+        // theirs
+        groundsForSuspicion: doc.partB?.groundsForSuspicion || '',
       });
     } catch (error) {
-      console.log('Failed to get data', error);
+      console.error('Failed to draft SMR', error);
     } finally {
       setIsLoading(false);
     }
@@ -238,24 +174,14 @@ export function PartA({ data, updateData }) {
             }}
             className="flex gap-6"
           >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="provided" id="provided" />
-              <Label htmlFor="provided" className="cursor-pointer">
-                Provided
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="requested" id="requested" />
-              <Label htmlFor="requested" className="cursor-pointer">
-                Requested
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="enquired" id="enquired" />
-              <Label htmlFor="enquired" className="cursor-pointer">
-                Enquired about
-              </Label>
-            </div>
+            {SERVICE_STATUSES.map((status) => (
+              <div key={status.value} className="flex items-center gap-2">
+                <RadioGroupItem value={status.value} id={status.value} />
+                <Label htmlFor={status.value} className="cursor-pointer">
+                  {status.label}
+                </Label>
+              </div>
+            ))}
           </RadioGroup>
         </div>
       </div>

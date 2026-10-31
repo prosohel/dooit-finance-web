@@ -1,28 +1,8 @@
-import { CaseHeader } from "@/views/monitoring-and-cases/case-details/CaseHeader";
-import CaseTabs from "@/views/monitoring-and-cases/case-details/CaseTabs";
-import React from "react";
+import { redirect } from "next/navigation";
 
-export default async function CaseListDetails({ params, searchParams }) {
+// Alert details moved to /alerts/[id]; forward the id and any ?tab= deep link.
+export default async function LegacyAlertDetailsRedirect({ params, searchParams }) {
   const { id } = await params;
-  const { caseNumber, tab } = await searchParams;
-
-  return (
-    <div>
-      <div className="min-h-screen ">
-        {/* <CaseHeader /> */}
-        <div className="border-b border-border">
-          <div className="container mx-auto ">
-            <CaseTabs caseNumber={caseNumber} id={id} tab={tab} />
-          </div>
-        </div>
-        {/* <main className="container mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <ActivityTimeline />
-            <CaseOverview />
-          </div>
-          <AnalystNotes />
-        </main> */}
-      </div>
-    </div>
-  );
+  const { tab } = await searchParams;
+  redirect(`/dashboard/client/monitoring-and-cases/alerts/${id}${tab ? `?tab=${encodeURIComponent(tab)}` : ""}`);
 }

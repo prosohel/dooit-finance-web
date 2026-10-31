@@ -11,6 +11,7 @@ import { ScreenshotLightbox } from "@/views/onboarding/customer-queue/details/Os
 import {
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   FileIcon,
   ImageIcon,
@@ -54,27 +55,32 @@ function statusMeta(status) {
   };
 }
 
-const DataCard = ({ title, description }) => {
-  const [showMore, setShowMore] = useState(false);
+// Each report section is an accordion row: click the title to expand/collapse
+// the full text. Collapsed by default so the narrow OSINT column stays scannable.
+const DataCard = ({ title, description, defaultOpen = false }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  if (!description) return null;
   return (
-    <div className="bg-white rounded-lg pb-2 space-y-2">
-      <h5 className="font-bold">{title}</h5>
-      {/* add see more button */}
-
-      <div>
-        <p className="text-xs text-gray-500 leading-relaxed">
-          {showMore ? description : description?.slice(0, 100)}{" "}
-          {description.length > 100 && (
-            <button
-              variant="link"
-              className="text-xs font-bold hover:underline transition-all duration-300 ml-1"
-              onClick={() => setShowMore(!showMore)}
-            >
-              {showMore ? "See Less" : "See More"}
-            </button>
+    <div className="rounded-lg border border-border bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
+      >
+        <h5 className="text-[12.5px] font-bold text-heading">{title}</h5>
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
           )}
+        />
+      </button>
+      {open && (
+        <p className="whitespace-pre-line border-t border-border px-3 py-2 text-xs leading-relaxed text-gray-500">
+          {description}
         </p>
-      </div>
+      )}
     </div>
   );
 };
@@ -246,18 +252,18 @@ export default function OsiintData({ caseData }) {
       )}
 
       {!loading && !error && hasReport && (
-        <>
+        <div className="flex flex-col gap-2">
           <DataCard
             title="Analysis and Interpretation"
             description={data?.analysis_and_interpretation}
+            defaultOpen
           />
           <DataCard title="Introduction" description={data?.introduction} />
           <DataCard title="Area of Interest" description={data?.area_of_interest} />
           <DataCard title="Data Collection" description={data?.data_collection} />
           <DataCard title="Conclusion" description={data?.conclusion} />
-
           <DataCard title="Risk Assessment" description={data?.risk_assessment} />
-        </>
+        </div>
       )}
 
       {!loading && !error && sources.length > 0 && (

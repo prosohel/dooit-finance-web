@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, lazy, Suspense, useEffect } from "react";
+import { useRef, useState, lazy, Suspense, useEffect } from "react";
 import {
   IconFolderOff,
   IconBriefcase,
@@ -10,20 +10,31 @@ import {
   IconClipboardList,
   IconLoader2,
   IconSitemap,
+  IconCoins,
+  IconFileStack,
 } from "@tabler/icons-react";
-import { mockCases } from "@/lib/case-manager-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getCaseById,
   getCaseReports,
   getCaseNotes,
   getAuditLog,
+  getCaseAnalysis,
+  getCustomerDevices,
   addNote as addNoteAction,
 } from "@/app/dashboard/client/monitoring-and-cases/case-manager/actions";
 import { useCaseManagerStore } from "@/app/store/useCaseManagerStore";
-import { adaptCase, adaptNotes, adaptAuditLog, adaptRfis, adaptPreviousSARs } from "./caseAdapter";
+import {
+  adaptCase,
+  adaptNotes,
+  adaptAuditLog,
+  adaptRfis,
+  adaptPreviousSARs,
+  adaptDevices,
+} from "./caseAdapter";
 import CaseHeader from "./CaseHeader";
-import CustomerProfileSection from "./sections/CustomerProfileSection";
+import CustomerProfileTab from "./tabs/CustomerProfileTab";
+import CaseReportsSection from "./sections/CaseReportsSection";
 import TransactionAnalysisSection from "./sections/TransactionAnalysisSection";
 import CaseActivityView from "./CaseActivityView";
 import InvestigationHub from "./investigation-hub/InvestigationHub";
@@ -33,14 +44,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NetworkGraph from "@/views/onboarding/customer-queue/details/d3/Networkgraph";
 import { transformToGraph } from "@/views/onboarding/customer-queue/details/d3/lib/transformgraphData";
 import partyEntities from "@/views/onboarding/customer-queue/details/demo.json";
-import TbmlOsint from "./tabs/components/TbmlOsint";
 import { FingerprintIcon } from "lucide-react";
 import TbmlOsintReport from "./tabs/components/TbmlOsintReport";
+import useBreadcrumbLabel from "@/hooks/useBreadcrumbLabel";
 
 const FilesTab = lazy(() => import("./tabs/FilesTab"));
+// Pulls in the OCR detail dialog and its table — only loaded if the tab opens.
+const SourceOfFundsTab = lazy(() => import("./tabs/SourceOfFundsTab"));
 const graphData = transformToGraph(partyEntities);
 
-function FilesTabSkeleton() {
+function TabSkeleton() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 4 }).map((_, i) => (
@@ -55,6 +68,7 @@ export default function CaseDetails({ caseId }) {
   const [caseData, setCaseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  useBreadcrumbLabel(caseData && `Case ${caseData.displayId || caseData.uid}`);
 
   const [status, setStatus] = useState(caseData?.status);
   const [priority, setPriority] = useState(caseData?.priority);
@@ -68,6 +82,58 @@ export default function CaseDetails({ caseId }) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [rfiOpen, setRfiOpen] = useState(false);
 
+  // Regulatory filings live on their own endpoint so the case document stays
+  // lean; they load alongside the case rather than blocking it.
+  const [reports, setReports] = useState(null);
+  const [reportsSummary, setReportsSummary] = useState(null);
+  const [reportsLoading, setReportsLoading] = useState(true);
+
+  // The case's transaction analysis (GET /cases/:id/analysis) — the figures the
+  // Case Analysis panel shows and every report draft is built from. Served from
+  // a server-side snapshot, so loading it with the case is cheap.
+  const [analysis, setAnalysis] = useState(null);
+  const [analysisLoading, setAnalysisLoading] = useState(true);
+
+  // "Recompute" on the panel: force a fresh pass rather than the snapshot.
+  const refreshAnalysis = async () => {
+    const res = await getCaseAnalysis(caseId, { refresh: true }).catch(() => null);
+    if (res?.succeed) setAnalysis(res.data);
+  };
+
+  // A case write (POI added/removed…) returns the populated case. Re-adapt it,
+  // but keep what came from the companion endpoints, then pull the audit log
+  // so the write's server-side audit row shows. Customer POIs change what the
+  // transaction analysis covers, so those also recompute it.
+  const applyCaseUpdate = (apiCase, { refreshAnalysis: recompute = false } = {}) => {
+    if (!apiCase) return;
+    setCaseData((prev) => {
+      const next = adaptCase(apiCase);
+      if (!prev) return next;
+      return {
+        ...next,
+        rfis: prev.rfis,
+        previousSARs: prev.previousSARs,
+        notes: prev.notes,
+        auditLog: prev.auditLog,
+        devices: prev.devices,
+      };
+    });
+    getAuditLog(caseId)
+      .then((res) => res?.succeed && setAuditLog(adaptAuditLog(res.data)))
+      .catch(() => {});
+    if (recompute) refreshAnalysis();
+  };
+
+  // After drafting a report, pull the filings again so the new record appears —
+  // and with them the RFI list, which is the same payload.
+  const refreshReports = async () => {
+    const res = await getCaseReports(caseId).catch(() => null);
+    if (!res?.succeed) return;
+    setReports(res.data);
+    setReportsSummary(res.summary);
+    setRfis(adaptRfis(res.data?.rfi));
+  };
+
   const sectionRefs = useRef({});
   const setSectionRef = (id) => (el) => {
     sectionRefs.current[id] = el;
@@ -75,29 +141,32 @@ export default function CaseDetails({ caseId }) {
 
   useEffect(() => {
     if (!caseId) return;
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setReportsLoading(true);
+      setAnalysisLoading(true);
       setError(null);
+      // Server actions from one client run one at a time, so firing all five
+      // up front makes the case document queue behind four companions and the
+      // page sit on "Loading case..." for the sum of them. The case loads
+      // alone first and paints; the companions follow and merge in.
+      const settle = () => {
+        if (cancelled) return;
+        setReportsLoading(false);
+        setAnalysisLoading(false);
+      };
       try {
-        // One round trip each, in parallel — a failure in any companion
-        // endpoint must not stop the case itself from rendering.
-        const [res, reportsRes, notesRes, auditRes] = await Promise.all([
-          getCaseById(caseId),
-          getCaseReports(caseId).catch(() => null),
-          getCaseNotes(caseId).catch(() => null),
-          getAuditLog(caseId).catch(() => null),
-        ]);
-        console.log("case res", res);
-
-        const filings = reportsRes?.succeed ? reportsRes.data : null;
+        const res = await getCaseById(caseId);
+        if (cancelled) return;
 
         if (res?.succeed) {
+          const reportsReq = getCaseReports(caseId).catch(() => null);
+          const notesReq = getCaseNotes(caseId).catch(() => null);
+          const auditReq = getAuditLog(caseId).catch(() => null);
+          const analysisReq = getCaseAnalysis(caseId).catch(() => null);
           // Normalise the API document into the shape the sections expect.
           const loaded = adaptCase(res.data);
-          loaded.rfis = adaptRfis(filings?.rfi);
-          loaded.previousSARs = adaptPreviousSARs(filings?.smr);
-          loaded.notes = notesRes?.succeed ? adaptNotes(notesRes.data) : [];
-          loaded.auditLog = auditRes?.succeed ? adaptAuditLog(auditRes.data) : [];
           setCaseData(loaded);
           setSelectedCase(loaded);
           // Seed the action state from the loaded case. These drive the header
@@ -112,18 +181,72 @@ export default function CaseDetails({ caseId }) {
           setRfis(loaded?.rfis || []);
           setActivities(loaded?.activities || []);
           setAuditLog(loaded?.auditLog || []);
+
+          // Companions merge in as each lands. Attached only after the case is
+          // on screen, so a fast companion can never be overwritten by the
+          // case's own empty defaults.
+          notesReq.then((notesRes) => {
+            if (cancelled || !notesRes?.succeed) return;
+            const adapted = adaptNotes(notesRes.data);
+            setNotes(adapted);
+            setCaseData((prev) => (prev ? { ...prev, notes: adapted } : prev));
+          });
+          auditReq.then((auditRes) => {
+            if (cancelled || !auditRes?.succeed) return;
+            const adapted = adaptAuditLog(auditRes.data);
+            setAuditLog(adapted);
+            setCaseData((prev) => (prev ? { ...prev, auditLog: adapted } : prev));
+          });
+          reportsReq
+            .then((reportsRes) => {
+              if (cancelled) return;
+              const filings = reportsRes?.succeed ? reportsRes.data : null;
+              const adaptedRfis = adaptRfis(filings?.rfi);
+              const sars = adaptPreviousSARs(filings?.smr);
+              setRfis(adaptedRfis);
+              setCaseData((prev) =>
+                prev ? { ...prev, rfis: adaptedRfis, previousSARs: sars } : prev
+              );
+            })
+            .finally(() => !cancelled && setReportsLoading(false));
+          analysisReq
+            .then((analysisRes) => {
+              if (cancelled) return;
+              setAnalysis(analysisRes?.succeed ? analysisRes.data : null);
+            })
+            .finally(() => !cancelled && setAnalysisLoading(false));
+
+          // Device telemetry for the primary linked customer — loaded after
+          // first paint; the tab just stays empty if the user lacks DEVICE.GET.
+          const primaryCustomerId = res.data?.linkedCustomers?.[0]?._id;
+          if (primaryCustomerId) {
+            getCustomerDevices(primaryCustomerId)
+              .then((devRes) => {
+                if (cancelled) return;
+                if (devRes?.success && devRes.data?.length) {
+                  setCaseData((prev) =>
+                    prev ? { ...prev, devices: adaptDevices(devRes.data) } : prev
+                  );
+                }
+              })
+              .catch(() => {});
+          }
         } else {
           setError(res?.message || "Case not found");
+          settle();
         }
       } catch {
-        setError("Failed to load case");
+        if (!cancelled) setError("Failed to load case");
+        settle();
       } finally {
-        setLoading(false);
-        // setReportsLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-    return () => setSelectedCase(null);
+    return () => {
+      cancelled = true;
+      setSelectedCase(null);
+    };
   }, [caseId, setSelectedCase]);
 
   const logAction = ({
@@ -315,6 +438,14 @@ export default function CaseDetails({ caseId }) {
             <IconFolder />
             Files
           </TabsTrigger>
+          <TabsTrigger value="source-of-funds">
+            <IconCoins />
+            Source of Funds
+          </TabsTrigger>
+          <TabsTrigger value="reports">
+            <IconFileStack />
+            Reports
+          </TabsTrigger>
           <TabsTrigger value="case-activity">
             <IconClipboardList />
             Case Activity
@@ -329,18 +460,25 @@ export default function CaseDetails({ caseId }) {
         </TabsList>
 
         <TabsContent value="investigation-hub">
-          <InvestigationHub caseData={caseData} />
+          <InvestigationHub caseData={caseData} caseId={caseId} onCaseChange={applyCaseUpdate} />
         </TabsContent>
         <TabsContent value="tbml-osint">
-          {/* <TbmlOsint /> */}
-          <TbmlOsintReport />
+          <TbmlOsintReport caseId={caseId} caseData={caseData} />
         </TabsContent>
 
         <TabsContent value="customer-profile">
-          <CustomerProfileSection
-            caseData={caseData}
-            sectionRef={setSectionRef("customer-profile")}
-            collapsible={false}
+          <CustomerProfileTab caseData={caseData} sectionRef={setSectionRef("customer-profile")} />
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <CaseReportsSection
+            caseId={caseId}
+            alerts={caseData?.alerts}
+            reports={reports}
+            summary={reportsSummary}
+            loading={reportsLoading}
+            onDrafted={refreshReports}
+            sectionRef={setSectionRef("reports")}
           />
         </TabsContent>
 
@@ -353,14 +491,23 @@ export default function CaseDetails({ caseId }) {
         </TabsContent>
 
         <TabsContent value="files">
-          <Suspense fallback={<FilesTabSkeleton />}>
-            <FilesTab caseData={caseData} />
+          <Suspense fallback={<TabSkeleton />}>
+            <FilesTab caseData={caseData} caseId={caseId} />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="source-of-funds">
+          <Suspense fallback={<TabSkeleton />}>
+            <SourceOfFundsTab caseData={caseData} />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="case-activity">
           <CaseActivityView
             caseData={caseData}
+            analysis={analysis}
+            analysisLoading={analysisLoading}
+            onRefreshAnalysis={refreshAnalysis}
             rfis={rfis}
             onOpenCreateRFI={() => setRfiOpen(true)}
             assignedAnalyst={assignedAnalyst}

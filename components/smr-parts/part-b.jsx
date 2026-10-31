@@ -5,7 +5,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { HelpCircle } from 'lucide-react';
 import { useState } from 'react';
 
-import { autoPopulatedSMRData } from '@/app/dashboard/client/report-compliance/smr-filing/smr/actions';
 import { useEffect } from 'react';
 
 export function PartB({ data, updateData }) {

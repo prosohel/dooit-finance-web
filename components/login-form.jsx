@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn, createSearchParams } from '@/lib/utils';
+import { getDeviceId } from '@/lib/deviceId';
 import SocialLogin from './SocialLogin';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -82,6 +83,7 @@ export default function LoginForm({
     const res = await signIn('credentials', {
       ...data,
       userType: type,
+      deviceId: getDeviceId(),
       redirect: false,
     });
     if (res.error) {

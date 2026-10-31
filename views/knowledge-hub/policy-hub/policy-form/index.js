@@ -140,7 +140,6 @@ export default function PolicyForm() {
       setLoading(false);
     }
   };
-  console.log("errors", form.formState.errors);
 
   const handleSelectTemplate = (template) => {
     setSelectedTemplate(selectedTemplate?.id === template.id ? null : template);

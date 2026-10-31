@@ -1,8 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { dateShowFormat, formatAUD, getInitials } from "@/lib/utils";
+
+// Alert risk → pill. Matches the alert queue so the same alert reads the same
+// way in both places.
+const RISK_VARIANT = { Critical: "danger", High: "danger", Medium: "warning", Low: "info", Info: "muted" };
 
 function FactRow({ label, value, valueClassName }) {
   return (
@@ -18,6 +23,12 @@ export default function AlertDetailsPanel({ caseData }) {
   const transactions = caseData?.transactions || [];
   const flaggedCount = transactions.filter((t) => t.status === "flagged").length;
 
+  // A case can hold several alerts (docs/74 C1), so the panel shows them all
+  // and lets the analyst read any one of them — the first is shown by default.
+  const alerts = caseData?.alerts || [];
+  const [selectedId, setSelectedId] = useState(null);
+  const selected = alerts.find((a) => String(a.id) === String(selectedId)) || alerts[0] || null;
+
   return (
     <div className="flex w-[290px] shrink-0 flex-col overflow-hidden rounded-xl  ">
       {/* <div className="flex shrink-0 items-center gap-2.5 border-b-2 border-warning bg-warning/10 px-4 py-3">
@@ -32,18 +43,78 @@ export default function AlertDetailsPanel({ caseData }) {
             ALERT TRIGGER
           </div>
           <div className="mb-1.5 text-[13px] font-semibold leading-snug text-heading">
-            {caseData?.title || caseData?.caseName}
+            {selected?.ruleName || caseData?.title || caseData?.caseName}
           </div>
-          <StatusPill variant="warning">In progress</StatusPill>
+          {/* The rule's own words for why it fired — the alert's explanation. */}
+          {selected?.explanation && (
+            <p className="mb-2 text-[11.5px] leading-snug text-muted-foreground">
+              {selected.explanation}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {selected?.riskLabel && (
+              <StatusPill variant={RISK_VARIANT[selected.riskLabel] || "warning"}>
+                {selected.riskLabel}
+                {selected.riskScore != null ? ` · ${selected.riskScore}` : ""}
+              </StatusPill>
+            )}
+            {selected?.alertOrigin && <StatusPill variant="outline">{selected.alertOrigin}</StatusPill>}
+          </div>
         </div>
+
+        {/* Every alert on the case — one row each, selectable. */}
+        {alerts.length > 1 && (
+          <div className="mb-4">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              Alerts on this case ({alerts.length})
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {alerts.map((a) => {
+                const isSelected = selected && String(a.id) === String(selected.id);
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => setSelectedId(a.id)}
+                    className={`rounded-lg border p-2 text-left transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[11px] font-semibold text-heading">{a.uid}</span>
+                      {a.riskLabel && (
+                        <StatusPill variant={RISK_VARIANT[a.riskLabel] || "outline"}>
+                          {a.riskLabel}
+                        </StatusPill>
+                      )}
+                    </div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {a.ruleId ? `${a.ruleId} · ` : ""}
+                      {a.ruleName || "—"}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
           Case Facts
         </div>
         <div className="mb-4.5 flex flex-col gap-2.5">
           <FactRow label="Organisation" value={caseData?.organisation} />
-          <FactRow label="Alert type" value={caseData?.alertType} />
-          <FactRow label="Detection rule" value={caseData?.detectionRule} />
+          <FactRow label="Alert type" value={selected?.caseType || caseData?.alertType} />
+          <FactRow
+            label="Detection rule"
+            value={
+              selected
+                ? [selected.ruleId, selected.ruleName].filter(Boolean).join(": ") || null
+                : caseData?.detectionRule
+            }
+          />
           <FactRow
             label="Total exposure"
             value={formatAUD(caseData?.totalExposure || 0)}
@@ -53,7 +124,10 @@ export default function AlertDetailsPanel({ caseData }) {
             label="Flagged transactions"
             value={`${flaggedCount} of ${transactions.length}`}
           />
-          <FactRow label="Related alerts" value={caseData?.relatedAlertsCount ?? 0} />
+          <FactRow label="Alerts on case" value={alerts.length || caseData?.relatedAlertsCount || 0} />
+          {selected?.createdAt && (
+            <FactRow label="Alert raised" value={dateShowFormat(selected.createdAt)} />
+          )}
         </div>
 
         <div className="mb-4 h-px bg-border" />

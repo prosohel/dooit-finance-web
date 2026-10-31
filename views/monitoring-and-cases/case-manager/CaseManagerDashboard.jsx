@@ -21,8 +21,7 @@ import {
   IconChevronDown,
   IconChevronUp,
 } from "@tabler/icons-react";
-import AnalyticsCards from "./AnalyticsCards";
-import ChartsSection from "./ChartsSection";
+import CaseAnalyticsPanel from "./CaseAnalyticsPanel";
 import CaseTable from "./CaseTable";
 import CaseFilters from "./CaseFilters";
 import CreateCaseSheet from "./CreateCaseSheet";
@@ -184,12 +183,7 @@ export default function CaseManagerDashboard() {
           )}
           {showAnalytics ? "Hide" : "Show"} Analytics
         </button>
-        {showAnalytics && (
-          <div className="flex flex-col gap-4">
-            <AnalyticsCards />
-            <ChartsSection />
-          </div>
-        )}
+        {showAnalytics && <CaseAnalyticsPanel />}
       </div>
 
       {/* Table Section */}

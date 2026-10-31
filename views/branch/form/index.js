@@ -259,7 +259,6 @@ export function BranchDialog({ open, onOpenChange }) {
       toast.error('Failed to create branch');
     }
   };
-  console.log("errors", errors);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -5,7 +5,7 @@ import { IconFolders } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import CollapsibleSection from "./components/CollapsibleSection";
 import RelatedCasesSection from "./sections/RelatedCasesSection";
-import EcddTemplate from "./sections/EcddTemplate";
+import CaseAnalysisSection from "./sections/CaseAnalysisSection";
 import RFISection from "./sections/RFISection";
 import CaseAssignmentSection from "./sections/CaseAssignmentSection";
 import InvestigatorNotes from "./sections/InvestigatorNotes";
@@ -28,13 +28,16 @@ function AdditionalRecordsSkeleton() {
 
 /**
  * Everything about this case that isn't the wizard, profile, transactions,
- * or files: related investigations, the ECDD case document, RFIs, analyst
+ * or files: related investigations, the case analysis, RFIs, analyst
  * assignment, notes, the audit trail, and supplementary ATM/device/network
  * records. Kept as one tab so those administrative records stay out of the
  * investigator's active workspace while remaining a click away.
  */
 export default function CaseActivityView({
   caseData,
+  analysis,
+  analysisLoading,
+  onRefreshAnalysis,
   rfis,
   onOpenCreateRFI,
   assignedAnalyst,
@@ -50,7 +53,12 @@ export default function CaseActivityView({
   return (
     <div className="flex flex-col gap-4">
       <RelatedCasesSection caseData={caseData} sectionRef={setSectionRef("related-cases")} />
-      <EcddTemplate sectionRef={setSectionRef("ecdd-template")} />
+      <CaseAnalysisSection
+        analysis={analysis}
+        loading={analysisLoading}
+        onRefresh={onRefreshAnalysis}
+        sectionRef={setSectionRef("case-analysis")}
+      />
       <RFISection rfis={rfis} onOpenCreateRFI={onOpenCreateRFI} sectionRef={setSectionRef("rfi")} />
       <CaseAssignmentSection
         assignedAnalyst={assignedAnalyst}

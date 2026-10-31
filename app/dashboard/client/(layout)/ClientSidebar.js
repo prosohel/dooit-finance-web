@@ -272,7 +272,7 @@ export default function ClientSidebar({ ...props }) {
     },
     {
       title: "Alerts",
-      url: "/dashboard/client/monitoring-and-cases/case-list",
+      url: "/dashboard/client/monitoring-and-cases/alerts",
       icon: IconAlertTriangle,
     },
     {
@@ -419,6 +419,11 @@ export default function ClientSidebar({ ...props }) {
           icon: IconDatabase,
         },
         {
+          title: "Rule Back Test",
+          url: "/dashboard/client/risk-rule-engine/back-test",
+          icon: IconDatabase,
+        },
+        {
           title: "CRA Scoring Configuration",
           url: "/dashboard/client/risk-rule-engine/cra-scoring-config",
           icon: IconDatabase,
@@ -430,19 +435,25 @@ export default function ClientSidebar({ ...props }) {
         },
       ],
     },
+    {
+      title: "Workflow Studio",
+      icon: IconListDetails,
+      children: [
+        {
+          title: "Workflows",
+          url: "/dashboard/client/workflow-studio",
+          icon: IconDatabase,
+        },
+      ],
+    },
 
     {
       title: "System Settings",
       icon: IconListDetails,
       children: [
         {
-          title: "Privacy",
-          url: "/dashboard/client/system-settings/privacy",
-          icon: IconDatabase,
-        },
-        {
-          title: "Role Management",
-          url: "/dashboard/client/user-and-role-management",
+          title: "Devices & Activity",
+          url: "/dashboard/client/system-settings/devices",
           icon: IconDatabase,
         },
       ],

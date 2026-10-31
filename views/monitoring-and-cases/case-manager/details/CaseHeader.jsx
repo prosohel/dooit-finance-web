@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { duplicateCase } from "@/app/dashboard/client/monitoring-and-cases/case-manager/actions";
+import { downloadReportPdf } from "@/lib/downloadReportPdf";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -15,7 +17,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  IconArrowLeft,
   IconUserCheck,
   IconMessageCircle,
   IconAlertOctagon,
@@ -73,84 +74,114 @@ export default function CaseHeader({
   onReopenCase,
 }) {
   const router = useRouter();
+  const [exporting, setExporting] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
 
   if (!caseData) return null;
+
+  const caseId = caseData._id || caseData.id;
+
+  // The summary opens in the browser's PDF viewer, whose toolbar prints —
+  // same server-rendered document the export downloads.
+  const handlePrint = () => {
+    window.open(`/api/case/${caseId}/export-pdf?disposition=inline`, "_blank", "noopener");
+  };
+
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const ok = await downloadReportPdf({
+        kind: "case",
+        id: caseId,
+        label: caseData.displayId || caseData.uid,
+      });
+      if (ok) toast.success("Case summary PDF downloaded");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (duplicating) return;
+    setDuplicating(true);
+    try {
+      const res = await duplicateCase(caseId);
+      if (res?.succeed && res.data?._id) {
+        toast.success(`Case duplicated as ${res.data.uid || "a new case"}`);
+        router.push(`/dashboard/client/monitoring-and-cases/case-manager/${res.data._id}`);
+      } else {
+        toast.error(res?.message || "Could not duplicate the case");
+      }
+    } catch {
+      toast.error("Could not duplicate the case");
+    } finally {
+      setDuplicating(false);
+    }
+  };
 
   const statusKey = String(status ?? "").toLowerCase();
   const priorityKey = String(priority ?? "").toLowerCase();
   const isClosed = statusKey === "closed";
 
   return (
-    <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center gap-2"></div>
-      <div className="flex items-center gap-2 mb-4 text-neutral-500">
-        <div className="flex items-center gap-1.5">
-          <IconCalendar className="size-3.5" />
-          <span>
-            Created: <span className=" ">{dateShowFormatWithTime(caseData.createdDate)}</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <IconRefresh className="size-3.5" />
-          <span>
-            Updated: <span className=" ">{dateShowFormatWithTime(caseData.lastUpdated)}</span>
-          </span>
-        </div>
-      </div>
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between ">
-        {/* Left: identity */}
-        <div className="flex flex-col gap-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded border bg-muted px-2 py-0.5 font-mono text-xs font-semibold text-heading">
+    <div className="rounded-xl border border-border bg-white px-5 py-3.5 shadow-sm">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
+        {/* Title leads; everything that describes the case sits on one line under it. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <h1 className="truncate text-lg font-bold text-heading">
+            {caseData.title || caseData.caseName}
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span className="rounded border bg-muted px-1.5 py-px font-mono text-[11px] font-semibold text-heading">
               {caseData.displayId || caseData.uid}
             </span>
-            <StatusPill variant={statusVariants[status] || "outline"}>{status}</StatusPill>
-            <StatusPill
-              icon={<IconAlertOctagon />}
-              variant={priorityVariants[priority] || "outline"}
-            >
-              {priority} Priority
+            <StatusPill variant={statusVariants[statusKey] || "outline"}>
+              {STATUS_LABELS[statusKey] || status}
             </StatusPill>
-            <Badge variant="outline" className="text-xs capitalize">
-              {caseData.customerType}
-            </Badge>
-          </div>
-          <h1 className="text-xl font-bold text-heading">{caseData.title || caseData.caseName}</h1>
-          <p className="text-xs text-muted-foreground">
-            {caseData.customerName || caseData.customer?.name} ·{" "}
+            <StatusPill variant={priorityVariants[priorityKey] || "outline"}>
+              <span className="capitalize">{priority}</span>&nbsp;priority
+            </StatusPill>
             <span className="capitalize">
-              {(caseData.caseType || caseData.type || "").replace("_", " ")}
+              {[caseData.customerType, (caseData.caseType || caseData.type || "").replace("_", " ")]
+                .filter(Boolean)
+                .join(" · ")}
             </span>
-          </p>
+            <span className="text-border">|</span>
+            <span className="flex items-center gap-1">
+              <IconCalendar className="size-3" />
+              {dateShowFormatWithTime(caseData.createdDate)}
+            </span>
+            <span className="flex items-center gap-1">
+              <IconRefresh className="size-3" />
+              {dateShowFormatWithTime(caseData.lastUpdated)}
+            </span>
+          </div>
         </div>
 
-        {/* Right: risk, sla, investigator, dates */}
-        <div className="flex flex-col gap-3 shrink-0 xl:items-end">
-          <div className="flex items-center gap-4">
-            <RiskScoreGauge score={caseData.riskScore} label="Risk Score" />
-            <div className="h-10 w-px bg-border" />
-            <SlaCountdown deadline={caseData.slaDeadline} className="text-sm" />
-          </div>
-          <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground xl:justify-end">
-            <div className="flex items-center gap-1.5">
-              <Avatar className="size-5">
-                <AvatarFallback className="bg-primary/10 text-[0.6rem] font-semibold text-primary">
-                  {getInitials(assignedAnalyst)}
-                </AvatarFallback>
-              </Avatar>
-              <span>
-                Investigator:{" "}
-                <span className="font-semibold text-heading">
-                  {assignedAnalyst || "Unassigned"}
-                </span>
-              </span>
-            </div>
+        {/* Stat rail: risk · SLA · investigator */}
+        <div className="flex shrink-0 items-center gap-4">
+          <RiskScoreGauge score={caseData.riskScore} size={40} strokeWidth={4} label="Risk Score" />
+          <div className="h-8 w-px bg-border" />
+          <SlaCountdown deadline={caseData.slaDeadline} />
+          <div className="h-8 w-px bg-border" />
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Avatar className="size-7">
+              <AvatarFallback className="bg-primary/10 text-[0.6rem] font-semibold text-primary">
+                {getInitials(assignedAnalyst)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="leading-tight">
+              Investigator
+              <br />
+              <span className="font-semibold text-heading">{assignedAnalyst || "Unassigned"}</span>
+            </span>
           </div>
         </div>
       </div>
 
       {/* Action bar */}
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={onOpenAssign}>
           <IconUserCheck className="size-3.5" />
           Assign Case
@@ -196,11 +227,12 @@ export default function CaseHeader({
           }}
         />
 
+        {/* Destructive action sits apart, on the right, away from the safe ones. */}
         {isClosed ? (
           <Button
             variant="outline"
             size="sm"
-            className="h-8 gap-1.5 text-xs"
+            className="ml-auto h-8 gap-1.5 text-xs"
             onClick={() => {
               onReopenCase?.();
               toast.success("Case reopened");
@@ -217,7 +249,7 @@ export default function CaseHeader({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 gap-1.5 text-xs text-danger hover:text-danger"
+                  className="ml-auto h-8 gap-1.5 text-xs text-danger hover:text-danger"
                 >
                   <IconBan className="size-3.5" />
                   Close Case
@@ -236,23 +268,23 @@ export default function CaseHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="ml-auto">
+            <Button variant="ghost" size="icon-sm">
               <IconDots className="size-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => toast.info("Sending to printer...")}>
+            <DropdownMenuItem onClick={handlePrint}>
               <IconPrinter className="size-4" />
               Print Case Summary
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.success("Case PDF export queued")}>
+            <DropdownMenuItem disabled={exporting} onClick={handleExport}>
               <IconFileExport className="size-4" />
-              Export Case PDF
+              {exporting ? "Exporting…" : "Export Case PDF"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => toast.info("Case duplicated as a new investigation")}>
+            <DropdownMenuItem disabled={duplicating} onClick={handleDuplicate}>
               <IconCopy className="size-4" />
-              Duplicate Case
+              {duplicating ? "Duplicating…" : "Duplicate Case"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

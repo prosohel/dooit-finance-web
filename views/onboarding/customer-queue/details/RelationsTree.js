@@ -20,7 +20,6 @@ const FILTERS = [
   // { mode: "ip", label: "IP Addresses", icon: Globe },
 ];
 const graphData = transformToGraph(partyEntities);
-console.log("graphData", graphData);
 function flatten(node, parent, out) {
   out.push({
     name: node.partyName,

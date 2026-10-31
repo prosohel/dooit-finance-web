@@ -24,6 +24,19 @@ export default function RunAuditTrailCard({ audit }) {
         ))}
       </div>
 
+      {/* The engine's own caveats about this run — what it could not do, and
+          any conclusion it withdrew. Shown verbatim: a retracted indicator is
+          the sort of thing that changes how the findings above should read. */}
+      {audit.notes?.length > 0 && (
+        <ul className="flex flex-col gap-1 border-t border-dashed border-border pt-2.5">
+          {audit.notes.map((note, i) => (
+            <li key={i} className="text-[11px] leading-relaxed text-muted-foreground">
+              {note}
+            </li>
+          ))}
+        </ul>
+      )}
+
       <span className="font-mono text-[11px] text-muted-foreground">{audit.footer}</span>
     </div>
   );

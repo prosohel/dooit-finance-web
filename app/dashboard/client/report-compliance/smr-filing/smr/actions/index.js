@@ -1,6 +1,7 @@
 "use server";
 import { getQueryString } from "@/lib/utils";
 import { fetchWithAuth } from "@/services/serverApi";
+import { draftCaseReport } from "@/app/dashboard/client/monitoring-and-cases/case-manager/actions";
 
 export const getSMRList = async (queryParams) => {
   const queryString = getQueryString(queryParams);
@@ -31,13 +32,24 @@ export const getSMRById = async (id) => {
   return response.json();
 };
 
-export const autoPopulatedSMRData = async (caseNumber) => {
-  const response = await fetch(`http://4.227.188.44:8000/smr_report`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ uid: caseNumber }),
+// Draft this case's SMR — our facts (Parts A, C, D, F, H) plus the AI's
+// grounds-for-suspicion narrative. Returns OUR SMR document.
+export const draftSmrReport = async (ref, opts) => draftCaseReport(ref, 'smr', opts);
+
+// Move a drafted SMR through its review workflow. An approved SMR is what
+// makes a case's "SAR filed" derivation true (docs/74 C14).
+export const submitSMR = async (id, notes) => {
+  const response = await fetchWithAuth(`smr-report/${id}/submit`, {
+    method: "PUT",
+    body: JSON.stringify({ notes }),
+  });
+  return response.json();
+};
+
+export const approveSMR = async (id, notes) => {
+  const response = await fetchWithAuth(`smr-report/${id}/approve`, {
+    method: "PUT",
+    body: JSON.stringify({ notes }),
   });
   return response.json();
 };

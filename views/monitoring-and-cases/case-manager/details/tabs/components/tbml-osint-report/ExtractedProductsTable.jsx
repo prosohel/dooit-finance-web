@@ -25,7 +25,7 @@ function Cell({ value, missingLabel = "missing", className, align }) {
 // document — deliberately un-editorialised so an analyst can see at a
 // glance which fields the model actually found versus left blank.
 export default function ExtractedProductsTable({ run }) {
-  const totalsLine = buildTotalsLine(run.documentExtract, run.gap ? run.documentExtract.totalAmount - run.documentExtract.subtotal : null);
+  const totalsLine = buildTotalsLine(run.documentExtract, run.gap);
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">

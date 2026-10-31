@@ -10,11 +10,14 @@ import { IconInnerShadowTop, IconLogout } from "@tabler/icons-react";
 import { Bell } from "lucide-react";
 import { signOut } from "next-auth/react";
 import React from "react";
+import { apiLogout } from "@/app/auth/actions";
 
 const Header = () => {
   const { loggedInUser } = useGetUser();
 
   const logout = async () => {
+    // Record the logout in the API's device/audit trail before the session ends.
+    await apiLogout().catch(() => {});
     signOut({
       // redirect: true,
       callbackUrl: "/auth/login",

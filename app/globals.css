@@ -39,6 +39,35 @@
   --txt-mute: #ababab;
   --mute-200: #696969;
   --gray: #696969;
+  /* Workflow Studio step-type accents — the exact TY map from the AML Workflow
+     Design canvas. Four of them (action, deleg, wait, mon) have no equivalent
+     in the general palette, and mon must not reuse --success or it collides
+     with review. Kept together as one set so the card legend stays coherent. */
+  --wf-level: #005964;
+  --wf-quest: #25737d;
+  --wf-cond: #402e7a;
+  --wf-action: #b98800;
+  --wf-review: #199335;
+  --wf-deleg: #0e7f92;
+  --wf-hook: #5b5b5b;
+  --wf-wait: #8a8a8a;
+  --wf-mon: #00895a;
+  --wf-report: #ca2f7f;
+  /* Note cards — annotation, not a step. Own tint so they read as commentary. */
+  --wf-note-bg: #f1f6f7;
+  --wf-note-border: #cfe0e2;
+  --wf-note-text: #46595c;
+  /* Card chrome shared by every step: hairline rule, branch stripe, port ring. */
+  --wf-card-border: #e2e5e6;
+  --wf-rule: #eceff0;
+  --wf-stripe: #fcfdfd;
+  --wf-port: #c3ccce;
+  /* Inspector tints. The same #f1f6f7 as --wf-note-bg, but a different job —
+     a note's ground vs a primary control's hover — so it gets its own name
+     rather than making one token mean two things. */
+  --wf-primary-tint: #f1f6f7;
+  --wf-danger-tint: #fdeef5;
+  --wf-danger-border: #f3cfe0;
   --radius: 0.625rem;
   --background: oklch(0.98 0 0);
   --foreground: oklch(0.145 0 0);

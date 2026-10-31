@@ -54,6 +54,10 @@ export default function OsintResultCard({ result }) {
         <FieldRow label="Mid Price" value={result.referenceMid != null ? formatNumber(result.referenceMid) : null} />
         <FieldRow label="Currency" value={result.currency} />
         <FieldRow label="Observations" value={result.observations} />
+        {/* How much of the range came from the stated product versus goods of
+            the same class — the difference between a benchmark and an analogy. */}
+        <FieldRow label="Exact Matches" value={result.exactMatchObservations} />
+        <FieldRow label="Comparables" value={result.comparableObservations} />
         <FieldRow label="Typical Origins" value={result.typicalOrigins} />
         <FieldRow label="Typical Routes" value={result.typicalRoutes} />
         <FieldRow label="HS Codes Observed" value={result.hsCodesObserved} />

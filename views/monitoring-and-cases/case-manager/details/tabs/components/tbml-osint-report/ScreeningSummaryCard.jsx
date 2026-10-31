@@ -264,7 +264,7 @@ function exportRun(run) {
   }
 
   doc.save(`${run.id}-screening-report.pdf`);
-  toast.success(`${run.id} attached to STR/SAR draft`);
+  toast.success(`${run.id} exported`);
 }
 
 // Result strip at the top of a screening run: overall risk, detected

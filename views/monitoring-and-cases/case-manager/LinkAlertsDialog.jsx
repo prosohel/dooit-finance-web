@@ -142,7 +142,7 @@ export default function LinkAlertsDialog({
             {title}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Select alerts to associate with this case. Only alerts that aren't already linked are shown.
+            Select alerts to associate with this case. Only alerts that aren&apos;t already linked are shown.
           </DialogDescription>
         </DialogHeader>
 

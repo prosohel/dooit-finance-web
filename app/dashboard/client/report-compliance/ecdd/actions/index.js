@@ -3,6 +3,7 @@
 import { getQueryString } from "@/lib/utils";
 import { fetchWithAuth } from "@/services/serverApi";
 import { revalidateTag } from "next/cache";
+import { draftCaseReport } from "@/app/dashboard/client/monitoring-and-cases/case-manager/actions";
 
 export async function createEcdd(formData) {
   const response = await fetchWithAuth("ecdd-report", {
@@ -48,30 +49,10 @@ export async function deleteEcdd(id) {
   return response.json();
 }
 
-//auto populate form data
-export const autoPopulatedEcddData = async (caseNumber) => {
-  const data = { uid: caseNumber };
-  const response = await fetch(`http://4.227.188.44:8000/ecdd_report`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-  return response.json();
-};
-
-export const getAlertEcddData = async (caseNumber) => {
-  console.log("caseNumber", caseNumber);
-  const endpoint = `alert/${caseNumber}/eccd-dummy`;
-  console.log("endpoint", endpoint);
-  const response = await fetchWithAuth(endpoint);
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
-  }
-
-  return await response.json();
-};
+// Draft this case's ECDD: facts from our API, narrative from the AI service.
+// `ref` is a Case id/uid or the originating Alert's id/uid. Returns OUR
+// persisted EcddReport document (docs/74 §6.3) — never the AI's own payload.
+export const draftEcddReport = async (ref, opts) => draftCaseReport(ref, 'ecdd', opts);
 
 export const getEcddByCaseNumber = async (caseNumber) => {
   const response = await fetchWithAuth(`ecdd-report/case/${caseNumber}`);

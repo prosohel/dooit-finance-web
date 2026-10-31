@@ -20,14 +20,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: {},
         // userType: {},
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         try {
           const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}auth/login`;
           console.log("log1 login url", url);
+
+          // Forward the browser's identity so the API's device/audit telemetry
+          // records the real client, not the Next.js server.
+          const { deviceId, ...loginBody } = credentials ?? {};
+          const forwarded = {};
+          const ua = request?.headers?.get?.("user-agent");
+          if (ua) forwarded["User-Agent"] = ua;
+          const xff = request?.headers?.get?.("x-forwarded-for");
+          if (xff) forwarded["X-Forwarded-For"] = xff;
+          if (deviceId) forwarded["X-Device-Id"] = deviceId;
+
           const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(credentials),
+            headers: { "Content-Type": "application/json", ...forwarded },
+            body: JSON.stringify(loginBody),
           });
           console.log("log1 login res", res);
 

@@ -8,7 +8,9 @@ import { IconLoader2, IconUserPlus } from "@tabler/icons-react";
 import { assignAnalyst } from "@/app/dashboard/client/monitoring-and-cases/case-list/actions";
 import { toast } from "sonner";
 
-export default function AssignAnalystForm({ open, setOpen, id, setId }) {
+// `onAssigned(alert)` lets a parent (the alert-details header) refresh itself
+// without a full reload; the list page doesn't pass it.
+export default function AssignAnalystForm({ open, setOpen, id, setId, onAssigned }) {
   const [analyst, setAnalyst] = useState(null);
   const [userOptions, setUserOptions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,14 +29,16 @@ export default function AssignAnalystForm({ open, setOpen, id, setId }) {
   }, []);
   const handleAssign = async () => {
     setLoading(true);
+    // The API contract is { analystId } (PUT /alert/:id/assign-analyst).
     const payload = {
-      analyst: analyst,
+      analystId: analyst,
     };
     try {
       const response = await assignAnalyst(payload, id);
       if (response.succeed) {
         toast.success("Analyst assigned successfully");
-        setId(null);
+        onAssigned?.(response.data);
+        setId?.(null);
         setOpen(false);
       } else {
         toast.error(response?.error || "Failed to assign analyst");
@@ -49,7 +53,7 @@ export default function AssignAnalystForm({ open, setOpen, id, setId }) {
   const handleOpenChange = (open) => {
     setOpen(open);
     if (!open) {
-      setId(null);
+      setId?.(null);
     }
   };
 

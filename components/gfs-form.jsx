@@ -15,7 +15,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import {
-  autoPopulatedGFSData,
+  draftGfsReport,
   createGFS,
   getGFSById,
   updateGFS,
@@ -280,43 +280,64 @@ export function GFSForm({ id }) {
     }
   };
 
+  /**
+   * Draft the GFS for the chosen case.
+   *
+   * Every figure here — the review period, the totals, the transactions, the
+   * counterparties and the IP evidence — is computed by our API from our own
+   * models; only the suspicion summary comes from the AI service
+   * (docs/74 §4.3). The draft is our GFS document, so the field names below
+   * are ours rather than a third-party payload's.
+   */
   const handleCaseNumberChange = async (value) => {
     setFetching(true);
     try {
-      const response = await autoPopulatedGFSData(value.value);
+      const response = await draftGfsReport(value.value);
+      const doc = response?.succeed ? response.data : null;
+      if (!doc) {
+        console.error('Failed to draft GFS', response?.message);
+        return;
+      }
+
       setFormData({
         ...formData,
-        suspicionReason: response.suspicionSummary,
-        customerName: response.customerName,
-        customerUID: response.customerUID,
-        accountOpeningPurpose: response.accountOpeningPurpose,
-        accountOpeningDate: response.accountOpeningDate,
-        companyName: response.companyName ?? '',
-        sourceOfFunds: response.sourceOfFunds ?? '',
-        customerAge: response.customerAge,
-        reviewStartDate: response.reviewStartDate,
-        reviewEndDate: response.reviewEndDate,
-        totalDeposited: response.totalDeposited,
-        totalSuspicionAmount: response.totalSuspicionAmount,
+        // theirs
+        suspicionReason: doc.suspicionReason || doc.suspicionSummary || '',
+        // ours
+        customerName: doc.customerName,
+        customerUID: doc.customerUID,
+        accountOpeningPurpose: doc.accountOpeningPurpose,
+        accountOpeningDate: doc.accountOpeningDate,
+        companyName: doc.companyName ?? '',
+        sourceOfFunds: doc.sourceOfFunds ?? '',
+        customerAge: doc.customerAge,
+        reviewStartDate: doc.reviewStartDate,
+        reviewEndDate: doc.reviewEndDate,
+        totalDeposited: doc.totalDeposited,
+        totalWithdrawn: doc.totalWithdrawn,
+        totalSuspicionAmount: doc.totalSuspicionAmount,
       });
-      response.transactions.forEach((transaction) => {
+
+      (doc.transactions || []).forEach((transaction) => {
         addTransaction({
           date: transaction.date,
           amount: transaction.amount,
-          reference: transaction.tx_idk,
-          type: `${transaction.subtype} ${transaction.type}`,
+          // `uid` is the transaction's own reference; the old mapping read a
+          // key that never existed, so every row was left blank.
+          reference: transaction.uid || transaction.reference || '',
+          type: [transaction.subtype, transaction.type].filter(Boolean).join(' '),
         });
       });
-      response.ipAddresses.forEach((ipAddress) => {
+
+      (doc.ipAddresses || []).forEach((ipAddress) => {
         addIPAddress({
-          address: ipAddress.ip,
-          country: ipAddress.geolocation,
+          address: ipAddress.address,
+          country: ipAddress.country,
           date: '',
         });
       });
-      console.log('response', response);
     } catch (error) {
-      console.error('error', error);
+      console.error('Failed to draft GFS', error);
     } finally {
       setFetching(false);
     }

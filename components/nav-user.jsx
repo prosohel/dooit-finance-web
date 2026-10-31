@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { apiLogout } from "@/app/auth/actions";
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar();
@@ -40,6 +41,9 @@ export function NavUser({ user }) {
       .slice(0, 2)
       .toUpperCase() || "CN";
   const logout = async () => {
+    // Record the logout in the API's device/audit trail before the NextAuth
+    // session (and its token) is gone.
+    await apiLogout().catch(() => {});
     signOut({
       // redirect: true,
       callbackUrl: "/auth/login",

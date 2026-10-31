@@ -1,12 +1,15 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import FormSection from "../shared/FormSection";
-import { ecddSections, gfsSections } from "../data/investigationHubData";
+import { INVESTIGATION_STEPS } from "../data/investigationHubData";
+import EcddNarrativeEditor from "./narrative/EcddNarrativeEditor";
+import GfsNarrativeEditor from "./narrative/GfsNarrativeEditor";
 
-export default function NarrativeStep({ wizard }) {
-  const { narrativeTpl, setNarrativeTpl } = wizard;
-  const sections = narrativeTpl === "ecdd" ? ecddSections() : gfsSections();
+// Looked up by kind so reordering the steps cannot point this elsewhere.
+const POI_STEP = INVESTIGATION_STEPS.findIndex((s) => s.kind === "poi");
+
+export default function NarrativeStep({ wizard, caseId }) {
+  const { narrativeTpl, setNarrativeTpl, goToStep } = wizard;
 
   return (
     <div>
@@ -30,11 +33,21 @@ export default function NarrativeStep({ wizard }) {
           </button>
         ))}
       </div>
-      <div className="flex flex-col gap-4">
-        {sections.map((sec) => (
-          <FormSection key={sec.heading} heading={sec.heading} fields={sec.fields} />
-        ))}
-      </div>
+
+      {!caseId ? (
+        <p className="text-sm text-muted-foreground">
+          Open this workspace from a case to edit its {narrativeTpl === "ecdd" ? "ECDD" : "GFS"}.
+        </p>
+      ) : narrativeTpl === "ecdd" ? (
+        // The case's real ECDD, drafted from the case and autosaved.
+        <EcddNarrativeEditor
+          caseId={caseId}
+          onOpenPois={POI_STEP >= 0 ? () => goToStep(POI_STEP) : undefined}
+        />
+      ) : (
+        // The case's real GFS, drafted from the case and autosaved.
+        <GfsNarrativeEditor caseId={caseId} />
+      )}
     </div>
   );
 }

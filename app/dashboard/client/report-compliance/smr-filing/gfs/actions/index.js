@@ -1,6 +1,7 @@
 'use server'
 
 import { fetchWithAuth } from '@/services/serverApi';
+import { draftCaseReport } from '@/app/dashboard/client/monitoring-and-cases/case-manager/actions';
 
 export const createGFS = async (formData) => {
   const response = await fetchWithAuth('gfs-report/new', {
@@ -29,13 +30,6 @@ export const getGFSList = async () => {
   return response.json();
 }
 
-export const autoPopulatedGFSData = async (caseNumber) => {
-  const response = await fetch(`http://4.227.188.44:8000/gfs_report`, {
-    method: 'POST',
-    body: JSON.stringify({ uid: caseNumber }),
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-  return response.json();
-}
+// Draft this case's GFS — our activity figures, counterparties and evidence
+// plus the AI's suspicion summary. Returns OUR GFS document.
+export const draftGfsReport = async (ref, opts) => draftCaseReport(ref, 'gfs', opts)

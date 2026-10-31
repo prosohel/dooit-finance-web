@@ -25,6 +25,17 @@ export const getLoggedInUser = async () => {
   return data;
 };
 
+// Tell the API the session ended so the logout lands in the device/audit
+// trail (recordAuthEvent). Best-effort — never blocks the client-side signOut.
+export const apiLogout = async () => {
+  try {
+    const res = await fetchWithAuth("auth/logout");
+    return res.json();
+  } catch {
+    return { success: false };
+  }
+};
+
 export const getLoggedInCustomer = async () => {
   const res = await fetchWithAuth(`auth/me/customer`);
   const data = await res.json();

@@ -22,7 +22,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import useBreadcrumbLabel from "@/hooks/useBreadcrumbLabel";
 import { toast } from "sonner";
 import {
   createCompany,
@@ -659,6 +659,7 @@ export default function AddCompany() {
     annual_income: "",
     estimated_trading_volume: "",
   });
+  useBreadcrumbLabel(id ? String(entity.legal_name || "").trim() || "Edit entity" : "New entity");
   // Matches general_information.account_purpose (Mixed) shape used by every
   // other onboarding form in the app (ui/onboarding-ui business-registration
   // forms) — kept as a separate state slice, same pattern as capital/holders.
@@ -2599,15 +2600,6 @@ export default function AddCompany() {
       {/* page head */}
       <div className="kyb-wizard-head" style={{ background: "#fff", borderBottom: `1px solid ${C.line}`, padding: "22px 40px", borderRadius: "14px 14px 0 0" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: C.sub, marginBottom: 8 }}>
-            <Link href="/dashboard/client/companies" style={{ color: C.sub, textDecoration: "none" }}>
-              KYB Onboarding
-            </Link>
-            <span style={{ color: "#c4c8c1" }}>/</span>
-            <span>{id ? "Edit entity" : "New entity"}</span>
-            <span style={{ color: "#c4c8c1" }}>/</span>
-            <span style={{ color: C.ink, fontWeight: 500 }}>{entity.legal_name.trim() || "Untitled"}</span>
-          </div>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
             <div>
               <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: "-.01em" }}>

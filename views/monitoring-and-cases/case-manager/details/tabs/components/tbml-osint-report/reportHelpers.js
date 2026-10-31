@@ -156,12 +156,15 @@ export function computePriceDeviation({ declared, mid }) {
 
 // ── document totals line, e.g. "subtotal 8,500.00 · total 8,623.75 · unexplained 123.75" ──
 
-export function buildTotalsLine(doc, gapAmount) {
+// `gap` is the adapter's { amount, label } — the label already says which way
+// the discrepancy runs ("Unexplained 123.75" / "Shortfall 80.55"), so it is
+// reused rather than re-derived from a signed number.
+export function buildTotalsLine(doc, gap) {
   const parts = [`subtotal ${formatNumber(doc.subtotal)}`];
   parts.push(`freight ${doc.freightCharges != null ? formatNumber(doc.freightCharges) : "—"}`);
   parts.push(`insurance ${doc.insurance != null ? formatNumber(doc.insurance) : "—"}`);
   parts.push(`total ${formatNumber(doc.totalAmount)}`);
-  if (gapAmount) parts.push(`unexplained ${formatNumber(gapAmount)}`);
+  if (gap?.label) parts.push(gap.label.toLowerCase());
   return parts.join("   ·   ");
 }
 

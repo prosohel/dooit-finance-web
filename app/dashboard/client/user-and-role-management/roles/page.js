@@ -1,156 +1,126 @@
-"use client";
-import CustomResizableTable from "@/components/ui/CustomResizable";
-import CustomPagination from "@/components/CustomPagination";
-import React, { useCallback, useEffect, useState } from "react";
-import { getAllRoles, updateRole } from "../actions";
-import { Button } from "@/components/ui/button";
-import { Lock, PencilIcon } from "lucide-react";
-import PermissionDrawer from "@/views/privacy/permissions/PermissionDrawer";
+'use client';
 
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from 'react';
+import { IconLoader2, IconPlus, IconShieldCog } from '@tabler/icons-react';
+import { toast } from 'sonner';
 
-const getRolesColumns = (handleViewPermissions, handleEditRole) => {
-  return [
-    {
-      id: "actions",
-      header: "Actions",
-      accessorKey: "actions",
-      cell: ({ row }) => (
-        <div className="text-sm text-gray-500 flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className=""
-            onClick={() => handleViewPermissions(row.original)}
-          >
-            <Lock />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className=""
-            onClick={() => handleEditRole(row.original)}
-          >
-            <PencilIcon />
-          </Button>
-        </div>
-      ),
-      size: 100,
-    },
-    {
-      id: "name",
-      header: "Name",
-      accessorKey: "name",
-    },
-  ];
-};
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import CustomResizableTable from '@/components/ui/CustomResizable';
+import { PageDescription, PageHeader, PageTitle } from '@/components/common';
+import PermissionDrawer from '@/views/privacy/permissions/PermissionDrawer';
+import {
+  addRole,
+  getAllRoles,
+} from '@/app/dashboard/client/user-and-role-management/actions';
+
 export default function RolesPage() {
-  const [allRoles, setAllRoles] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [openPermissions, setOpenPermissions] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [openRoleForm, setOpenRoleForm] = useState(false);
-  const [roleInput, setRoleInput] = useState("");
-  const router = useRouter();
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [permissionRole, setPermissionRole] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [adding, setAdding] = useState(false);
+
   const fetchRoles = useCallback(async () => {
-    try {
-      const roles = await getAllRoles();
-      setAllRoles(roles);
-    } catch (error) {
-      console.error("Error fetching roles:", error);
+    setLoading(true);
+    const res = await getAllRoles().catch(() => null);
+    if (res?.success || Array.isArray(res?.data)) {
+      setRoles(res.data ?? []);
+    } else {
+      toast.error(res?.error || 'Failed to load roles');
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchRoles();
-  }, []);
-  const handlePageChange = (page) => {
-    setCurrentPage(page.selected + 1);
-  };
-  const handleLimitChange = (limit) => {
-    setLimit(limit);
-    setCurrentPage(1);
-  };
-  const totalRoles = allRoles?.totalRecords;
-  const handleViewPermissions = (role) => {
-    setSelectedRole(role);
-    setOpenPermissions(true);
-    // router.push(`/dashboard/client/user-and-role-management/roles/${role._id}/permissions`);
-  };
-  const handleEditRole = (role) => {
-    setRoleInput(role.name);
-    setSelectedRole(role);
-    setOpenRoleForm(true);
-  };
-  const handleModalClose = () => {
-    setOpenRoleForm(false);
-    setRoleInput("");
-  };
-  const handleEditRoleSubmit = async () => {
-    try {
-      const response = await updateRole(selectedRole?._id, { name: roleInput });
-      if (response.succeed || response.success) {
-        toast.success("Role updated successfully!");
-        fetchRoles();
-        setSelectedRole(null);
-        handleModalClose();
-      }
-    } catch (error) {
-      console.error("Error updating role:", error);
-      toast.error("Failed to update role!");
+  }, [fetchRoles]);
+
+  const handleAddRole = async () => {
+    const name = newRoleName.trim();
+    if (!name) return;
+    setAdding(true);
+    const res = await addRole({ name }).catch(() => null);
+    if (res?.success) {
+      toast.success(`Role "${name}" created`);
+      setNewRoleName('');
+      setAddOpen(false);
+      fetchRoles();
+    } else {
+      toast.error(res?.error || 'Failed to create role');
     }
+    setAdding(false);
   };
+
+  const columns = [
+    {
+      id: 'name',
+      header: 'Role',
+      accessorKey: 'name',
+      cell: ({ row }) => <span className="font-medium capitalize">{row.original.name}</span>,
+    },
+    {
+      id: 'permissions',
+      header: 'Permissions',
+      accessorKey: 'permissions',
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => setPermissionRole(row.original)}>
+            <IconShieldCog className="size-4" /> Manage permissions
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div>
-      {" "}
+    <div className="p-4 md:p-6">
+      <PageHeader className="flex-row items-start justify-between">
+        <div>
+          <PageTitle>Roles</PageTitle>
+          <PageDescription>
+            Roles define what people can see and do. Manage each role&apos;s permission grant and
+            per-user restrictions.
+          </PageDescription>
+        </div>
+        <Popover open={addOpen} onOpenChange={setAddOpen}>
+          <PopoverTrigger asChild>
+            <Button>
+              <IconPlus className="size-4" /> Add role
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-72 space-y-3">
+            <p className="text-sm font-medium">New role name</p>
+            <Input
+              value={newRoleName}
+              onChange={(e) => setNewRoleName(e.target.value)}
+              placeholder="e.g. AML Analyst"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddRole()}
+            />
+            <Button size="sm" className="w-full" onClick={handleAddRole} disabled={adding}>
+              {adding ? <IconLoader2 className="size-4 animate-spin" /> : 'Create role'}
+            </Button>
+          </PopoverContent>
+        </Popover>
+      </PageHeader>
+
       <CustomResizableTable
-        columns={getRolesColumns(handleViewPermissions, handleEditRole)}
-        data={allRoles?.data}
-        tableId="roles-permissions-table"
-        mainClass="roles-permissions-table"
+        columns={columns}
+        data={roles}
+        loading={loading}
+        mainClass="roles-table"
+        tableId="roles-table"
       />
-      <CustomPagination
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-        totalItems={totalRoles}
-        limit={limit}
-        onChangeLimit={handleLimitChange}
-      />
-      {selectedRole && openPermissions && (
+
+      {permissionRole && (
         <PermissionDrawer
-          open={openPermissions}
-          onClose={() => setOpenPermissions(false)}
-          role={selectedRole}
-          setRole={setSelectedRole}
+          open={Boolean(permissionRole)}
+          role={permissionRole}
+          setRole={setPermissionRole}
+          onClose={() => setPermissionRole(null)}
         />
-      )}
-      {openRoleForm && (
-        <Dialog open={openRoleForm} onOpenChange={handleModalClose}>
-          <DialogContent className="z-50">
-            <DialogHeader>
-              <DialogTitle>Edit Role</DialogTitle>
-            </DialogHeader>
-            <div>
-              <Label>Role</Label>
-              <Input
-                type="text"
-                placeholder="Enter Role"
-                value={roleInput}
-                onChange={(e) => setRoleInput(e.target.value)}
-              />
-            </div>
-            <div>
-              <Button variant="outline" className="w-full mt-2" onClick={handleEditRoleSubmit}>
-                Add Role
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       )}
     </div>
   );

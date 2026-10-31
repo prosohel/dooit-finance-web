@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import { getSMRList } from './actions'
 import { formatDateTime } from '@/lib/utils'
-import { EyeIcon, PencilIcon } from 'lucide-react'
+import { DownloadIcon, EyeIcon, Loader2, PencilIcon } from 'lucide-react'
+import { downloadReportPdf } from '@/lib/downloadReportPdf'
 import { SMRDashboard } from './Dashboard'
 import SMRHeatmap from './HeatMap'
 import CustomPagination from '@/components/CustomPagination'
@@ -25,6 +26,19 @@ export default function SMRPage() {
 
   const handleEdit = (id) => {
     router.push(`/dashboard/client/report-compliance/smr-filing/smr/form?id=${id}`)
+  }
+
+  // Tracks the row being exported rather than a single boolean, so only the
+  // clicked row shows a spinner while the PDF renders.
+  const [exportingId, setExportingId] = useState(null)
+
+  const handleExport = async (row) => {
+    setExportingId(row._id)
+    try {
+      await downloadReportPdf({ kind: 'smr', id: row._id, label: row.uid })
+    } finally {
+      setExportingId(null)
+    }
   }
 
   const columns = [
@@ -46,6 +60,19 @@ export default function SMRPage() {
               size='sm'
               onClick={() => handleView(row.original._id)}>
               <EyeIcon />
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              title='Export PDF'
+              aria-label='Export PDF'
+              disabled={exportingId === row.original._id}
+              onClick={() => handleExport(row.original)}>
+              {exportingId === row.original._id ? (
+                <Loader2 className='animate-spin' />
+              ) : (
+                <DownloadIcon />
+              )}
             </Button>
           </div>
         )

@@ -181,7 +181,6 @@ export default function KYCCompanyForm() {
     }
 
   }
-  console.log("errors", errors)
 
   return (
     <div className="min-h-screen ">

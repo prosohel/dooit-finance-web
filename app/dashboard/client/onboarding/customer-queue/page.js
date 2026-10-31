@@ -10,6 +10,12 @@ import Verified from "@/views/onboarding/customer-queue/list/Verified";
 import CustomerDashboard from "@/views/onboarding/customer-queue/list/Dashboard";
 import { getCustomerStats } from "./actions";
 
+// This page reads the signed-in user's cookies through `getCustomerStats`, so it
+// can never be prerendered. Say so explicitly: the try/catch below swallows the
+// DynamicServerError Next throws during export, and without this flag the route
+// can be baked into static HTML carrying one user's counts.
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   let stats = null;
   try {

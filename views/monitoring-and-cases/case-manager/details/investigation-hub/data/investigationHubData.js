@@ -1,4 +1,4 @@
-// Static configuration for the investigation wizard: the ordered list of
+﻿// Static configuration for the investigation wizard: the ordered list of
 // steps, the option sets each step offers, and the field definitions for the
 // structured narrative / SMR forms. Kept data-only (no React) so it can be
 // unit-tested and imported by both the wizard hook and the step renderers.
@@ -261,235 +261,19 @@ export const SMR_REASON_OPTIONS = [
   "Unusually large transfer",
 ];
 
-export const SMR_PROVIDED_OPTIONS = ["Provided", "Requested", "Enquired about"];
-
 export const SMR_PART_ORDER = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
+// Aligned with the SMR model's AUSTRAC parts (api/models/SmrReport.js).
 export const SMR_PART_TITLES = {
   A: "Part A — Details of the Matter",
   B: "Part B — Grounds for Suspicion",
-  C: "Part C — Persons / Customers Involved",
-  D: "Part D — Accounts Involved",
-  E: "Part E — Transactions",
-  F: "Part F — Property & Goods",
-  G: "Part G — Reporting Entity",
-  H: "Part H — Declaration & Submission",
+  C: "Part C — Person / Organisation the Matter Relates To",
+  D: "Part D — Other Parties Involved",
+  E: "Part E — Unidentified Persons",
+  F: "Part F — Transactions",
+  G: "Part G — Offence & Previous Reports",
+  H: "Part H — Reporting Entity & Declaration",
 };
-
-function field(label, type, opts = {}) {
-  return {
-    label,
-    type,
-    placeholder: opts.placeholder || "",
-    options: opts.options || [],
-    full: type === "textarea" || !!opts.full,
-  };
-}
-
-export function ecddSections() {
-  return [
-    {
-      heading: "1. Analysis & Review",
-      fields: [
-        field("Analysed by — name", "text", { placeholder: "Analyst name" }),
-        field("Position", "text", { placeholder: "e.g. Compliance Officer" }),
-        field("Date", "date"),
-        field("Case number", "text", { placeholder: "Case number" }),
-      ],
-    },
-    {
-      heading: "2. Customer Profile",
-      fields: [
-        field("Inherent customer risk rating", "select", { options: ["Low", "Medium", "High"] }),
-        field("User ID", "text", { placeholder: "UID" }),
-        field("Full / company name", "text", { placeholder: "Enter full name" }),
-        field("ABN", "text", { placeholder: "Enter ABN" }),
-        field("Onboarding date", "date"),
-        field("Account purpose", "text", { placeholder: "e.g. Digital Currency Exchange" }),
-        field("Expected trading volume (AUD / month)", "number", { placeholder: "0" }),
-        field("Annual income (million AUD)", "number", { placeholder: "0" }),
-        field("Beneficial owner", "text", { placeholder: "Enter beneficial owner" }),
-        field("Directors", "text", { placeholder: "Enter directors" }),
-        field("Profile summary", "textarea", {
-          placeholder: "Onboarding summary, adverse media findings, related parties…",
-        }),
-      ],
-    },
-    {
-      heading: "3. Risk Flags",
-      fields: [
-        field("Customer is PEP", "select", { options: ["No", "Yes"] }),
-        field("Sanctioned customer", "select", { options: ["No", "Yes"] }),
-        field("Related party", "text", { placeholder: "N/A" }),
-      ],
-    },
-    {
-      heading: "4. Transaction Analysis",
-      fields: [
-        field("Account creation date", "date"),
-        field("Analysis end date", "date"),
-        field("Total deposits (AUD)", "number", { placeholder: "0" }),
-        field("Total withdrawals (USDT)", "number", { placeholder: "0" }),
-        field("Total withdrawals (ETH)", "number", { placeholder: "0" }),
-        field("Total withdrawals (BTC)", "number", { placeholder: "0" }),
-        field("Deposit details", "textarea", {
-          placeholder: "Deposit amounts, sources, screening results…",
-        }),
-        field("Withdrawal details", "textarea", {
-          placeholder: "Withdrawal wallets, exchange rates, screening results…",
-        }),
-        field("Transaction analysis", "textarea", { placeholder: "Overall pattern and interpretation…" }),
-        field("Additional information", "textarea", {
-          placeholder: "CCO / account manager commentary…",
-        }),
-      ],
-    },
-    {
-      heading: "5. Behavioral Analysis",
-      fields: [
-        field("Number of IP locations", "number", { placeholder: "0" }),
-        field("Registered address", "text", { placeholder: "Enter registered address" }),
-        field("Behavioral analysis", "textarea", {
-          placeholder: "Login / device / IP behaviour, OTC status…",
-        }),
-      ],
-    },
-    {
-      heading: "6. Recommendation",
-      fields: [
-        field("Recommendation", "textarea", {
-          placeholder: "Continue / offboard, HRC classification, RFI decision…",
-        }),
-      ],
-    },
-  ];
-}
-
-export function gfsSections() {
-  return [
-    {
-      heading: "1. Suspicion Summary",
-      fields: [
-        field("Reason for suspicion", "text", { placeholder: "e.g. Person is not who they claim to be" }),
-        field("Customer name", "text", { placeholder: "Customer name" }),
-      ],
-    },
-    {
-      heading: "2. Customer Profile",
-      fields: [
-        field("Company / account name", "text", { placeholder: "Company name" }),
-        field("Customer UID", "text", { placeholder: "Customer UID" }),
-        field("Age", "number", { placeholder: "0" }),
-        field("Account opening date", "date"),
-        field("Source of funds", "select", {
-          options: ["Salary / wages", "Business income", "Investment", "Savings", "Other"],
-        }),
-        field("Account opening purpose", "text", { placeholder: "AOP" }),
-      ],
-    },
-    {
-      heading: "3. Transaction Analysis",
-      fields: [
-        field("Review period — from", "date"),
-        field("Review period — to", "date"),
-        field("Total suspicion amount (AUD)", "number", { placeholder: "0" }),
-        field("Transaction analysis", "textarea", {
-          placeholder: "Third-party requests, DEFTs, crypto wallet transfers, references…",
-        }),
-      ],
-    },
-    {
-      heading: "4. Conclusion",
-      fields: [
-        field("Conclusion", "textarea", {
-          placeholder: "Origin of funds, unusual pattern, IP vs identity mismatch…",
-        }),
-      ],
-    },
-  ];
-}
-
-const SMR_FORM_MAP = {
-  C: {
-    note: "Details of the person(s) / customer(s) involved in the suspicious matter.",
-    fields: [
-      field("Full name", "text", { placeholder: "Person / entity name" }),
-      field("Type", "select", { options: ["Individual", "Organisation"] }),
-      field("Date of birth / registration", "date"),
-      field("Identification number", "text", { placeholder: "Passport / ABN / licence" }),
-      field("Residential / registered address", "text", { placeholder: "Address", full: true }),
-      field("Role in the matter", "text", { placeholder: "e.g. account holder, beneficiary", full: true }),
-      field("Additional details", "textarea", { placeholder: "Any other identifying information…" }),
-    ],
-  },
-  D: {
-    note: "Details of the account(s) involved.",
-    fields: [
-      field("Account number", "text", { placeholder: "Account number" }),
-      field("BSB / branch", "text", { placeholder: "BSB" }),
-      field("Account name", "text", { placeholder: "Account name" }),
-      field("Account type", "select", {
-        options: ["Transaction", "Savings", "Crypto wallet", "Term deposit", "Other"],
-      }),
-      field("Current balance (AUD)", "number", { placeholder: "0" }),
-      field("Date opened", "date"),
-      field("Additional details", "textarea", { placeholder: "Signatories, linked accounts…" }),
-    ],
-  },
-  E: {
-    note: "Details of the transaction(s) that gave rise to the suspicion.",
-    fields: [
-      field("Transaction date", "date"),
-      field("Amount", "number", { placeholder: "0" }),
-      field("Currency", "select", { options: ["AUD", "USD", "USDT", "BTC", "ETH", "Other"] }),
-      field("Direction", "select", { options: ["Deposit / credit", "Withdrawal / debit", "Transfer"] }),
-      field("From (account / wallet)", "text", { placeholder: "Source" }),
-      field("To (account / wallet)", "text", { placeholder: "Destination" }),
-      field("Transaction detail", "textarea", {
-        placeholder: "Method, references, wallet addresses, pattern…",
-      }),
-    ],
-  },
-  F: {
-    note: "Details of any property, goods or physical currency involved.",
-    fields: [
-      field("Type of property", "select", {
-        options: ["Physical currency", "Real estate", "Vehicle", "Precious metals", "Digital asset", "Other"],
-      }),
-      field("Estimated value (AUD)", "number", { placeholder: "0" }),
-      field("Description", "textarea", { placeholder: "Description of the property / goods…" }),
-    ],
-  },
-  G: {
-    note: "Details of the reporting entity submitting this report.",
-    fields: [
-      field("Reporting entity", "text", { placeholder: "Reporting entity name" }),
-      field("AUSTRAC / regulator ID", "text", { placeholder: "Entity ID" }),
-      field("Contact person", "text", { placeholder: "Contact name" }),
-      field("Position", "text", { placeholder: "Position" }),
-      field("Phone", "text", { placeholder: "Phone" }),
-      field("Email", "text", { placeholder: "Email" }),
-    ],
-  },
-  H: {
-    note: "Declaration and submission.",
-    fields: [
-      field("Prepared by", "text", { placeholder: "Name" }),
-      field("Position", "text", { placeholder: "Position" }),
-      field("Date", "date"),
-      field("Declaration", "select", {
-        options: ["I declare the information is true and correct", "Not yet confirmed"],
-      }),
-      field("Submission notes", "textarea", { placeholder: "Any notes for the submission…" }),
-    ],
-  },
-};
-
-export function smrFormSections(part) {
-  const def = SMR_FORM_MAP[part];
-  if (!def) return [];
-  return [{ heading: "", hasNote: true, note: def.note, fields: def.fields }];
-}
 
 export const DEFAULT_CHECKLIST = [
   {
