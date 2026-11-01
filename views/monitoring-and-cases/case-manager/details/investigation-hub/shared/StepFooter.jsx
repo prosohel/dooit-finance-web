@@ -5,7 +5,7 @@ import { IconArrowLeft, IconArrowRight, IconCheck, IconDeviceFloppy } from "@tab
 
 export default function StepFooter({ onBack, onNext, isFirst, isLast }) {
   return (
-    <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+    <div className="mt-6 flex items-center justify-between  pt-4">
       <Button variant="outline" size="sm" className="gap-1.5" onClick={onBack} disabled={isFirst}>
         <IconArrowLeft className="size-3.5" />
         Back

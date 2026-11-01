@@ -2,7 +2,13 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { IconSearch } from "@tabler/icons-react";
 import { XCircle } from "lucide-react";
 
@@ -33,7 +39,7 @@ export default function ListToolbar({
   };
 
   return (
-    <div className="mb-3 space-y-2">
+    <div className="mb-3 space-y-2 bg-white p-4 rounded">
       <div className="flex flex-wrap items-center gap-2">
         <InputGroup className="w-full max-w-xs">
           <InputGroupAddon>
@@ -80,7 +86,9 @@ export default function ListToolbar({
                 onClick={() => onFilterChange(name, "")}
                 className="inline-flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-0.5 text-xs hover:bg-muted"
               >
-                <span className="text-muted-foreground">{name === "search" ? "Search" : facet}:</span>
+                <span className="text-muted-foreground">
+                  {name === "search" ? "Search" : facet}:
+                </span>
                 {shown}
                 <XCircle className="size-3" />
               </button>

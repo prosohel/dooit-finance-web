@@ -22,13 +22,19 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   const wizard = useInvestigationWizard(caseData, caseId);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 mt-[24px]">
       <SaveIndicator wizard={wizard} />
 
       <div className="flex h-[calc(100vh-300px)] min-h-[620px] gap-3.5 overflow-x-auto pb-1">
-        <AlertDetailsPanel caseData={caseData} />
-        <StepWorkspacePanel caseData={caseData} caseId={caseId} onCaseChange={onCaseChange} wizard={wizard} />
+        {/* <AlertDetailsPanel caseData={caseData} /> */}
         <StepsChecklistPanel wizard={wizard} />
+
+        <StepWorkspacePanel
+          caseData={caseData}
+          caseId={caseId}
+          onCaseChange={onCaseChange}
+          wizard={wizard}
+        />
         <OsintReportPanel caseData={caseData} />
       </div>
     </div>

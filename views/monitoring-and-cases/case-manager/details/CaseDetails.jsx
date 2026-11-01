@@ -63,6 +63,9 @@ function TabSkeleton() {
   );
 }
 
+const tabBtnClass =
+  "py-4 w-full data-[state=active]:text-primary data-[state=active]:bg-white data-[state=active]:shadow-sm  [&>svg]:size-20 ";
+
 export default function CaseDetails({ caseId }) {
   const { setSelectedCase } = useCaseManagerStore();
   const [caseData, setCaseData] = useState(null);
@@ -205,7 +208,7 @@ export default function CaseDetails({ caseId }) {
               const sars = adaptPreviousSARs(filings?.smr);
               setRfis(adaptedRfis);
               setCaseData((prev) =>
-                prev ? { ...prev, rfis: adaptedRfis, previousSARs: sars } : prev
+                prev ? { ...prev, rfis: adaptedRfis, previousSARs: sars } : prev,
               );
             })
             .finally(() => !cancelled && setReportsLoading(false));
@@ -225,7 +228,7 @@ export default function CaseDetails({ caseId }) {
                 if (cancelled) return;
                 if (devRes?.success && devRes.data?.length) {
                   setCaseData((prev) =>
-                    prev ? { ...prev, devices: adaptDevices(devRes.data) } : prev
+                    prev ? { ...prev, devices: adaptDevices(devRes.data) } : prev,
                   );
                 }
               })
@@ -406,7 +409,7 @@ export default function CaseDetails({ caseId }) {
     setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n)));
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-[48px]">
       <CaseHeader
         caseData={{ ...caseData, lastUpdated: caseData.lastUpdated }}
         status={status}
@@ -420,41 +423,41 @@ export default function CaseDetails({ caseId }) {
         onReopenCase={handleReopenCase}
       />
 
-      <Tabs defaultValue="investigation-hub">
-        <TabsList>
-          <TabsTrigger value="investigation-hub">
+      <Tabs defaultValue="investigation-hub" variant="" className="w-full">
+        <TabsList className="w-full">
+          <TabsTrigger value="investigation-hub" className={tabBtnClass}>
             <IconBriefcase />
             Investigation Hub
           </TabsTrigger>
-          <TabsTrigger value="customer-profile">
+          <TabsTrigger value="customer-profile" className={tabBtnClass}>
             <IconUser />
             Customer Profile
           </TabsTrigger>
-          <TabsTrigger value="transactions">
+          <TabsTrigger value="transactions" className={tabBtnClass}>
             <IconCreditCard />
             Transactions
           </TabsTrigger>
-          <TabsTrigger value="files">
+          <TabsTrigger value="files" className={tabBtnClass}>
             <IconFolder />
             Files
           </TabsTrigger>
-          <TabsTrigger value="source-of-funds">
+          <TabsTrigger value="source-of-funds" className={tabBtnClass}>
             <IconCoins />
             Source of Funds
           </TabsTrigger>
-          <TabsTrigger value="reports">
+          <TabsTrigger value="reports" className={tabBtnClass}>
             <IconFileStack />
             Reports
           </TabsTrigger>
-          <TabsTrigger value="case-activity">
+          <TabsTrigger value="case-activity" className={tabBtnClass}>
             <IconClipboardList />
             Case Activity
           </TabsTrigger>
-          <TabsTrigger value="relation-graph">
+          <TabsTrigger value="relation-graph" className={tabBtnClass}>
             <IconSitemap />
             Relation graph
           </TabsTrigger>
-          <TabsTrigger value="tbml-osint">
+          <TabsTrigger value="tbml-osint" className={tabBtnClass}>
             <FingerprintIcon /> TBML Osint
           </TabsTrigger>
         </TabsList>

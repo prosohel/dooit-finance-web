@@ -643,20 +643,24 @@ export default function ClientSidebar({ ...props }) {
 
   return (
     <Sidebar collapsible="offcanvas" {...props} className={"border-0 overflow-x-hidden"}>
-      <SidebarHeader>
+      <SidebarHeader className="group-data-[collapsible=icon]:px-0">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0! group-data-[collapsible=icon]:hover:bg-transparent"
+            >
               <div className="py-2  relative">
-                <div className="w-20 ">
-                  <img src="/logo.png" alt="Logo" className=" w-full h-8 object-contain " />
+                {/* The rail narrows this box so the wordmark crops down to its "D". */}
+                <div className="w-20 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none group-data-[collapsible=icon]:w-[17px]">
+                  <img src="/logo.png" alt="Logo" className=" w-20 max-w-none h-8 object-contain " />
                 </div>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="overflow-x-hidden client-sidebar-content">
+      <SidebarContent className="overflow-x-hidden client-sidebar-content group-data-[collapsible=icon]:-mx-1.5 group-data-[collapsible=icon]:overflow-y-auto group-data-[collapsible=icon]:px-1.5 group-data-[collapsible=icon]:[scrollbar-width:none]!">
         {!isDooit && <NavMain items={onBoardingMenuItems} />}
         {isDooit && <NavMain items={dooitMenuItems} label="Dooit" />}
         <NavMain items={monitoringMenuItems} label="Monitoring & Cases" />
@@ -692,7 +696,7 @@ export default function ClientSidebar({ ...props }) {
         <NavMain items={knowledgeHubMenuItems} label="Knowledge Hub" />
         <NavMain items={watchlistAndScreeningMenuItems} label="Watchlist & Screening" />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="group-data-[collapsible=icon]:px-0">
         <NavUser
           user={{
             name:

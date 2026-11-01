@@ -125,17 +125,17 @@ export default function CaseHeader({
   const isClosed = statusKey === "closed";
 
   return (
-    <div className="rounded-xl border border-border bg-white px-5 py-3.5 shadow-sm">
+    <div className="space-y-[24px] bg-white rounded-md p-4 shadow">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
         {/* Title leads; everything that describes the case sits on one line under it. */}
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <h1 className="truncate text-lg font-bold text-heading">
-            {caseData.title || caseData.caseName}
-          </h1>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <p className="truncate text-lg font-medium ">
+            {caseData.title || caseData.caseName}{" "}
             <span className="rounded border bg-muted px-1.5 py-px font-mono text-[11px] font-semibold text-heading">
               {caseData.displayId || caseData.uid}
             </span>
+          </p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             <StatusPill variant={statusVariants[statusKey] || "outline"}>
               {STATUS_LABELS[statusKey] || status}
             </StatusPill>
@@ -181,8 +181,8 @@ export default function CaseHeader({
       </div>
 
       {/* Action bar */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-        <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={onOpenAssign}>
+      <div className="mt-3 flex flex-wrap items-center gap-2  pt-3">
+        <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={onOpenAssign}>
           <IconUserCheck className="size-3.5" />
           Assign Case
         </Button>

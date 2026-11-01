@@ -252,7 +252,7 @@ const CustomResizableTable = ({
     .filter(Boolean);
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 bg-white">
       {actions ? (
         <div className="flex items-center justify-end gap-2 mb-2">
           {actions}

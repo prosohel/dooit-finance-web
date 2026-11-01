@@ -10,8 +10,8 @@ import OsiintData from "../OsiintData";
  */
 export default function OsintReportPanel({ caseData }) {
   return (
-    <div className="flex w-[340px] shrink-0 min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white">
-      <div className="flex shrink-0 items-center gap-2.5 border-b-2 border-sky-600 bg-sky-50 px-4 py-2.5">
+    <div className="flex w-[340px] shrink-0 min-h-0 flex-col overflow-hidden rounded-xl bg-zinc-50">
+      <div className="flex shrink-0 items-center gap-2.5   px-4 py-2.5">
         <Radar className="size-3.5 text-sky-700" />
         <span className="text-[12.5px] font-bold text-sky-700">OSINT REPORT</span>
       </div>

@@ -7,15 +7,19 @@ export default function ChecklistCard({ checklist, checkedCount, toggleCheck }) 
   const pct = Math.round((checkedCount / checklist.length) * 100);
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white">
-      <div className="shrink-0 border-b-2 border-success bg-success/10 px-4 py-2.5">
-        <div className="flex items-center gap-2.5">
+    <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl ">
+      <div className="shrink-0  px-4 py-2.5">
+        {/* <div className="flex items-center gap-2.5">
           <span className="size-2 rounded-full bg-success" />
-          <span className="text-[12.5px] font-bold text-success">INVESTIGATION CHECKLIST</span>
-        </div>
+
+        </div> */}
+        <span className="text-[12.5px] font-bold text-success">INVESTIGATION CHECKLIST</span>
         <div className="mt-2 flex items-center gap-2">
           <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-success/15">
-            <div className="h-full rounded-full bg-success transition-all" style={{ width: `${pct}%` }} />
+            <div
+              className="h-full rounded-full bg-success transition-all"
+              style={{ width: `${pct}%` }}
+            />
           </div>
           <span className="text-[11px] font-semibold text-success">
             {checkedCount} of {checklist.length}
@@ -34,7 +38,9 @@ export default function ChecklistCard({ checklist, checkedCount, toggleCheck }) 
             <span
               className={cn(
                 "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border text-[11px] font-bold",
-                item.checked ? "border-success bg-success text-white" : "border-muted-foreground/30 bg-white text-transparent",
+                item.checked
+                  ? "border-success bg-success text-white"
+                  : "border-muted-foreground/30 bg-white text-transparent",
               )}
             >
               <IconCheck className="size-3" strokeWidth={3} />

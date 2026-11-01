@@ -50,7 +50,7 @@ export default function CustomPagination(props) {
   };
 
   return (
-    <div className="flex justify-between items-center  rounded-md my-4   p-4 bg-gray-50">
+    <div className="flex justify-between items-center  rounded-md my-4   p-4 bg-white ">
       <div className="flex items-center gap-2">
         {' '}
         <Select value={limit} onValueChange={onChangeLimit}>
