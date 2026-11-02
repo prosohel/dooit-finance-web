@@ -125,7 +125,7 @@ export default function CaseHeader({
   const isClosed = statusKey === "closed";
 
   return (
-    <div className="space-y-[24px] bg-white rounded-md p-4 shadow">
+    <div className="space-y-[24px] bg-white rounded-md p-4 border">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
         {/* Title leads; everything that describes the case sits on one line under it. */}
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">

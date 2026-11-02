@@ -22,7 +22,7 @@ export default function StepWorkspacePanel({ caseData, caseId, onCaseChange, wiz
   const StepBody = STEP_RENDERERS[step.kind];
 
   return (
-    <div className="flex min-w-[460px] flex-1 flex-col overflow-hidden rounded-xl ">
+    <div className="flex min-w-[460px] flex-1 flex-col overflow-hidden rounded-xl bg-white">
       {/* <div className="flex shrink-0 items-center justify-between gap-3 border-b-2 border-primary bg-primary/5 px-5 py-3">
         <div className="flex items-center gap-2.5">
           <span className="size-2 rounded-full bg-primary" />

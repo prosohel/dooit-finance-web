@@ -20,7 +20,7 @@ export default function ClientLayout({ children }) {
       <SidebarInset className="rounded-xl bg-[#fefefe]">
         {/* {isRealState && <RealEstateDashboardHeader />} */}
         <SiteHeader />
-        <div className="flex flex-1 flex-col ">
+        <div className="flex flex-1 flex-col bg-white">
           <EncryptDecryptFAB />
           <ChatBotNissa />
           <div className="@container/main flex flex-1 flex-col gap-2  ">
