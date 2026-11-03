@@ -1,29 +1,26 @@
 "use client";
 
+import { IconCheck } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 export default function StepsList({ steps, activeStep, doneCount, goToStep }) {
   const pct = Math.round((doneCount / steps.length) * 100);
 
   return (
-    <div className="flex flex-[1.35] min-h-0 flex-col overflow-hidden rounded-xl ">
-      <div className="shrink-0   px-4 py-2.5">
-        {/* <div className="flex items-center gap-2.5">
-          <span className="size-2 rounded-full " />
-
-        </div> */}
-        <span className="text-[12.5px] font-bold ">STEPS OF INVESTIGATION</span>
-        <div className="mt-2 flex items-center gap-2">
-          <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-indigo-100">
-            <div className="h-full rounded-full  transition-all" style={{ width: `${pct}%` }} />
-          </div>
-          <span className="text-[11px] font-semibold ">
-            {doneCount}/{steps.length}
+    <div className="flex flex-[1.35] min-h-0 flex-col">
+      <div className="shrink-0 px-4 pb-3 pt-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-heading">Investigation Steps</span>
+          <span className="rounded-md border border-border bg-white px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {doneCount} of {steps.length}
           </span>
+        </div>
+        <div className="mt-3 h-1 overflow-hidden rounded-full bg-border/70">
+          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         {steps.map((step, i) => {
           const isCurrent = i === activeStep;
           return (
@@ -31,30 +28,29 @@ export default function StepsList({ steps, activeStep, doneCount, goToStep }) {
               key={step.key}
               type="button"
               onClick={() => goToStep(i)}
+              aria-current={isCurrent ? "step" : undefined}
               className={cn(
-                "my-0.5 flex w-full items-center gap-2.5 rounded-lg border-l-[3px] px-2.5 py-2 text-left transition-colors",
-                isCurrent
-                  ? "border-indigo-600 bg-indigo-50"
-                  : "border-transparent hover:bg-muted/40",
+                "flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors",
+                isCurrent ? "bg-primary/10" : "hover:bg-muted/60",
               )}
             >
               <span
                 className={cn(
-                  "flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+                  "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
                   step.done
                     ? "bg-primary text-white"
                     : isCurrent
-                      ? "bg-indigo-600 text-white"
-                      : "border border-border bg-muted text-muted-foreground",
+                      ? "border-[1.5px] border-primary bg-white text-primary"
+                      : "border-[1.5px] border-muted-foreground/30 bg-white text-muted-foreground",
                 )}
               >
-                {step.done ? "✓" : i + 1}
+                {step.done ? <IconCheck className="size-3" strokeWidth={3} /> : i + 1}
               </span>
               <span
                 className={cn(
-                  "text-[12.5px]",
+                  "truncate text-[13px]",
                   isCurrent
-                    ? "font-bold text-indigo-900"
+                    ? "font-semibold text-primary"
                     : step.done
                       ? "font-medium text-heading"
                       : "text-muted-foreground",
@@ -65,7 +61,7 @@ export default function StepsList({ steps, activeStep, doneCount, goToStep }) {
             </button>
           );
         })}
-      </div>
+      </nav>
     </div>
   );
 }

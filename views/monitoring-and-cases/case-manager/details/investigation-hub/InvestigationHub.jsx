@@ -7,14 +7,13 @@ import StepWorkspacePanel from "./StepWorkspacePanel";
 import OsintReportPanel from "./OsintReportPanel";
 import StepsChecklistPanel from "./StepsChecklistPanel";
 import { useInvestigationWizard } from "./hooks/useInvestigationWizard";
-import AlertDetailsPanel from "./AlertDetailsPanel";
 
 /**
- * The step-driven investigation workspace: alert context on the left, the
- * active step's form in the middle, the step list + checklist next, and an
- * OSINT report tab on the far right that opens as a drawer. All wizard state lives in
- * `useInvestigationWizard` and is threaded down as a single `wizard` object
- * so step components stay simple props-in/callbacks-out.
+ * The step-driven investigation workspace: one card split into the step list
+ * + checklist on the left and the active step's form on the right, with the
+ * save status and the OSINT report drawer in the workspace header. All wizard
+ * state lives in `useInvestigationWizard` and is threaded down as a single
+ * `wizard` object so step components stay simple props-in/callbacks-out.
  */
 export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   // `caseId` gives the wizard somewhere to save; without it the hub still
@@ -22,24 +21,21 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   const wizard = useInvestigationWizard(caseData, caseId);
 
   return (
-    <div className="flex flex-col gap-2  relative">
-      <div className="absolute right-0 top-0">
-        <SaveIndicator wizard={wizard} />
-      </div>
+    <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+      <StepsChecklistPanel wizard={wizard} />
 
-      <div className="flex h-[calc(100vh-300px)] min-h-[620px] gap-3.5 overflow-x-auto pb-1">
-        <StepsChecklistPanel wizard={wizard} />
-
-        <StepWorkspacePanel
-          caseData={caseData}
-          caseId={caseId}
-          onCaseChange={onCaseChange}
-          wizard={wizard}
-        />
-      </div>
-      <div className="absolute right-0 top-8  ">
-        <OsintReportPanel caseData={caseData} />
-      </div>
+      <StepWorkspacePanel
+        caseData={caseData}
+        caseId={caseId}
+        onCaseChange={onCaseChange}
+        wizard={wizard}
+        headerActions={
+          <>
+            <SaveIndicator wizard={wizard} />
+            <OsintReportPanel caseData={caseData} />
+          </>
+        }
+      />
     </div>
   );
 }
@@ -63,8 +59,8 @@ function SaveIndicator({ wizard }) {
 
   if (saveError) {
     return (
-      <p className="flex items-center gap-2 text-xs text-danger">
-        <IconAlertTriangle className="size-3.5" />
+      <p className="flex max-w-[420px] items-center gap-2 rounded-md bg-danger/5 px-2 py-1 text-xs text-danger">
+        <IconAlertTriangle className="size-3.5 shrink-0" />
         {saveError === "load"
           ? "Could not load saved progress — autosave is paused so nothing already stored is overwritten."
           : "Could not save your progress."}
@@ -78,7 +74,7 @@ function SaveIndicator({ wizard }) {
   }
 
   return (
-    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <p className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
       {saving ? (
         <>
           <IconLoader2 className="size-3.5 animate-spin" />
@@ -87,7 +83,7 @@ function SaveIndicator({ wizard }) {
       ) : savedAt ? (
         <>
           <IconCheck className="size-3.5 text-success" />
-          Progress saved {dateShowFormatWithTime(savedAt)}
+          Saved {dateShowFormatWithTime(savedAt)}
         </>
       ) : (
         "Your progress saves automatically."

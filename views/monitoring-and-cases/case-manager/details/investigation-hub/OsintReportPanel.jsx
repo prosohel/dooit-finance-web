@@ -25,10 +25,10 @@ export default function OsintReportPanel({ caseData }) {
           type="button"
           title="Open OSINT report"
           aria-label="Open OSINT report"
-          className="group relative flex size-11 shrink-0 self-start items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/40 ring-4 ring-sky-100 transition-all duration-200 hover:scale-110 hover:shadow-xl hover:shadow-sky-500/50 focus-visible:outline-none focus-visible:ring-sky-300 active:scale-95"
+          className="group inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
         >
-          {/* <span className="absolute inset-0 rounded-full bg-sky-400 opacity-60 animate-ping [animation-duration:2.5s] group-hover:hidden" /> */}
-          <Radar className="relative size-5 transition-transform duration-500 group-hover:rotate-180" />
+          <Radar className="size-3.5 transition-transform duration-500 group-hover:rotate-180" />
+          OSINT
         </button>
       </SheetTrigger>
 
