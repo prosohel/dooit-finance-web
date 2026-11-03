@@ -3,7 +3,6 @@
 import { IconAlertTriangle, IconCheck, IconLoader2 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { dateShowFormatWithTime } from "@/lib/utils";
-import AlertDetailsPanel from "./AlertDetailsPanel";
 import StepWorkspacePanel from "./StepWorkspacePanel";
 import OsintReportPanel from "./OsintReportPanel";
 import StepsChecklistPanel from "./StepsChecklistPanel";

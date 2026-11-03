@@ -64,7 +64,7 @@ function TabSkeleton() {
 }
 
 const tabBtnClass =
-  "py-4 w-full data-[state=active]:text-primary data-[state=active]:bg-white data-[state=active]:shadow-sm  [&>svg]:size-20 ";
+  "py-16 w-full data-[state=active]:text-primary data-[state=active]:bg-white data-[state=active]:shadow-sm  [&>svg]:size-20 flex flex-col ";
 
 export default function CaseDetails({ caseId }) {
   const { setSelectedCase } = useCaseManagerStore();
@@ -423,8 +423,12 @@ export default function CaseDetails({ caseId }) {
         onReopenCase={handleReopenCase}
       />
 
-      <Tabs defaultValue="investigation-hub" variant="" className="w-full">
-        <TabsList className="w-full">
+      <Tabs
+        defaultValue="investigation-hub"
+        variant=""
+        className="w-full flex flex-row items-start"
+      >
+        <TabsList className="w-[340px]  grid grid-cols-2 gap-1  ">
           <TabsTrigger value="investigation-hub" className={tabBtnClass}>
             <IconBriefcase />
             Investigation Hub

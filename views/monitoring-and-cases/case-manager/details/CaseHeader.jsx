@@ -125,62 +125,74 @@ export default function CaseHeader({
   const isClosed = statusKey === "closed";
 
   return (
-    <div className="space-y-[24px] bg-white rounded-md p-4 border">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
-        {/* Title leads; everything that describes the case sits on one line under it. */}
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <p className="truncate text-lg font-medium ">
-            {caseData.title || caseData.caseName}{" "}
-            <span className="rounded border bg-muted px-1.5 py-px font-mono text-[11px] font-semibold text-heading">
-              {caseData.displayId || caseData.uid}
-            </span>
-          </p>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <StatusPill variant={statusVariants[statusKey] || "outline"}>
-              {STATUS_LABELS[statusKey] || status}
-            </StatusPill>
-            <StatusPill variant={priorityVariants[priorityKey] || "outline"}>
-              <span className="capitalize">{priority}</span>&nbsp;priority
-            </StatusPill>
-            <span className="capitalize">
-              {[caseData.customerType, (caseData.caseType || caseData.type || "").replace("_", " ")]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-            <span className="text-border">|</span>
-            <span className="flex items-center gap-1">
-              <IconCalendar className="size-3" />
-              {dateShowFormatWithTime(caseData.createdDate)}
-            </span>
-            <span className="flex items-center gap-1">
-              <IconRefresh className="size-3" />
-              {dateShowFormatWithTime(caseData.lastUpdated)}
-            </span>
+    <div>
+      <div className="space-y-[24px] ">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
+          {/* Title leads; everything that describes the case sits on one line under it. */}
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <p className="truncate text-lg font-medium ">
+              {caseData.title || caseData.caseName}{" "}
+              <span className="rounded border bg-muted px-1.5 py-px font-mono text-[11px] font-semibold text-heading">
+                {caseData.displayId || caseData.uid}
+              </span>
+            </p>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <StatusPill variant={statusVariants[statusKey] || "outline"}>
+                {STATUS_LABELS[statusKey] || status}
+              </StatusPill>
+              <StatusPill variant={priorityVariants[priorityKey] || "outline"}>
+                <span className="capitalize">{priority}</span>&nbsp;priority
+              </StatusPill>
+              <span className="capitalize">
+                {[
+                  caseData.customerType,
+                  (caseData.caseType || caseData.type || "").replace("_", " "),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+              <span className="text-border">|</span>
+              <span className="flex items-center gap-1">
+                <IconCalendar className="size-3" />
+                {dateShowFormatWithTime(caseData.createdDate)}
+              </span>
+              <span className="flex items-center gap-1">
+                <IconRefresh className="size-3" />
+                {dateShowFormatWithTime(caseData.lastUpdated)}
+              </span>
+            </div>
+          </div>
+
+          {/* Stat rail: risk · SLA · investigator */}
+          <div className="flex shrink-0 items-center gap-4">
+            <RiskScoreGauge
+              score={caseData.riskScore}
+              size={40}
+              strokeWidth={4}
+              label="Risk Score"
+            />
+            <div className="h-8 w-px bg-border" />
+            <SlaCountdown deadline={caseData.slaDeadline} />
+            <div className="h-8 w-px bg-border" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Avatar className="size-7">
+                <AvatarFallback className="bg-primary/10 text-[0.6rem] font-semibold text-primary">
+                  {getInitials(assignedAnalyst)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="leading-tight">
+                Investigator
+                <br />
+                <span className="font-semibold text-heading">
+                  {assignedAnalyst || "Unassigned"}
+                </span>
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Stat rail: risk · SLA · investigator */}
-        <div className="flex shrink-0 items-center gap-4">
-          <RiskScoreGauge score={caseData.riskScore} size={40} strokeWidth={4} label="Risk Score" />
-          <div className="h-8 w-px bg-border" />
-          <SlaCountdown deadline={caseData.slaDeadline} />
-          <div className="h-8 w-px bg-border" />
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Avatar className="size-7">
-              <AvatarFallback className="bg-primary/10 text-[0.6rem] font-semibold text-primary">
-                {getInitials(assignedAnalyst)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="leading-tight">
-              Investigator
-              <br />
-              <span className="font-semibold text-heading">{assignedAnalyst || "Unassigned"}</span>
-            </span>
-          </div>
-        </div>
+        {/* Action bar */}
       </div>
-
-      {/* Action bar */}
       <div className="mt-3 flex flex-wrap items-center gap-2  pt-3">
         <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={onOpenAssign}>
           <IconUserCheck className="size-3.5" />
