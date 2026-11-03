@@ -10,8 +10,8 @@ import { useInvestigationWizard } from "./hooks/useInvestigationWizard";
 
 /**
  * The step-driven investigation workspace: alert context on the left, the
- * active step's form in the middle, the step list + checklist next, and the
- * inline OSINT report on the far right. All wizard state lives in
+ * active step's form in the middle, the step list + checklist next, and an
+ * OSINT report tab on the far right that opens as a drawer. All wizard state lives in
  * `useInvestigationWizard` and is threaded down as a single `wizard` object
  * so step components stay simple props-in/callbacks-out.
  */
@@ -21,8 +21,10 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   const wizard = useInvestigationWizard(caseData, caseId);
 
   return (
-    <div className="flex flex-col gap-2 mt-[24px]">
-      <SaveIndicator wizard={wizard} />
+    <div className="flex flex-col gap-2  relative">
+      <div className="absolute right-0 top-0">
+        <SaveIndicator wizard={wizard} />
+      </div>
 
       <div className="flex h-[calc(100vh-300px)] min-h-[620px] gap-3.5 overflow-x-auto pb-1">
         {/* <AlertDetailsPanel caseData={caseData} /> */}
@@ -34,6 +36,8 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
           onCaseChange={onCaseChange}
           wizard={wizard}
         />
+      </div>
+      <div className="absolute right-0 top-8  ">
         <OsintReportPanel caseData={caseData} />
       </div>
     </div>
