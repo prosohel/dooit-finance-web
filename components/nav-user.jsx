@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  IconBuildingBank,
   IconCreditCard,
   IconDotsVertical,
   IconLogout,
@@ -27,6 +28,7 @@ import {
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { apiLogout } from "@/app/auth/actions";
+import { openAfcOs } from "@/lib/openAfcOs";
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar();
@@ -106,6 +108,12 @@ export function NavUser({ user }) {
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            {/* Regulator staff who also hold an AFC OS membership cross over without a second login (single-use link, 15 min). */}
+            <DropdownMenuItem onClick={() => openAfcOs()}>
+              <IconBuildingBank />
+              Open AFC OS
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout}>
               <IconLogout />

@@ -11,6 +11,22 @@ class InvalidCredentialsError extends CredentialsSignin {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    // AFC OS officers arrive with a single-use handoff ticket (see /sso/afcos); the platform turns it into a normal session.
+    Credentials({
+      id: "handoff",
+      credentials: { token: {} },
+      authorize: async ({ token }) => {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}afc-os/handoff/exchange`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
+          const data = await res.json();
+          if (!data.success) return null;
+          const decoded = jwtDecode(data.token);
+          return { ...decoded, token: data.token, id: decoded.id, name: decoded.name, email: decoded.email, role: decoded.role, userType: decoded.userType, userTypeId: decoded.userTypeId ?? null, clientBelongs: decoded.clientBelongs ?? null, branchBelongs: decoded.branchBelongs ?? null, afcos: true, afcosContext: data.context ?? null };
+        } catch {
+          return null;
+        }
+      },
+    }),
     Credentials({
       // You can specify which fields should be submitted, by adding keys to the `credentials` object.
       // e.g. domain, username, password, 2FA token, etc.
@@ -76,6 +92,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.name = user.name;
         token.email = user.email;
         token.id = user.id;
+        token.afcos = !!user.afcos;
+        token.afcosContext = user.afcosContext ?? null;
       }
       return token;
     },
@@ -90,10 +108,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         accessToken: token.accessToken,
         userType: decodedToken.userType || null,
         id: token.id,
+        afcos: !!token.afcos,
+        afcosContext: token.afcosContext ?? null,
       };
 
       return session;
     },
+  },
+  // Distinct cookie names per app: in development ui, ewra_ui and the AFC OS dashboard all run on
+  // localhost (cookies ignore ports), so with the default "authjs.*" names one app's sign-in overwrote
+  // the others' sessions and each app then rejected the cookie encrypted with a different secret.
+  cookies: {
+    sessionToken: { name: "dooit-ui.session-token" },
+    csrfToken: { name: "dooit-ui.csrf-token" },
+    callbackUrl: { name: "dooit-ui.callback-url" },
   },
   session: {
     strategy: "jwt",

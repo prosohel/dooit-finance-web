@@ -17,6 +17,7 @@ import {
   IconDatabase,
   IconLayoutDashboard,
   IconListDetails,
+  IconInbox,
   IconUserOff,
   IconUsers,
   IconWorld,
@@ -262,6 +263,12 @@ export default function ClientSidebar({ ...props }) {
       title: "Registers",
       icon: IconListDetails,
       url: "/dashboard/client/report-compliance/registers",
+    },
+    {
+      // Everything Bangladesh Bank (MLTFPD) and BFIU send this reporting organisation through the exchange hub, and the replies it owes.
+      title: "Regulatory Inbox",
+      icon: IconInbox,
+      url: "/dashboard/client/regulatory-inbox",
     },
   ];
   const monitoringMenuItems = [
