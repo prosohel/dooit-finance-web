@@ -13,6 +13,8 @@ import {
   IconCoins,
   IconFileStack,
   IconAlertTriangle,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarLeftExpand,
 } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -42,6 +44,7 @@ import InvestigationHub from "./investigation-hub/InvestigationHub";
 import CreateRFIModal from "./modals/CreateRFIModal";
 import ReassignCaseModal from "./modals/ReassignCaseModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import NetworkGraph from "@/views/onboarding/customer-queue/details/d3/Networkgraph";
 import { transformToGraph } from "@/views/onboarding/customer-queue/details/d3/lib/transformgraphData";
 import partyEntities from "@/views/onboarding/customer-queue/details/demo.json";
@@ -72,7 +75,26 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const tabCardClass =
   "group h-auto w-full min-w-0 flex-col items-stretch justify-start gap-0 whitespace-normal rounded-lg border border-border bg-card px-3 py-3 text-left text-foreground shadow-none transition-colors hover:border-zinc-300 hover:bg-zinc-50/60 data-[state=active]:border-primary data-[state=active]:bg-primary/[0.03] data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/20";
 
-function TabCard({ value, icon: Icon, label, headline, hint, className = "" }) {
+// Collapsed rail: icon-only square, with the label in a tooltip.
+const tabIconClass =
+  "size-10 shrink-0 flex-none rounded-lg border border-border bg-card p-0 text-muted-foreground shadow-none transition-colors hover:border-zinc-300 hover:bg-zinc-50/60 data-[state=active]:border-primary data-[state=active]:bg-primary/[0.03] data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/20";
+
+function TabCard({ value, icon: Icon, label, headline, hint, collapsed, className = "" }) {
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <TabsTrigger value={value} aria-label={label} className={tabIconClass}>
+            <Icon className="size-4" />
+          </TabsTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          <p className="font-medium">{label}</p>
+          <p className="opacity-80">{headline}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
   return (
     <TabsTrigger value={value} className={`${tabCardClass} ${className}`}>
       <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground group-data-[state=active]:text-primary">
@@ -103,6 +125,7 @@ export default function CaseDetails({ caseId }) {
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [rfiOpen, setRfiOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
 
   // Regulatory filings live on their own endpoint so the case document stays
   // lean; they load alongside the case rather than blocking it.
@@ -447,81 +470,118 @@ export default function CaseDetails({ caseId }) {
         variant=""
         className="w-full flex flex-row items-start gap-6"
       >
-        <TabsList className="sticky top-4 grid h-auto w-[340px] shrink-0 grid-cols-2 items-stretch gap-2 rounded-none bg-transparent p-0">
-          <TabCard
-            value="investigation-hub"
-            icon={IconBriefcase}
-            label="Investigation Hub"
-            headline="Workflow"
-            hint="Steps, POIs & findings"
-          />
-          <TabCard
-            value="alerts"
-            icon={IconAlertTriangle}
-            label="Alerts"
-            headline={plural(caseData.alerts?.length || 0, "Alert")}
-            hint="Triggered rule hits"
-          />
-          <TabCard
-            value="customer-profile"
-            icon={IconUser}
-            label="Customer Profile"
-            headline={caseData.customerName || "—"}
-            hint={caseData.customerType || "Primary customer"}
-          />
-          <TabCard
-            value="transactions"
-            icon={IconCreditCard}
-            label="Transactions"
-            headline={plural(caseData.transactions?.length || 0, "Transaction")}
-            hint="Linked to this case"
-          />
-          <TabCard
-            value="files"
-            icon={IconFolder}
-            label="Files"
-            headline="Documents"
-            hint="Evidence & attachments"
-          />
-          <TabCard
-            value="source-of-funds"
-            icon={IconCoins}
-            label="Source of Funds"
-            headline="Declared sources"
-            hint="OCR & verification"
-          />
-          <TabCard
-            value="reports"
-            icon={IconFileStack}
-            label="Reports"
-            headline={reportsLoading ? "Loading…" : plural(rfis.length, "RFI")}
-            hint="SMR, TTR & RFI filings"
-          />
-          <TabCard
-            value="case-activity"
-            icon={IconClipboardList}
-            label="Case Activity"
-            headline={plural(notes.length, "Note")}
-            hint="Notes, audit & analysis"
-          />
-          <TabCard
-            value="relation-graph"
-            icon={IconSitemap}
-            label="Relation Graph"
-            headline={plural(
-              (caseData.pois?.length || 0) + (caseData.externalPois?.length || 0),
-              "Party",
-            ).replace(/Partys$/, "Parties")}
-            hint="Entity connections"
-          />
-          <TabCard
-            value="tbml-osint"
-            icon={FingerprintIcon}
-            label="TBML OSINT"
-            headline="Trade screening"
-            hint="Trade-based ML & open-source intel"
-          />
-        </TabsList>
+        {/* Bottom padding reserves room for the absolutely-positioned toggle. */}
+        <div className="sticky top-4 shrink-0 pb-12">
+          <TabsList
+            className={
+              navCollapsed
+                ? "flex h-auto w-10 flex-col items-center gap-2 rounded-none bg-transparent p-0"
+                : "grid h-auto w-[340px] grid-cols-2 items-stretch gap-2 rounded-none bg-transparent p-0"
+            }
+          >
+            <TabCard
+              collapsed={navCollapsed}
+              value="investigation-hub"
+              icon={IconBriefcase}
+              label="Investigation Hub"
+              headline="Workflow"
+              hint="Steps, POIs & findings"
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="alerts"
+              icon={IconAlertTriangle}
+              label="Alerts"
+              headline={plural(caseData.alerts?.length || 0, "Alert")}
+              hint="Triggered rule hits"
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="customer-profile"
+              icon={IconUser}
+              label="Customer Profile"
+              headline={caseData.customerName || "—"}
+              hint={caseData.customerType || "Primary customer"}
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="transactions"
+              icon={IconCreditCard}
+              label="Transactions"
+              headline={plural(caseData.transactions?.length || 0, "Transaction")}
+              hint="Linked to this case"
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="files"
+              icon={IconFolder}
+              label="Files"
+              headline="Documents"
+              hint="Evidence & attachments"
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="source-of-funds"
+              icon={IconCoins}
+              label="Source of Funds"
+              headline="Declared sources"
+              hint="OCR & verification"
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="reports"
+              icon={IconFileStack}
+              label="Reports"
+              headline={reportsLoading ? "Loading…" : plural(rfis.length, "RFI")}
+              hint="SMR, TTR & RFI filings"
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="case-activity"
+              icon={IconClipboardList}
+              label="Case Activity"
+              headline={plural(notes.length, "Note")}
+              hint="Notes, audit & analysis"
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="relation-graph"
+              icon={IconSitemap}
+              label="Relation Graph"
+              headline={plural(
+                (caseData.pois?.length || 0) + (caseData.externalPois?.length || 0),
+                "Party",
+              ).replace(/Partys$/, "Parties")}
+              hint="Entity connections"
+            />
+            <TabCard
+              collapsed={navCollapsed}
+              value="tbml-osint"
+              icon={FingerprintIcon}
+              label="TBML OSINT"
+              headline="Trade screening"
+              hint="Trade-based ML & open-source intel"
+            />
+          </TabsList>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setNavCollapsed((c) => !c)}
+                aria-label={navCollapsed ? "Expand case navigation" : "Collapse case navigation"}
+                aria-expanded={!navCollapsed}
+                className={`absolute bottom-0 flex size-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-zinc-50 hover:text-foreground ${navCollapsed ? "left-0" : "right-0"}`}
+              >
+                {navCollapsed ? (
+                  <IconLayoutSidebarLeftExpand className="size-4" />
+                ) : (
+                  <IconLayoutSidebarLeftCollapse className="size-4" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{navCollapsed ? "Expand" : "Collapse"}</TooltipContent>
+          </Tooltip>
+        </div>
 
         <TabsContent value="investigation-hub">
           <InvestigationHub caseData={caseData} caseId={caseId} onCaseChange={applyCaseUpdate} />
