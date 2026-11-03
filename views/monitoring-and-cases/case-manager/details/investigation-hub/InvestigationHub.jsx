@@ -7,6 +7,7 @@ import StepWorkspacePanel from "./StepWorkspacePanel";
 import OsintReportPanel from "./OsintReportPanel";
 import StepsChecklistPanel from "./StepsChecklistPanel";
 import { useInvestigationWizard } from "./hooks/useInvestigationWizard";
+import AlertDetailsPanel from "./AlertDetailsPanel";
 
 /**
  * The step-driven investigation workspace: alert context on the left, the
@@ -27,7 +28,6 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
       </div>
 
       <div className="flex h-[calc(100vh-300px)] min-h-[620px] gap-3.5 overflow-x-auto pb-1">
-        {/* <AlertDetailsPanel caseData={caseData} /> */}
         <StepsChecklistPanel wizard={wizard} />
 
         <StepWorkspacePanel

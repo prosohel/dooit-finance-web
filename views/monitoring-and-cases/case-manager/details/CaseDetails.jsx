@@ -12,6 +12,7 @@ import {
   IconSitemap,
   IconCoins,
   IconFileStack,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -47,6 +48,7 @@ import partyEntities from "@/views/onboarding/customer-queue/details/demo.json";
 import { FingerprintIcon } from "lucide-react";
 import TbmlOsintReport from "./tabs/components/TbmlOsintReport";
 import useBreadcrumbLabel from "@/hooks/useBreadcrumbLabel";
+import AlertDetailsPanel from "./investigation-hub/AlertDetailsPanel";
 
 const FilesTab = lazy(() => import("./tabs/FilesTab"));
 // Pulls in the OCR detail dialog and its table — only loaded if the tab opens.
@@ -63,8 +65,25 @@ function TabSkeleton() {
   );
 }
 
-const tabBtnClass =
-  "py-16 w-full data-[state=active]:text-primary data-[state=active]:bg-white data-[state=active]:shadow-sm  [&>svg]:size-20 flex flex-col ";
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// Each tab is a summary card: a small labelled header, a headline figure and a
+// one-line hint — so the navigation doubles as an at-a-glance case overview.
+const tabCardClass =
+  "group h-auto w-full min-w-0 flex-col items-stretch justify-start gap-0 whitespace-normal rounded-lg border border-border bg-card px-3 py-3 text-left text-foreground shadow-none transition-colors hover:border-zinc-300 hover:bg-zinc-50/60 data-[state=active]:border-primary data-[state=active]:bg-primary/[0.03] data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-primary/20";
+
+function TabCard({ value, icon: Icon, label, headline, hint, className = "" }) {
+  return (
+    <TabsTrigger value={value} className={`${tabCardClass} ${className}`}>
+      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground group-data-[state=active]:text-primary">
+        <Icon className="size-3.5" />
+        <span className="truncate">{label}</span>
+      </span>
+      <span className="mt-2 truncate text-sm font-semibold text-foreground">{headline}</span>
+      <span className="mt-0.5 truncate text-[11px] font-normal text-muted-foreground">{hint}</span>
+    </TabsTrigger>
+  );
+}
 
 export default function CaseDetails({ caseId }) {
   const { setSelectedCase } = useCaseManagerStore();
@@ -426,44 +445,82 @@ export default function CaseDetails({ caseId }) {
       <Tabs
         defaultValue="investigation-hub"
         variant=""
-        className="w-full flex flex-row items-start"
+        className="w-full flex flex-row items-start gap-6"
       >
-        <TabsList className="w-[340px]  grid grid-cols-2 gap-1  ">
-          <TabsTrigger value="investigation-hub" className={tabBtnClass}>
-            <IconBriefcase />
-            Investigation Hub
-          </TabsTrigger>
-          <TabsTrigger value="customer-profile" className={tabBtnClass}>
-            <IconUser />
-            Customer Profile
-          </TabsTrigger>
-          <TabsTrigger value="transactions" className={tabBtnClass}>
-            <IconCreditCard />
-            Transactions
-          </TabsTrigger>
-          <TabsTrigger value="files" className={tabBtnClass}>
-            <IconFolder />
-            Files
-          </TabsTrigger>
-          <TabsTrigger value="source-of-funds" className={tabBtnClass}>
-            <IconCoins />
-            Source of Funds
-          </TabsTrigger>
-          <TabsTrigger value="reports" className={tabBtnClass}>
-            <IconFileStack />
-            Reports
-          </TabsTrigger>
-          <TabsTrigger value="case-activity" className={tabBtnClass}>
-            <IconClipboardList />
-            Case Activity
-          </TabsTrigger>
-          <TabsTrigger value="relation-graph" className={tabBtnClass}>
-            <IconSitemap />
-            Relation graph
-          </TabsTrigger>
-          <TabsTrigger value="tbml-osint" className={tabBtnClass}>
-            <FingerprintIcon /> TBML Osint
-          </TabsTrigger>
+        <TabsList className="sticky top-4 grid h-auto w-[340px] shrink-0 grid-cols-2 items-stretch gap-2 rounded-none bg-transparent p-0">
+          <TabCard
+            value="investigation-hub"
+            icon={IconBriefcase}
+            label="Investigation Hub"
+            headline="Workflow"
+            hint="Steps, POIs & findings"
+          />
+          <TabCard
+            value="alerts"
+            icon={IconAlertTriangle}
+            label="Alerts"
+            headline={plural(caseData.alerts?.length || 0, "Alert")}
+            hint="Triggered rule hits"
+          />
+          <TabCard
+            value="customer-profile"
+            icon={IconUser}
+            label="Customer Profile"
+            headline={caseData.customerName || "—"}
+            hint={caseData.customerType || "Primary customer"}
+          />
+          <TabCard
+            value="transactions"
+            icon={IconCreditCard}
+            label="Transactions"
+            headline={plural(caseData.transactions?.length || 0, "Transaction")}
+            hint="Linked to this case"
+          />
+          <TabCard
+            value="files"
+            icon={IconFolder}
+            label="Files"
+            headline="Documents"
+            hint="Evidence & attachments"
+          />
+          <TabCard
+            value="source-of-funds"
+            icon={IconCoins}
+            label="Source of Funds"
+            headline="Declared sources"
+            hint="OCR & verification"
+          />
+          <TabCard
+            value="reports"
+            icon={IconFileStack}
+            label="Reports"
+            headline={reportsLoading ? "Loading…" : plural(rfis.length, "RFI")}
+            hint="SMR, TTR & RFI filings"
+          />
+          <TabCard
+            value="case-activity"
+            icon={IconClipboardList}
+            label="Case Activity"
+            headline={plural(notes.length, "Note")}
+            hint="Notes, audit & analysis"
+          />
+          <TabCard
+            value="relation-graph"
+            icon={IconSitemap}
+            label="Relation Graph"
+            headline={plural(
+              (caseData.pois?.length || 0) + (caseData.externalPois?.length || 0),
+              "Party",
+            ).replace(/Partys$/, "Parties")}
+            hint="Entity connections"
+          />
+          <TabCard
+            value="tbml-osint"
+            icon={FingerprintIcon}
+            label="TBML OSINT"
+            headline="Trade screening"
+            hint="Trade-based ML & open-source intel"
+          />
         </TabsList>
 
         <TabsContent value="investigation-hub">
@@ -475,6 +532,10 @@ export default function CaseDetails({ caseId }) {
 
         <TabsContent value="customer-profile">
           <CustomerProfileTab caseData={caseData} sectionRef={setSectionRef("customer-profile")} />
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <AlertDetailsPanel caseData={caseData} />
         </TabsContent>
 
         <TabsContent value="reports">
