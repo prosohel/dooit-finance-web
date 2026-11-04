@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   IconArrowRight,
   IconDotsVertical,
@@ -48,6 +49,7 @@ import { useAlertStore } from "@/app/store/useAlertStore";
 import { CaseRequestForm } from "@/views/monitoring-and-cases/case-details/ecdd/RFIForm";
 import dynamic from "next/dynamic";
 import AssignAnalystForm from "@/views/monitoring-and-cases/case-details/AssignAnalystForm";
+import AIgeneratedAlerts from "./AIgeneratedAlerts";
 
 const ListView = ({}) => {
   const { alerts, fetching, totalItems, currentPage, limit, setCurrentPage, setLimit } =
@@ -382,7 +384,7 @@ const ListView = ({}) => {
     </div>
   );
 };
-export default function AlertListView() {
+const AlertsTab = () => {
   const { currentPage, limit, setAlerts, setFetching, setTotalItems } = useAlertStore();
 
   useEffect(() => {
@@ -480,5 +482,22 @@ export default function AlertListView() {
       </div>
       <ListView />
     </div>
+  );
+};
+
+export default function AlertListView() {
+  return (
+    <Tabs defaultValue="alerts">
+      <TabsList>
+        <TabsTrigger value="alerts">Alerts</TabsTrigger>
+        <TabsTrigger value="ai-generated-alerts">AI Generated Alerts</TabsTrigger>
+      </TabsList>
+      <TabsContent value="alerts">
+        <AlertsTab />
+      </TabsContent>
+      <TabsContent value="ai-generated-alerts">
+        <AIgeneratedAlerts />
+      </TabsContent>
+    </Tabs>
   );
 }
