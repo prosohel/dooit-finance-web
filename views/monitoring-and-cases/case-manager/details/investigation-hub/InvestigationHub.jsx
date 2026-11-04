@@ -21,7 +21,7 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   const wizard = useInvestigationWizard(caseData, caseId);
 
   return (
-    <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+    <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.08)]">
       <StepsChecklistPanel wizard={wizard} />
 
       <StepWorkspacePanel
@@ -32,6 +32,7 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
         headerActions={
           <>
             <SaveIndicator wizard={wizard} />
+            <span aria-hidden className="h-4 w-px bg-border" />
             <OsintReportPanel caseData={caseData} />
           </>
         }
@@ -47,10 +48,11 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
  */
 function SaveIndicator({ wizard }) {
   const { loaded, saving, savedAt, saveError, saveNow } = wizard;
+  const quiet = "flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground";
 
   if (!loaded) {
     return (
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <p className={quiet} aria-live="polite">
         <IconLoader2 className="size-3.5 animate-spin" />
         Loading saved progress…
       </p>
@@ -59,13 +61,23 @@ function SaveIndicator({ wizard }) {
 
   if (saveError) {
     return (
-      <p className="flex max-w-[420px] items-center gap-2 rounded-md bg-danger/5 px-2 py-1 text-xs text-danger">
+      <p
+        role="alert"
+        className="flex max-w-[420px] items-center gap-2 rounded-lg border border-danger/20 bg-danger/5 py-1 pl-2.5 pr-1 text-xs leading-snug text-danger"
+      >
         <IconAlertTriangle className="size-3.5 shrink-0" />
-        {saveError === "load"
-          ? "Could not load saved progress — autosave is paused so nothing already stored is overwritten."
-          : "Could not save your progress."}
+        <span className="py-0.5">
+          {saveError === "load"
+            ? "Could not load saved progress — autosave is paused so nothing already stored is overwritten."
+            : "Could not save your progress."}
+        </span>
         {saveError === "save" && (
-          <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={saveNow}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 shrink-0 px-2 text-xs active:scale-[0.97]"
+            onClick={saveNow}
+          >
             Retry
           </Button>
         )}
@@ -74,7 +86,7 @@ function SaveIndicator({ wizard }) {
   }
 
   return (
-    <p className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
+    <p className={quiet} aria-live="polite">
       {saving ? (
         <>
           <IconLoader2 className="size-3.5 animate-spin" />
@@ -82,11 +94,11 @@ function SaveIndicator({ wizard }) {
         </>
       ) : savedAt ? (
         <>
-          <IconCheck className="size-3.5 text-success" />
-          Saved {dateShowFormatWithTime(savedAt)}
+          <IconCheck className="size-3.5 text-success" strokeWidth={2.5} />
+          Saved <span className="tabular-nums">{dateShowFormatWithTime(savedAt)}</span>
         </>
       ) : (
-        "Your progress saves automatically."
+        "Saves automatically"
       )}
     </p>
   );

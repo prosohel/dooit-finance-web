@@ -29,6 +29,7 @@ import {
   IconRotateClockwise,
   IconCalendar,
   IconRefresh,
+  IconUser,
 } from "@tabler/icons-react";
 import { dateShowFormatWithTime, getInitials } from "@/lib/utils";
 import RiskScoreGauge from "./components/RiskScoreGauge";
@@ -52,6 +53,12 @@ const statusVariants = {
   closed: "success",
   escalated: "danger",
 };
+
+// Matches the label RiskScoreGauge renders, so the three stats read as a set.
+const statLabelClass = "text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground";
+
+// Toolbar buttons: white on the tinted toolbar, with press feedback.
+const actionClass = "h-8 gap-1.5 bg-card text-xs active:scale-[0.97]";
 
 const STATUS_LABELS = {
   open: "Open",
@@ -123,90 +130,110 @@ export default function CaseHeader({
   const statusKey = String(status ?? "").toLowerCase();
   const priorityKey = String(priority ?? "").toLowerCase();
   const isClosed = statusKey === "closed";
+  const caseKind = [
+    caseData.customerType,
+    (caseData.caseType || caseData.type || "").replace("_", " "),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div>
-      <div className="space-y-[24px] ">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
-          {/* Title leads; everything that describes the case sits on one line under it. */}
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <p className="truncate text-lg font-medium ">
-              {caseData.title || caseData.caseName}{" "}
-              <span className="rounded border bg-muted px-1.5 py-px font-mono text-[11px] font-semibold text-heading">
-                {caseData.displayId || caseData.uid}
-              </span>
-            </p>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <StatusPill variant={statusVariants[statusKey] || "outline"}>
-                {STATUS_LABELS[statusKey] || status}
-              </StatusPill>
-              <StatusPill variant={priorityVariants[priorityKey] || "outline"}>
-                <span className="capitalize">{priority}</span>&nbsp;priority
-              </StatusPill>
-              <span className="capitalize">
-                {[
-                  caseData.customerType,
-                  (caseData.caseType || caseData.type || "").replace("_", " "),
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1">
-                <IconCalendar className="size-3" />
-                {dateShowFormatWithTime(caseData.createdDate)}
-              </span>
-              <span className="flex items-center gap-1">
-                <IconRefresh className="size-3" />
-                {dateShowFormatWithTime(caseData.lastUpdated)}
-              </span>
-            </div>
+    <header className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex flex-col gap-5 px-5 pt-5 pb-4 xl:flex-row xl:items-start xl:justify-between xl:gap-8">
+        {/* Identity: who/what the case is. ID and state lead as an eyebrow so
+            the title can carry the weight on its own line. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-md border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[11px] font-medium tracking-tight text-muted-foreground">
+              {caseData.displayId || caseData.uid}
+            </span>
+            <StatusPill variant={statusVariants[statusKey] || "outline"}>
+              {STATUS_LABELS[statusKey] || status}
+            </StatusPill>
+            <StatusPill variant={priorityVariants[priorityKey] || "outline"}>
+              <span className="capitalize">{priority}</span>&nbsp;priority
+            </StatusPill>
           </div>
 
-          {/* Stat rail: risk · SLA · investigator */}
-          <div className="flex shrink-0 items-center gap-4">
-            <RiskScoreGauge
-              score={caseData.riskScore}
-              size={40}
-              strokeWidth={4}
-              label="Risk Score"
-            />
-            <div className="h-8 w-px bg-border" />
-            <SlaCountdown deadline={caseData.slaDeadline} />
-            <div className="h-8 w-px bg-border" />
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Avatar className="size-7">
-                <AvatarFallback className="bg-primary/10 text-[0.6rem] font-semibold text-primary">
-                  {getInitials(assignedAnalyst)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="leading-tight">
-                Investigator
-                <br />
-                <span className="font-semibold text-heading">
-                  {assignedAnalyst || "Unassigned"}
-                </span>
+          <h1 className="truncate text-xl font-semibold tracking-tight text-heading">
+            {caseData.title || caseData.caseName}
+          </h1>
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {caseData.customerName && (
+              <span className="flex items-center gap-1.5 font-medium text-foreground">
+                <IconUser className="size-3.5 text-muted-foreground" />
+                {caseData.customerName}
               </span>
-            </div>
+            )}
+            {caseKind && <span className="capitalize">{caseKind}</span>}
+            <span className="flex items-center gap-1">
+              <IconCalendar className="size-3.5" />
+              Opened {dateShowFormatWithTime(caseData.createdDate)}
+            </span>
+            <span className="flex items-center gap-1">
+              <IconRefresh className="size-3.5" />
+              Updated {dateShowFormatWithTime(caseData.lastUpdated)}
+            </span>
           </div>
         </div>
 
-        {/* Action bar */}
+        {/* Stat rail: risk · SLA · investigator — one label style across all three. */}
+        <dl className="flex shrink-0 items-center divide-x divide-border">
+          <div className="pr-5">
+            <dt className="sr-only">Risk score</dt>
+            <dd>
+              <RiskScoreGauge
+                score={caseData.riskScore}
+                size={40}
+                strokeWidth={4}
+                label="Risk Score"
+              />
+            </dd>
+          </div>
+          <div className="flex flex-col gap-1 px-5 leading-tight">
+            <dt className={statLabelClass}>SLA</dt>
+            <dd>
+              {caseData.slaDeadline ? (
+                <SlaCountdown deadline={caseData.slaDeadline} />
+              ) : (
+                <span className="text-xs font-semibold text-muted-foreground">No deadline</span>
+              )}
+            </dd>
+          </div>
+          <div className="flex items-center gap-2.5 pl-5">
+            <Avatar className="size-8">
+              <AvatarFallback className="bg-primary/10 text-[0.65rem] font-semibold text-primary">
+                {getInitials(assignedAnalyst)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-0.5 leading-tight">
+              <dt className={statLabelClass}>Investigator</dt>
+              <dd className="max-w-[160px] truncate text-xs font-semibold text-heading">
+                {assignedAnalyst || "Unassigned"}
+              </dd>
+            </div>
+          </div>
+        </dl>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2  pt-3">
-        <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={onOpenAssign}>
+
+      {/* Toolbar: routine actions on the left, the state-changing one apart on the right. */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border bg-muted/30 px-5 py-2.5">
+        <Button size="sm" variant="outline" className={actionClass} onClick={onOpenAssign}>
           <IconUserCheck className="size-3.5" />
           Assign Case
         </Button>
-        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onOpenRFI}>
+        <Button variant="outline" size="sm" className={actionClass} onClick={onOpenRFI}>
           <IconMessageCircle className="size-3.5" />
           Request Information
         </Button>
 
+        <span aria-hidden className="mx-1 hidden h-5 w-px bg-border sm:block" />
+
         <ReasonAlertDialog
           trigger={
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              <Button variant="outline" size="sm" className={actionClass}>
                 <IconAlertOctagon className="size-3.5" />
                 Escalate
               </Button>
@@ -224,7 +251,7 @@ export default function CaseHeader({
         <ReasonAlertDialog
           trigger={
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              <Button variant="outline" size="sm" className={actionClass}>
                 <IconGavel className="size-3.5" />
                 Generate STR/SAR
               </Button>
@@ -244,7 +271,7 @@ export default function CaseHeader({
           <Button
             variant="outline"
             size="sm"
-            className="ml-auto h-8 gap-1.5 text-xs"
+            className={`ml-auto ${actionClass}`}
             onClick={() => {
               onReopenCase?.();
               toast.success("Case reopened");
@@ -261,7 +288,7 @@ export default function CaseHeader({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="ml-auto h-8 gap-1.5 text-xs text-danger hover:text-danger"
+                  className={`ml-auto ${actionClass} text-danger hover:border-danger/30 hover:bg-danger/5 hover:text-danger`}
                 >
                   <IconBan className="size-3.5" />
                   Close Case
@@ -280,7 +307,12 @@ export default function CaseHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="More case actions"
+              className="active:scale-[0.97]"
+            >
               <IconDots className="size-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -301,6 +333,6 @@ export default function CaseHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </div>
+    </header>
   );
 }

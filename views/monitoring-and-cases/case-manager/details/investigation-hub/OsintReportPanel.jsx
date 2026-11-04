@@ -25,24 +25,26 @@ export default function OsintReportPanel({ caseData }) {
           type="button"
           title="Open OSINT report"
           aria-label="Open OSINT report"
-          className="group inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 text-xs font-medium text-heading shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-[background-color,transform] duration-150 ease-out hover:bg-muted/50 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
         >
-          <Radar className="size-3.5 transition-transform duration-500 group-hover:rotate-180" />
+          <Radar className="size-3.5 text-sky-600" />
           OSINT
         </button>
       </SheetTrigger>
 
       <SheetContent side="right" className="w-[420px] gap-0 sm:max-w-[420px]">
-        <SheetHeader className="shrink-0 px-4 py-3">
-          <SheetTitle className="flex items-center gap-2.5 text-[12.5px] font-bold text-sky-700">
-            <Radar className="size-3.5" />
-            OSINT REPORT
+        <SheetHeader className="shrink-0 border-b border-border/70 px-5 py-4">
+          <SheetTitle className="flex items-center gap-2 text-[15px] font-semibold text-heading">
+            <span className="flex size-6 items-center justify-center rounded-md bg-sky-50 text-sky-600">
+              <Radar className="size-3.5" />
+            </span>
+            OSINT report
           </SheetTitle>
           <SheetDescription className="sr-only">
             Open-source intelligence findings for this case.
           </SheetDescription>
         </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <OsiintData caseData={caseData} />
         </div>
       </SheetContent>

@@ -3,27 +3,43 @@
 import { Button } from "@/components/ui/button";
 import { IconArrowLeft, IconArrowRight, IconCheck, IconDeviceFloppy } from "@tabler/icons-react";
 
-export default function StepFooter({ onBack, onNext, onSave, isFirst, isLast }) {
+// Press feedback for every footer action — the hub's most-clicked controls.
+const PRESS = "active:scale-[0.97]";
+
+export default function StepFooter({ onBack, onNext, onSave, isFirst, isLast, nextName }) {
   return (
-    <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-white px-6 py-3">
+    <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-border/70 bg-white px-8 py-3.5">
       <Button
-        variant="outline"
-        size="icon"
-        className="size-9 rounded-full"
+        variant="ghost"
+        size="sm"
+        className={`gap-1.5 text-muted-foreground hover:text-heading ${PRESS}`}
         onClick={onBack}
         disabled={isFirst}
-        aria-label="Previous step"
         title="Previous step"
       >
-        <IconArrowLeft className="size-4" />
+        <IconArrowLeft className="size-3.5" />
+        Back
       </Button>
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={onSave}>
+
+      <div className="flex min-w-0 items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`gap-1.5 text-muted-foreground hover:text-heading ${PRESS}`}
+          onClick={onSave}
+        >
           <IconDeviceFloppy className="size-3.5" />
           Save draft
         </Button>
-        <Button size="sm" className="gap-1.5 px-4" onClick={onNext}>
-          {isLast ? "Confirm" : "Next task"}
+        <Button size="sm" className={`h-9 min-w-0 gap-2 pl-4 pr-3.5 ${PRESS}`} onClick={onNext}>
+          {isLast ? (
+            "Confirm"
+          ) : (
+            <span className="flex min-w-0 items-baseline gap-1.5">
+              Next
+              {nextName && <span className="max-w-[200px] truncate font-normal opacity-75">{nextName}</span>}
+            </span>
+          )}
           {isLast ? <IconCheck className="size-3.5" /> : <IconArrowRight className="size-3.5" />}
         </Button>
       </div>
