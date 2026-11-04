@@ -35,7 +35,7 @@ import { ArrowRight } from "lucide-react";
 const CustomResizableTable = dynamic(() => import("@/components/ui/CustomResizable"), {
   ssr: false,
 });
-import { formatDateTime } from "@/lib/utils";
+import { formatAUD, formatDateTime } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,9 +84,7 @@ const ListView = ({}) => {
       // The endpoint 404s when no report exists, so a populated `data` is the
       // existence check. Note this route returns `success`, not `succeed`.
       if (res?.success && res?.data?._id && alert?._id) {
-        router.push(
-          `/dashboard/client/monitoring-and-cases/alerts/${alert._id}?tab=ecdd-review`,
-        );
+        router.push(`/dashboard/client/monitoring-and-cases/alerts/${alert._id}?tab=ecdd-review`);
         return;
       }
     } catch (error) {
@@ -116,8 +114,7 @@ const ListView = ({}) => {
   // route populates it), hence the object/string handling.
   const linkedCaseIdOf = (data) => data?.linkedCase?._id || data?.linkedCase || null;
 
-  const openCase = (id) =>
-    router.push(`/dashboard/client/monitoring-and-cases/case-manager/${id}`);
+  const openCase = (id) => router.push(`/dashboard/client/monitoring-and-cases/case-manager/${id}`);
 
   /**
    * Escalate straight from the queue.
@@ -137,9 +134,7 @@ const ListView = ({}) => {
         toast.error(res?.message || "Could not escalate this alert");
         return;
       }
-      toast.success(
-        res.attached ? "Attached to the existing case" : "Escalated — case created"
-      );
+      toast.success(res.attached ? "Attached to the existing case" : "Escalated — case created");
       const caseId = res.data?._id;
       if (caseId) openCase(caseId);
     } catch (e) {
@@ -157,19 +152,6 @@ const ListView = ({}) => {
       cell: ({ row }) => (
         <>
           <div className="flex justify-center gap-2">
-            {/* <Button
-              size="sm"
-              variant="outline"
-              className=" bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 hover:from-amber-100 hover:to-orange-100 hover:border-amber-300 text-amber-900 font-semibold transition-all duration-200 dark:from-amber-950 dark:to-orange-950 dark:border-amber-800 dark:text-amber-100 dark:hover:border-amber-700 "
-              onClick={() => handleGenerateEcdd(row?.original)}
-              disabled={ecddCheckingId === (row?.original?._id || row?.original?.uid)}
-            >
-              <span>E</span>
-              <span className="text-[0.7rem] bg-secondary">cdd</span>
-            </Button> */}
-            {/* The action a row offers depends on where the alert already is:
-                an escalated one is opened, a closed one is only viewable, and
-                anything else can be escalated here and now. */}
             {(() => {
               const alert = row?.original;
               const linkedCaseId = linkedCaseIdOf(alert);
@@ -187,7 +169,9 @@ const ListView = ({}) => {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => router.push(`/dashboard/client/monitoring-and-cases/alerts/${alert._id}`)}
+                    onClick={() =>
+                      router.push(`/dashboard/client/monitoring-and-cases/alerts/${alert._id}`)
+                    }
                   >
                     <IconEye /> View
                   </Button>
@@ -213,26 +197,16 @@ const ListView = ({}) => {
                 />
               );
             })()}
-
-            {/* <Button
+            <Button
               size="sm"
               variant="outline"
-              className=" bg-gradient-to-br from-red-50 to-rose-50 border-red-200 hover:from-red-100 hover:to-rose-100 hover:border-red-300 text-red-900 font-semibold  transition-all duration-200 dark:from-red-950 dark:to-rose-950 dark:border-red-800 dark:text-red-100 dark:hover:border-red-700 "
-              onClick={() => handleGenerateSmr(row?.original)}
-              // disabled={loadingButton === `smr-${alert.caseId}`}
+              onClick={() =>
+                router.push(`/dashboard/client/monitoring-and-cases/alerts/${row?.original?._id}`)
+              }
             >
-              S <span className="text-[0.7rem] bg-secondary">mr</span>
-            </Button> */}
+              <IconEye size={16} />
+            </Button>
 
-            {/* <Button
-              size="sm"
-              variant="outline"
-              className=" bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200 hover:from-blue-100 hover:to-cyan-100 hover:border-blue-300 text-blue-900 font-semibold  transition-all duration-200 dark:from-blue-950 dark:to-cyan-950 dark:border-blue-800 dark:text-blue-100 dark:hover:border-blue-700"
-              onClick={() => handleRfi(row?.original)}
-              // disabled={loadingButton === `rfi-${alert.caseId}`}
-            >
-              R <span className="text-[0.7rem] bg-secondary">fi</span>
-            </Button> */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -274,7 +248,7 @@ const ListView = ({}) => {
       accessorKey: "uid",
       cell: ({ row }) => (
         <div>
-          <p className="font-mono">{row?.original?.uid}</p>
+          <p className="font-mono text-neutral-500 text-xs">{row?.original?.uid}</p>
         </div>
       ),
     },
@@ -283,21 +257,23 @@ const ListView = ({}) => {
       id: "transaction",
       header: "Transaction",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
+        <div className="flex justify-between items-center gap-2 py-2 px-2">
           <div>
-            <p className="capitalize text-heading font-semibold">
+            <p className="capitalize text-neutral-900 text-sm">
               {row?.original?.transaction?.sender?.name}
             </p>
-            <p className="text-zinc-400 text-xs">{row?.original?.transaction?.sender?.account}</p>
+            <p className="text-neutral-400 text-xs">
+              {row?.original?.transaction?.sender?.account}
+            </p>
           </div>
           <span>
             <ArrowRight className="size-4 text-green-500" />
           </span>
           <div>
-            <p className="text-heading font-semibold">
-              {row?.original?.transaction?.receiver?.name}
+            <p className="text-neutral-900 text-sm">{row?.original?.transaction?.receiver?.name}</p>
+            <p className="text-neutral-400 text-xs">
+              {row?.original?.transaction?.receiver?.account}
             </p>
-            <p className="text-zinc-400 text-xs">{row?.original?.transaction?.receiver?.account}</p>
           </div>
         </div>
       ),
@@ -308,7 +284,9 @@ const ListView = ({}) => {
       accessorKey: "transaction.amount",
       cell: ({ row }) => (
         <div>
-          <p className="text-end">{row?.original?.transaction?.amount}</p>
+          <p className="text-end text-neutral-600">
+            {formatAUD(row?.original?.transaction?.amount)}
+          </p>
         </div>
       ),
     },
@@ -318,8 +296,10 @@ const ListView = ({}) => {
       accessorKey: "transaction.timestamp",
       cell: ({ row }) => (
         <div>
-          <p className="text-end">{formatDateTime(row?.original?.transaction?.timestamp)?.date}</p>
-          <p className="text-zinc-400 text-xs text-end">
+          <p className="text-end text-neutral-600">
+            {formatDateTime(row?.original?.transaction?.timestamp)?.date}
+          </p>
+          <p className="text-neutral-300 text-xs text-end">
             {formatDateTime(row?.original?.transaction?.timestamp)?.time}
           </p>
         </div>
@@ -344,6 +324,11 @@ const ListView = ({}) => {
       id: "alertType",
       header: "Alert Type",
       accessorKey: "caseType",
+      cell: ({ row }) => (
+        <div>
+          <p className=" text-neutral-500">{row?.original?.caseType}</p>
+        </div>
+      ),
     },
     {
       id: "status",
