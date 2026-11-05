@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Loader2, ArrowLeft, RefreshCw } from "lucide-react";
+import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Loader2, ArrowLeft, RefreshCw, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getInboxEvents, produceEvent, uploadAttachment } from "@/app/dashboard/client/regulatory-inbox/actions";
 
@@ -35,6 +35,18 @@ async function sha256Of(file) {
   const buf = await file.arrayBuffer();
   const digest = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+const EVENT_TITLE = { "submission.received": "Uploaded on your behalf", "submission.analysed": "Analysis ready", "submission.failed": "Analysis failed" };
+const kindLabel = (docType) => KINDS.find((k) => k.docType === docType)?.label ?? docType ?? null;
+
+/** Shown on anything an MLTFPD officer uploaded for this organisation (docs/78 §8). */
+function OnBehalfBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-[#adc6ff] bg-[#eef4ff] px-1.5 py-0.5 text-[10px] font-semibold text-[#2f54eb]" title="An MLTFPD officer uploaded this document for your organisation">
+      <Landmark className="size-3" /> Uploaded by Bangladesh Bank
+    </span>
+  );
 }
 
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
@@ -149,6 +161,7 @@ export default function RegulatoryUploadsView() {
         {/* Progress from AFC OS */}
         <div className="rounded-xl border border-[var(--smoke-300)] bg-white p-5">
           <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--gray)]">3 · Analysis progress from AFC OS</div>
+          <p className="mb-2 text-[11px] text-[var(--gray)]">Documents an MLTFPD officer uploads for your organisation appear here too, marked <OnBehalfBadge />.</p>
           {!events ? (
             <div className="text-[13px] text-[var(--gray)]">Loading…</div>
           ) : events.length === 0 ? (
@@ -159,11 +172,15 @@ export default function RegulatoryUploadsView() {
                 <li key={e.eventId} className="flex items-start gap-3 py-2.5">
                   <FileText className="mt-0.5 size-4 text-[var(--gray)]" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-medium text-[var(--heading)]">
-                      {e.type === "submission.analysed" ? "Analysis ready" : e.type === "submission.failed" ? "Analysis failed" : e.type} <span className="font-mono text-[11px] text-[var(--gray)]">{e.payload?.submission_id}</span>
+                    <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium text-[var(--heading)]">
+                      {EVENT_TITLE[e.type] ?? e.type} <span className="font-mono text-[11px] text-[var(--gray)]">{e.payload?.submission_id}</span>
+                      {e.payload?.uploaded_by === "mltfpd" && <OnBehalfBadge />}
                     </div>
                     <div className="text-[11px] text-[var(--gray)]">
                       {fmtDateTime(e.occurredAt)}
+                      {e.payload?.file?.name ? ` · ${e.payload.file.name}` : ""}
+                      {e.payload?.doc_type ? ` · ${kindLabel(e.payload.doc_type)}` : ""}
+                      {e.payload?.batch?.id && e.type === "submission.received" ? ` · batch ${e.payload.batch.id} (${e.payload.batch.index}/${e.payload.batch.count})` : ""}
                       {e.payload?.stage ? ` · stage ${e.payload.stage}` : ""}
                       {e.payload?.gaps_count != null ? ` · ${e.payload.gaps_count} open gap(s)` : ""}
                       {e.payload?.confidence != null ? ` · confidence ${Math.round(e.payload.confidence * 100)}%` : ""}

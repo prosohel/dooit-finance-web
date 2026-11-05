@@ -44,6 +44,7 @@ export const EVENT_TYPES = {
 
   // EWRA / submissions
   "ewra.review_decided": { label: "EWRA review decision", from: "Bangladesh Bank · MLTFPD", tone: "info", subjectOf: (p) => p.review },
+  "submission.received": { label: "Document uploaded on your behalf", from: "Bangladesh Bank · MLTFPD", tone: "info", subjectOf: (p) => p.submission_id },
   "submission.analysed": { label: "Document analysis ready", from: "AFC OS", tone: "info", subjectOf: (p) => p.submission_id },
   "submission.failed": { label: "Document analysis failed", from: "AFC OS", tone: "action", subjectOf: (p) => p.submission_id },
 

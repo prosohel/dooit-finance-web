@@ -31,6 +31,9 @@ const TONE_STYLES = {
 
 const STATUS_LABEL = { queued: "Queued", delivered: "New", read: "Read", acknowledged: "Answered", failed: "Failed" };
 
+/** AFC OS `docType` → the label the RO saw when uploading (views/regulatory-inbox/uploads.jsx). */
+const DOC_KIND_LABEL = { risk_assessment: "ML/TF risk assessment", programme: "AML/CFT programme", procedure: "Transaction monitoring programme", policy: "Policies & procedures", customer_data: "Customer data dump", audit_report: "Audit or inspection report" };
+
 /** True once this tenant has replied (acknowledged receipt) or the event needs no reply. */
 const isOpen = (ev, meta) => !!meta.action && ev.status !== "acknowledged";
 
@@ -131,6 +134,23 @@ function PayloadView({ ev }) {
           <KeyValue k="Accounts" v={p.accounts} />
           <KeyValue k="Expiry" v={fmtDate(p.expiry)} />
           <KeyValue k="Execute within" v={p.execution_target_hours ? `${p.execution_target_hours} hours` : null} />
+        </>
+      );
+    case "submission.received":
+    case "submission.analysed":
+    case "submission.failed":
+      return (
+        <>
+          <KeyValue k="Submission" v={p.submission_id} />
+          <KeyValue k="Document kind" v={DOC_KIND_LABEL[p.doc_type] ?? p.doc_type} />
+          <KeyValue k="File" v={p.file?.name} />
+          <KeyValue k="Uploaded by" v={p.uploaded_by === "mltfpd" ? "Bangladesh Bank (MLTFPD officer, on your behalf)" : p.uploaded_by === "portal" ? "Your organisation (Client Portal)" : null} />
+          <KeyValue k="Batch" v={p.batch?.id ? `${p.batch.id} · file ${p.batch.index} of ${p.batch.count}` : null} />
+          <KeyValue k="Stage" v={p.stage} />
+          <KeyValue k="Open gaps" v={p.gaps_count} />
+          <KeyValue k="AI confidence" v={p.confidence != null ? `${Math.round(p.confidence * 100)}%` : null} />
+          <KeyValue k="Error" v={p.error} />
+          {ev.type === "submission.received" && <p className="mt-3 text-[12px] text-[var(--gray)]">An MLTFPD officer uploaded this document for your organisation (for example from a paper or e-mail submission). It is analysed exactly like a document you upload here; the result arrives as &ldquo;Document analysis ready&rdquo;.</p>}
         </>
       );
     default:
