@@ -609,18 +609,7 @@ export default function ClientSidebar({ ...props }) {
       ],
     },
   ];
-  const testingAndGovernanceMenu = [
-    {
-      title: "Governing Body",
-      url: "/dashboard/client/testing-and-governance/governing-body",
-      icon: Landmark,
-    },
-    {
-      title: "Effectiveness Testing",
-      url: "/dashboard/client/testing-and-governance/effectiveness-testing",
-      icon: ReceiptText,
-    },
-  ];
+
   const grcModule = [
     {
       title: "GRC",
@@ -653,7 +642,11 @@ export default function ClientSidebar({ ...props }) {
               <div className="py-2  relative">
                 {/* The rail narrows this box so the wordmark crops down to its "D". */}
                 <div className="w-20 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none group-data-[collapsible=icon]:w-[17px]">
-                  <img src="/logo.png" alt="Logo" className=" w-20 max-w-none h-8 object-contain " />
+                  <img
+                    src="/logo.png"
+                    alt="Logo"
+                    className=" w-20 max-w-none h-8 object-contain "
+                  />
                 </div>
               </div>
             </SidebarMenuButton>
@@ -699,14 +692,8 @@ export default function ClientSidebar({ ...props }) {
       <SidebarFooter className="group-data-[collapsible=icon]:px-0">
         <NavUser
           user={{
-            name:
-              loggedInUser?.client?.name ||
-              loggedInUser?.name ||
-              session.data?.user?.name,
-            email:
-              loggedInUser?.client?.email ||
-              loggedInUser?.email ||
-              session.data?.user?.email,
+            name: loggedInUser?.client?.name || loggedInUser?.name || session.data?.user?.name,
+            email: loggedInUser?.client?.email || loggedInUser?.email || session.data?.user?.email,
             avatar:
               loggedInUser?.client?.settings?.logo ||
               loggedInUser?.photoUrl ||

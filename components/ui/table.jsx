@@ -54,7 +54,7 @@ function TableRow({ className, expandable = false, ...props }) {
       <tr
         data-slot="table-row"
         className={cn(
-          'hover:bg-muted/50 data-[state=selected]:bg-muted border-b border-neutral-100 transition-colors',
+          'hover:bg-muted/50 data-[state=selected]:bg-muted border-b border-neutral-100 transition-colors border-dashed',
           expandable && 'cursor-pointer',
           className
         )}
@@ -74,7 +74,7 @@ function TableHead({ className, ...props }) {
     <th
       data-slot="table-head"
       className={cn(
-        'text-foreground h-8 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] border-r',
+        'text-foreground h-8 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] border-r border-dashed',
         className
       )}
       {...props}
@@ -87,7 +87,7 @@ function TableCell({ className, ...props }) {
     <td
       data-slot="table-cell"
       className={cn(
-        'p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] border-r border-neutral-100',
+        'p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] border-r border-neutral-100 border-dashed',
         className
       )}
       {...props}

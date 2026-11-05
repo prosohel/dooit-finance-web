@@ -18,7 +18,7 @@ const TM_API_KEY = process.env.TM_API_KEY || "";
  * A throw inside a server action reaches the client as an opaque error, and
  * the API's own `detail` message (401 / 404 / 422) is the useful part.
  */
-const tmFetch = async (path, params = {}) => {
+const tmFetch = async (path, params = {}, { method = "GET", body } = {}) => {
   if (!TM_BASE_URL) {
     return { ok: false, status: 0, detail: "Transaction monitoring service is not configured." };
   }
@@ -28,19 +28,24 @@ const tmFetch = async (path, params = {}) => {
 
   try {
     const response = await fetch(url, {
-      headers: { "X-API-Key": TM_API_KEY },
+      method,
+      ...(body && { body: JSON.stringify(body) }),
+      headers: {
+        ...(body && { "Content-Type": "application/json" }),
+        "X-API-Key": TM_API_KEY,
+      },
       cache: "no-store",
     });
-    const body = await response.json().catch(() => null);
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
       return {
         ok: false,
         status: response.status,
-        detail: body?.detail || `Request failed (${response.status}).`,
+        detail: data?.detail || `Request failed (${response.status}).`,
       };
     }
-    return { ok: true, status: response.status, data: body };
+    return { ok: true, status: response.status, data };
   } catch (error) {
     console.error("[tm] request failed:", path, error.message);
     return {
@@ -64,3 +69,13 @@ export const getLatestAiRun = async () => {
   const res = await tmFetch("/runs", { jobType: "monitoring", limit: 1 });
   return res.ok ? { ...res, data: res.data?.[0] || null } : res;
 };
+
+/**
+ * Starts a monitoring run over `lookbackHours` ending at `windowEnd` (ISO-8601
+ * UTC). Responds 202 with `{ accepted, runId }`.
+ */
+export const startMonitoringRun = async ({ windowEnd, lookbackHours, dryRun }) =>
+  tmFetch("/runs/monitoring", {}, { method: "POST", body: { windowEnd, lookbackHours, dryRun } });
+
+/** One run, for following a run started from the UI. */
+export const getAiRun = async (runId) => tmFetch(`/runs/${encodeURIComponent(runId)}`);

@@ -18,6 +18,7 @@ import AiAlertFilters from "./ai-alerts/AiAlertFilters";
 import AiAlertSummary from "./ai-alerts/AiAlertSummary";
 import AiAlertDetailSheet from "./ai-alerts/AiAlertDetailSheet";
 import { DetectorBadges } from "./ai-alerts/DetectionSections";
+import RunMonitoringButton from "./ai-alerts/RunMonitoringButton";
 import {
   daysAgo,
   daysBetween,
@@ -228,9 +229,16 @@ export default function AIgeneratedAlerts() {
     return () => clearTimeout(timer);
   }, [fetchResults, validationError]);
 
-  useEffect(() => {
+  const fetchLastRun = useCallback(() => {
     getLatestAiRun().then((res) => res.ok && setLastRun(res.data));
   }, []);
+
+  useEffect(fetchLastRun, [fetchLastRun]);
+
+  const handleRunFinished = () => {
+    fetchLastRun();
+    fetchResults();
+  };
 
   const handleFiltersChange = (next) => {
     setFilters(next);
@@ -256,7 +264,12 @@ export default function AIgeneratedAlerts() {
         error={validationError}
       />
 
-      <LastRun run={lastRun} />
+      <div className="flex items-center gap-4">
+        <LastRun run={lastRun} />
+        <div className="ml-auto">
+          <RunMonitoringButton onFinished={handleRunFinished} />
+        </div>
+      </div>
 
       {error ? (
         <Alert variant="destructive">

@@ -55,10 +55,9 @@ import {
 } from "@/app/dashboard/client/transactions/actions";
 import { buildQueryParams } from "@/app/store/useTransactionStore";
 
-const CustomResizableTable = dynamic(
-  () => import("@/components/ui/CustomResizable"),
-  { ssr: false }
-);
+const CustomResizableTable = dynamic(() => import("@/components/ui/CustomResizable"), {
+  ssr: false,
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -118,9 +117,20 @@ const TransactionListView = () => {
   const searchParams = useSearchParams();
 
   const {
-    data, loading, error, totalRecords,
-    page, limit, sort, filters,
-    setFilters, setPage, setLimit, setSortExplicit, setSortWithDirection, fetch,
+    data,
+    loading,
+    error,
+    totalRecords,
+    page,
+    limit,
+    sort,
+    filters,
+    setFilters,
+    setPage,
+    setLimit,
+    setSortExplicit,
+    setSortWithDirection,
+    fetch,
   } = useTransactionStore();
 
   // ── Modal state ───────────────────────────────────────────────────────────
@@ -137,8 +147,12 @@ const TransactionListView = () => {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
 
-    const { filters: urlFilters, page: urlPage, limit: urlLimit, sort: urlSort } =
-      parseUrlParams(searchParams);
+    const {
+      filters: urlFilters,
+      page: urlPage,
+      limit: urlLimit,
+      sort: urlSort,
+    } = parseUrlParams(searchParams);
 
     setFilters(urlFilters);
     setPage(urlPage);
@@ -159,9 +173,18 @@ const TransactionListView = () => {
   }, [filters, page, limit, sort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  const handleViewClick = useCallback((item) => { setCurrentItem(item); setOpenDetailView(true); }, []);
-  const handleEditClick = useCallback((item) => router.push(`/dashboard/client/transactions/edit?id=${item?._id}`), [router]);
-  const handleViewReportClick = (item) => { setCurrentItemReport(item); setViewReport(true); };
+  const handleViewClick = useCallback((item) => {
+    setCurrentItem(item);
+    setOpenDetailView(true);
+  }, []);
+  const handleEditClick = useCallback(
+    (item) => router.push(`/dashboard/client/transactions/edit?id=${item?._id}`),
+    [router],
+  );
+  const handleViewReportClick = (item) => {
+    setCurrentItemReport(item);
+    setViewReport(true);
+  };
   const handlePageChange = (p) => setPage(p.selected + 1);
   const handleLimitChange = (l) => setLimit(l);
 
@@ -171,7 +194,10 @@ const TransactionListView = () => {
     try {
       const params = buildQueryParams({ filters, page: 1, limit: 10000, sort });
       const result = await exportTransactionsCsv(params);
-      if (!result.success) { toast.error(result.message || "Export failed"); return; }
+      if (!result.success) {
+        toast.error(result.message || "Export failed");
+        return;
+      }
 
       const bytes = Uint8Array.from(atob(result.data), (c) => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: "text/csv" });
@@ -194,7 +220,10 @@ const TransactionListView = () => {
     const tid = toast.loading("Generating PDF…");
     try {
       const result = await downloadTransactionPdf(item._id);
-      if (!result.success) { toast.error(result.message || "PDF failed", { id: tid }); return; }
+      if (!result.success) {
+        toast.error(result.message || "PDF failed", { id: tid });
+        return;
+      }
       const bytes = Uint8Array.from(atob(result.data), (c) => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
@@ -210,209 +239,206 @@ const TransactionListView = () => {
   }, []);
 
   // ── Sort column header — explicit direction from dropdown ─────────────────
-  const handleSort = useCallback((field, direction) => {
-    setSortWithDirection(field, direction);
-  }, [setSortWithDirection]);
+  const handleSort = useCallback(
+    (field, direction) => {
+      setSortWithDirection(field, direction);
+    },
+    [setSortWithDirection],
+  );
 
   // ── Table columns — memoised so CustomResizableTable's columnOrder state
   //    doesn't reset on every parent render (e.g. loading toggle, data arrival)
-  const columns = useMemo(() => [
-    {
-      id: "actions",
-      header: "Actions",
-      accessorKey: "actions",
-      size: 60,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="!py-2 h-auto">
-                <IconDotsVertical />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => handleViewClick(row.original)}>
-                <IconEye className="mr-2 size-3 text-muted-foreground/70" />
-                View
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleRowDownloadPdf(row.original)}>
-                <IconFileTypePdf className="mr-2 size-3 text-destructive/70" />
-                Download PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleEditClick(row.original)}>
-                <IconPencil className="mr-2 size-3 text-muted-foreground/70" />
-                Edit
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      ),
-    },
-    {
-      id: "id",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="ID"
-          onSort={(dir) => handleSort("uid", dir)}
-          sortDirection={sort.field === "uid" ? sort.order : null}
-        />
-      ),
-      accessorKey: "uid",
-      cell: ({ row }) => (
-        <p className="font-mono text-muted-foreground text-sm">
-          #{row.original?.uid}
-        </p>
-      ),
-    },
-    {
-      id: "Flow Direction",
-      header: "Flow Direction",
-      accessorKey: "sender.name",
-      size: 200,
-      cell: ({ row }) => (
-        <div className="flex gap-2 items-center">
-          <div>
-            <h4 className="font-semibold capitalize text-sm">{row.original?.sender?.name}</h4>
-            <p className="text-muted-foreground text-xs">{row.original?.sender?.account}</p>
+  const columns = useMemo(
+    () => [
+      {
+        id: "actions",
+        header: "Actions",
+        accessorKey: "actions",
+        size: 60,
+        cell: ({ row }) => (
+          <div className="flex justify-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="!py-2 h-auto">
+                  <IconDotsVertical />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => handleViewClick(row.original)}>
+                  <IconEye className="mr-2 size-3 text-muted-foreground/70" />
+                  View
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleRowDownloadPdf(row.original)}>
+                  <IconFileTypePdf className="mr-2 size-3 text-destructive/70" />
+                  Download PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleEditClick(row.original)}>
+                  <IconPencil className="mr-2 size-3 text-muted-foreground/70" />
+                  Edit
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <ArrowRight className="size-4 text-green-500 shrink-0" />
-          <div>
-            <h4 className="font-semibold capitalize text-sm">{row.original?.receiver?.name}</h4>
-            <p className="text-muted-foreground text-xs">{row.original?.receiver?.account}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "type",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Type"
-          onSort={(dir) => handleSort("type", dir)}
-          sortDirection={sort.field === "type" ? sort.order : null}
-        />
-      ),
-      accessorKey: "type",
-      size: 100,
-      cell: ({ row }) => (
-        <p className="text-muted-foreground capitalize">{row.original?.type}</p>
-      ),
-    },
-    {
-      id: "beneficiaryName",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Beneficial Owner" />
-      ),
-      accessorKey: "beneficiary.name",
-      size: 140,
-      cell: ({ row }) => (
-        <div>
-          <h4 className="text-neutral-600 text-sm">{row.original?.beneficiary?.name}</h4>
-          <p className="text-neutral-500 text-xs">{row.original?.beneficiary?.account}</p>
-        </div>
-      ),
-    },
-    {
-      id: "amount",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Amount"
-          onSort={(dir) => handleSort("amount", dir)}
-          sortDirection={sort.field === "amount" ? sort.order : null}
-        />
-      ),
-      accessorKey: "amount",
-      size: 110,
-      cell: ({ row }) => (
-        <p className="text-heading text-end font-medium">
-          {formatAUD(row.original?.amount, row.original?.currency)}
-        </p>
-      ),
-    },
-    {
-      id: "channel",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Method" />
-      ),
-      accessorKey: "channel",
-      size: 90,
-      cell: ({ row }) => (
-        <p className="text-center text-muted-foreground capitalize">
-          {row.original?.channel || "N/A"}
-        </p>
-      ),
-    },
-    {
-      id: "reference",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Ref" />
-      ),
-      accessorKey: "reference",
-      cell: ({ row }) => (
-        <p className="text-muted-foreground text-xs font-mono">
-          {row.original?.reference || "—"}
-        </p>
-      ),
-    },
-    {
-      id: "status",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Status"
-          onSort={(dir) => handleSort("status", dir)}
-          sortDirection={sort.field === "status" ? sort.order : null}
-        />
-      ),
-      accessorKey: "status",
-      cell: ({ row }) => (
-        <StatusPill
-          icon={<IconPennant />}
-          variant={statusVariants[row.original.status] ?? "default"}
-        >
-          {row.original.status}
-        </StatusPill>
-      ),
-    },
-    {
-      id: "date",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Date & Time"
-          onSort={(dir) => handleSort("timestamp", dir)}
-          sortDirection={sort.field === "timestamp" ? sort.order : null}
-        />
-      ),
-      accessorKey: "timestamp",
-      size: 110,
-      cell: ({ row }) => {
-        const dt = formatDateTime(row.original?.timestamp);
-        return (
-          <div>
-            <p className="text-muted-foreground font-semibold text-xs">{dt?.date}</p>
-            <p className="text-secondary-heading text-xs">{dt?.time}</p>
-          </div>
-        );
+        ),
       },
-    },
-  ], [sort, handleSort, handleViewClick, handleEditClick, handleRowDownloadPdf]);
+      {
+        id: "id",
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="ID"
+            onSort={(dir) => handleSort("uid", dir)}
+            sortDirection={sort.field === "uid" ? sort.order : null}
+          />
+        ),
+        accessorKey: "uid",
+        cell: ({ row }) => (
+          <span className="font-mono text-neutral-400 text-xs">#{row.original?.uid}</span>
+        ),
+      },
+      {
+        id: "Flow Direction",
+        header: "Flow Direction",
+        accessorKey: "sender.name",
+        size: 200,
+        cell: ({ row }) => (
+          <div className="flex gap-2 items-center py-2">
+            <div>
+              <span className="text-neutral-900 capitalize text-sm">
+                {row.original?.sender?.name}
+              </span>
+              <p className="text-neutral-400 text-xs">{row.original?.sender?.account}</p>
+            </div>
+            <ArrowRight className="size-4 text-green-500 shrink-0" />
+            <div>
+              <span className="text-neutral-900 capitalize text-sm">
+                {row.original?.receiver?.name}
+              </span>
+              <p className="text-neutral-400 text-xs">{row.original?.receiver?.account}</p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "type",
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="Type"
+            onSort={(dir) => handleSort("type", dir)}
+            sortDirection={sort.field === "type" ? sort.order : null}
+          />
+        ),
+        accessorKey: "type",
+        size: 100,
+        cell: ({ row }) => <p className="text-neutral-500 capitalize">{row.original?.type}</p>,
+      },
+      {
+        id: "beneficiaryName",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Beneficial Owner" />,
+        accessorKey: "beneficiary.name",
+        size: 140,
+        cell: ({ row }) => (
+          <div className="flex flex-col gap-1">
+            <span className="text-neutral-700 text-sm">{row.original?.beneficiary?.name}</span>
+            <span className="text-neutral-400 text-xs">{row.original?.beneficiary?.account}</span>
+          </div>
+        ),
+      },
+      {
+        id: "amount",
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="Amount"
+            onSort={(dir) => handleSort("amount", dir)}
+            sortDirection={sort.field === "amount" ? sort.order : null}
+          />
+        ),
+        accessorKey: "amount",
+        size: 110,
+        cell: ({ row }) => (
+          <p className="text-neutral-500 text-end font-medium">
+            {formatAUD(row.original?.amount, row.original?.currency)}
+          </p>
+        ),
+      },
+      {
+        id: "channel",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Method" />,
+        accessorKey: "channel",
+        size: 90,
+        cell: ({ row }) => (
+          <p className="text-center text-muted-foreground capitalize">
+            {row.original?.channel || "N/A"}
+          </p>
+        ),
+      },
+      {
+        id: "reference",
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Ref" />,
+        accessorKey: "reference",
+        cell: ({ row }) => (
+          <p className="text-muted-foreground text-xs font-mono">
+            {row.original?.reference || "—"}
+          </p>
+        ),
+      },
+      {
+        id: "status",
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="Status"
+            onSort={(dir) => handleSort("status", dir)}
+            sortDirection={sort.field === "status" ? sort.order : null}
+          />
+        ),
+        accessorKey: "status",
+        cell: ({ row }) => (
+          <StatusPill
+            icon={<IconPennant />}
+            variant={statusVariants[row.original.status] ?? "default"}
+          >
+            {row.original.status}
+          </StatusPill>
+        ),
+      },
+      {
+        id: "date",
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="Date & Time"
+            onSort={(dir) => handleSort("timestamp", dir)}
+            sortDirection={sort.field === "timestamp" ? sort.order : null}
+          />
+        ),
+        accessorKey: "timestamp",
+        size: 110,
+        cell: ({ row }) => {
+          const dt = formatDateTime(row.original?.timestamp);
+          return (
+            <div>
+              <p className="text-muted-foreground font-semibold text-xs">{dt?.date}</p>
+              <p className="text-secondary-heading text-xs">{dt?.time}</p>
+            </div>
+          );
+        },
+      },
+    ],
+    [sort, handleSort, handleViewClick, handleEditClick, handleRowDownloadPdf],
+  );
 
   // ── Toolbar actions (Export / Import / Add) ───────────────────────────────
   const Actions = () => (
     <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={exporting}
-        onClick={handleExportCsv}
-      >
-        {exporting
-          ? <span className="size-3.5 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
-          : <IconDownload />}
+      <Button variant="outline" size="sm" disabled={exporting} onClick={handleExportCsv}>
+        {exporting ? (
+          <span className="size-3.5 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+        ) : (
+          <IconDownload />
+        )}
         {exporting ? "Exporting…" : "Export CSV"}
       </Button>
       <Button variant="outline" size="sm" onClick={() => setOpenImport(true)}>
@@ -507,11 +533,7 @@ const TransactionListView = () => {
         currentItem={currentItemReport}
         setCurrentItem={setCurrentItemReport}
       />
-      <ImportModal
-        open={openImport}
-        setOpen={setOpenImport}
-        onSuccess={() => fetch()}
-      />
+      <ImportModal open={openImport} setOpen={setOpenImport} onSuccess={() => fetch()} />
     </div>
   );
 };
