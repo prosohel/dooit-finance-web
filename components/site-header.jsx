@@ -19,13 +19,6 @@ import {
   IconChartLine,
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from './ui/select';
 import { CircleDashed, CreditCard } from 'lucide-react';
 import {
   DropdownMenu,

@@ -27,7 +27,7 @@ export default function OptionsStep({ step, activeStep, wizard }) {
       {groups.map((group) => (
         <div key={group.label || "default"}>
           {group.label && (
-            <div className="mb-2.5 mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground first:mt-0">
+            <div className="mb-2 mt-6 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground first:mt-0">
               {group.label}
             </div>
           )}

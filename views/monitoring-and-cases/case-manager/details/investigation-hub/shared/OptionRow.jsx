@@ -13,25 +13,50 @@ export default function OptionRow({ label, selected, multi, onClick, dense = fal
   return (
     <button
       type="button"
+      role={multi ? "checkbox" : "radio"}
+      aria-checked={!!selected}
       onClick={onClick}
       className={cn(
-        "flex items-start gap-2.5 text-left transition-colors",
+        "flex items-start gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+        "transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out active:scale-[0.99]",
         dense
-          ? "rounded-md px-1 py-1.5 text-[13px]"
-          : "mb-2 w-full rounded-lg border px-3.5 py-3 text-sm font-medium",
-        !dense && (selected ? "border-primary bg-primary/5 text-primary" : "border-border bg-white text-heading"),
+          ? "rounded-md px-2 py-1.5 text-[13px] hover:bg-black/[0.03]"
+          : "mb-2 w-full rounded-lg border px-4 py-3 text-[13.5px]",
+        !dense &&
+          (selected
+            ? "border-primary/50 bg-primary/[0.04] text-heading shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_10%,transparent)]"
+            : "border-border bg-white text-heading shadow-[0_1px_2px_rgba(16,24,40,0.04)] hover:border-muted-foreground/30"),
       )}
     >
       <span
         className={cn(
-          "mt-0.5 flex size-[18px] shrink-0 items-center justify-center border text-[10px] font-bold",
+          "mt-0.5 flex size-4 shrink-0 items-center justify-center transition-colors duration-150",
           multi ? "rounded-[5px]" : "rounded-full",
-          selected ? "border-primary bg-primary text-white" : "border-muted-foreground/40 bg-white text-transparent",
+          selected
+            ? "bg-primary text-white"
+            : "bg-white text-transparent ring-1 ring-inset ring-muted-foreground/35",
         )}
       >
-        <IconCheck className="size-3" strokeWidth={3} />
+        {multi ? (
+          <IconCheck
+            className={cn("size-3 transition-transform duration-150 ease-out", selected ? "scale-100" : "scale-75")}
+            strokeWidth={3}
+          />
+        ) : (
+          <span
+            className={cn(
+              "size-1.5 rounded-full bg-white transition-transform duration-150 ease-out",
+              selected ? "scale-100" : "scale-0",
+            )}
+          />
+        )}
       </span>
-      <span className={cn(dense ? "text-muted-foreground" : "", selected && dense && "font-semibold text-heading")}>
+      <span
+        className={cn(
+          "leading-snug",
+          dense ? (selected ? "font-medium text-heading" : "text-muted-foreground") : selected && "font-medium",
+        )}
+      >
         {label}
       </span>
     </button>

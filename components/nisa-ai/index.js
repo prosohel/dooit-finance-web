@@ -2,6 +2,8 @@
 import dynamic from 'next/dynamic';
 import React, { useState } from 'react';
 import Modal from './Modal';
+import { AnimatePresence } from 'framer-motion';
+import FlowyDrag from '../FlowyDrag';
 const NissaModel = dynamic(
   () => import('@/components/nisa-ai/Nisa', { ssr: false })
 );
@@ -17,7 +19,11 @@ export default function ChatBotNissa() {
       >
         <NissaModel />
       </div>
-      <Modal isOpen={isOpen} setIsOpen={setIsOpen} />
+      <AnimatePresence>
+        {/* <FlowyDrag> */}
+        <Modal isOpen={isOpen} setIsOpen={setIsOpen} />
+        {/* </FlowyDrag> */}
+      </AnimatePresence>
     </>
   );
 }

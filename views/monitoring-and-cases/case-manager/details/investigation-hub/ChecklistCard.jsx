@@ -2,47 +2,45 @@
 
 import { IconCheck } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
+import RailHeading from "./shared/RailHeading";
 
 export default function ChecklistCard({ checklist, checkedCount, toggleCheck }) {
-  const pct = Math.round((checkedCount / checklist.length) * 100);
-
   return (
-    <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-white">
-      <div className="shrink-0 border-b-2 border-success bg-success/10 px-4 py-2.5">
-        <div className="flex items-center gap-2.5">
-          <span className="size-2 rounded-full bg-success" />
-          <span className="text-[12.5px] font-bold text-success">INVESTIGATION CHECKLIST</span>
-        </div>
-        <div className="mt-2 flex items-center gap-2">
-          <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-success/15">
-            <div className="h-full rounded-full bg-success transition-all" style={{ width: `${pct}%` }} />
-          </div>
-          <span className="text-[11px] font-semibold text-success">
-            {checkedCount} of {checklist.length}
-          </span>
-        </div>
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col border-t border-border/70">
+      <RailHeading label="Checklist" done={checkedCount} total={checklist.length} barClassName="bg-success" />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-2.5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3">
         {checklist.map((item, i) => (
           <button
             key={item.text}
             type="button"
+            role="checkbox"
+            aria-checked={item.checked}
             onClick={() => toggleCheck(i)}
-            className="flex w-full items-start gap-2.5 border-b border-border/60 py-2.5 text-left last:border-0"
+            className={cn(
+              "flex w-full items-start gap-3 rounded-lg px-2.5 py-[7px] text-left outline-none",
+              "transition-[background-color,transform] duration-150 ease-out hover:bg-black/[0.03] active:scale-[0.98]",
+              "focus-visible:ring-2 focus-visible:ring-primary/30",
+            )}
           >
             <span
               className={cn(
-                "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border text-[11px] font-bold",
-                item.checked ? "border-success bg-success text-white" : "border-muted-foreground/30 bg-white text-transparent",
+                "mt-px flex size-4 shrink-0 items-center justify-center rounded-[5px] transition-colors duration-150",
+                item.checked ? "bg-success text-white" : "bg-white text-transparent ring-1 ring-inset ring-muted-foreground/35",
               )}
             >
-              <IconCheck className="size-3" strokeWidth={3} />
+              <IconCheck
+                className={cn(
+                  "size-3 transition-transform duration-150 ease-out",
+                  item.checked ? "scale-100" : "scale-75",
+                )}
+                strokeWidth={3}
+              />
             </span>
             <span
               className={cn(
-                "text-[12.5px] leading-snug",
-                item.checked ? "text-muted-foreground line-through" : "text-heading",
+                "text-[13px] leading-snug transition-colors duration-150",
+                item.checked ? "text-muted-foreground line-through decoration-muted-foreground/40" : "text-heading",
               )}
             >
               {item.text}

@@ -3,18 +3,17 @@
 import { IconAlertTriangle, IconCheck, IconLoader2 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { dateShowFormatWithTime } from "@/lib/utils";
-import AlertDetailsPanel from "./AlertDetailsPanel";
 import StepWorkspacePanel from "./StepWorkspacePanel";
 import OsintReportPanel from "./OsintReportPanel";
 import StepsChecklistPanel from "./StepsChecklistPanel";
 import { useInvestigationWizard } from "./hooks/useInvestigationWizard";
 
 /**
- * The step-driven investigation workspace: alert context on the left, the
- * active step's form in the middle, the step list + checklist next, and the
- * inline OSINT report on the far right. All wizard state lives in
- * `useInvestigationWizard` and is threaded down as a single `wizard` object
- * so step components stay simple props-in/callbacks-out.
+ * The step-driven investigation workspace: one card split into the step list
+ * + checklist on the left and the active step's form on the right, with the
+ * save status and the OSINT report drawer in the workspace header. All wizard
+ * state lives in `useInvestigationWizard` and is threaded down as a single
+ * `wizard` object so step components stay simple props-in/callbacks-out.
  */
 export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   // `caseId` gives the wizard somewhere to save; without it the hub still
@@ -22,15 +21,22 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   const wizard = useInvestigationWizard(caseData, caseId);
 
   return (
-    <div className="flex flex-col gap-2">
-      <SaveIndicator wizard={wizard} />
+    <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.08)]">
+      <StepsChecklistPanel wizard={wizard} />
 
-      <div className="flex h-[calc(100vh-300px)] min-h-[620px] gap-3.5 overflow-x-auto pb-1">
-        <AlertDetailsPanel caseData={caseData} />
-        <StepWorkspacePanel caseData={caseData} caseId={caseId} onCaseChange={onCaseChange} wizard={wizard} />
-        <StepsChecklistPanel wizard={wizard} />
-        <OsintReportPanel caseData={caseData} />
-      </div>
+      <StepWorkspacePanel
+        caseData={caseData}
+        caseId={caseId}
+        onCaseChange={onCaseChange}
+        wizard={wizard}
+        headerActions={
+          <>
+            <SaveIndicator wizard={wizard} />
+            <span aria-hidden className="h-4 w-px bg-border" />
+            <OsintReportPanel caseData={caseData} />
+          </>
+        }
+      />
     </div>
   );
 }
@@ -42,10 +48,11 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
  */
 function SaveIndicator({ wizard }) {
   const { loaded, saving, savedAt, saveError, saveNow } = wizard;
+  const quiet = "flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground";
 
   if (!loaded) {
     return (
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <p className={quiet} aria-live="polite">
         <IconLoader2 className="size-3.5 animate-spin" />
         Loading saved progress…
       </p>
@@ -54,13 +61,23 @@ function SaveIndicator({ wizard }) {
 
   if (saveError) {
     return (
-      <p className="flex items-center gap-2 text-xs text-danger">
-        <IconAlertTriangle className="size-3.5" />
-        {saveError === "load"
-          ? "Could not load saved progress — autosave is paused so nothing already stored is overwritten."
-          : "Could not save your progress."}
+      <p
+        role="alert"
+        className="flex max-w-[420px] items-center gap-2 rounded-lg border border-danger/20 bg-danger/5 py-1 pl-2.5 pr-1 text-xs leading-snug text-danger"
+      >
+        <IconAlertTriangle className="size-3.5 shrink-0" />
+        <span className="py-0.5">
+          {saveError === "load"
+            ? "Could not load saved progress — autosave is paused so nothing already stored is overwritten."
+            : "Could not save your progress."}
+        </span>
         {saveError === "save" && (
-          <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={saveNow}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 shrink-0 px-2 text-xs active:scale-[0.97]"
+            onClick={saveNow}
+          >
             Retry
           </Button>
         )}
@@ -69,7 +86,7 @@ function SaveIndicator({ wizard }) {
   }
 
   return (
-    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <p className={quiet} aria-live="polite">
       {saving ? (
         <>
           <IconLoader2 className="size-3.5 animate-spin" />
@@ -77,11 +94,11 @@ function SaveIndicator({ wizard }) {
         </>
       ) : savedAt ? (
         <>
-          <IconCheck className="size-3.5 text-success" />
-          Progress saved {dateShowFormatWithTime(savedAt)}
+          <IconCheck className="size-3.5 text-success" strokeWidth={2.5} />
+          Saved <span className="tabular-nums">{dateShowFormatWithTime(savedAt)}</span>
         </>
       ) : (
-        "Your progress saves automatically."
+        "Saves automatically"
       )}
     </p>
   );
