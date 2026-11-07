@@ -75,28 +75,28 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 // panel, not the nav, holds the eye. Colour-only transitions — this is clicked
 // tens of times a session, so no motion beyond that.
 const navItemClass =
-  "group relative h-9 w-full justify-start gap-2.5 rounded-md border-0 bg-transparent px-2.5 py-0 text-[13px] font-medium text-muted-foreground shadow-none transition-colors hover:bg-muted/70 hover:text-foreground before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-primary before:opacity-0 data-[state=active]:bg-primary/[0.07] data-[state=active]:text-heading data-[state=active]:shadow-none data-[state=active]:before:opacity-100";
+  "group relative h-20 px-4 w-full justify-start gap-2.5 rounded-md border-0 bg-transparent py-4 text-[13px] font-medium text-muted-foreground shadow-none transition-colors hover:bg-muted/70 hover:text-foreground before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-primary before:opacity-0 data-[state=active]:bg-primary/[0.07] data-[state=active]:text-heading data-[state=active]:shadow-none data-[state=active]:before:opacity-100 flex flex-col";
 
 // Collapsed rail: icon-only square, with the label in a tooltip.
 const navIconClass =
   "size-9 shrink-0 flex-none rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none transition-colors hover:bg-muted/70 hover:text-foreground data-[state=active]:bg-primary/[0.07] data-[state=active]:text-primary data-[state=active]:shadow-none";
 
 function NavItem({ value, icon: Icon, label, meta, hint, collapsed }) {
-  if (collapsed) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <TabsTrigger value={value} aria-label={label} className={navIconClass}>
-            <Icon className="size-4" />
-          </TabsTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="right">
-          <p className="font-medium">{label}</p>
-          <p className="opacity-80">{hint}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
+  // if (collapsed) {
+  //   return (
+  //     <Tooltip>
+  //       <TooltipTrigger asChild>
+  //         <TabsTrigger value={value} aria-label={label} className={navIconClass}>
+  //           <Icon className="size-4" />
+  //         </TabsTrigger>
+  //       </TooltipTrigger>
+  //       <TooltipContent side="right">
+  //         <p className="font-medium">{label}</p>
+  //         <p className="opacity-80">{hint}</p>
+  //       </TooltipContent>
+  //     </Tooltip>
+  //   );
+  // }
   return (
     <TabsTrigger value={value} title={hint} className={navItemClass}>
       <Icon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground group-data-[state=active]:text-primary" />
@@ -528,7 +528,7 @@ export default function CaseDetails({ caseId }) {
           </div>
 
           <TabsList
-            className={`flex h-auto w-full flex-col items-stretch rounded-none bg-transparent p-0 ${navCollapsed ? "gap-1" : "gap-4"}`}
+            className={` h-auto w-full  grid grid-cols-2 rounded-none bg-transparent border p-0 ${navCollapsed ? "gap-1" : "gap-4"}`}
           >
             <NavGroup label="Investigate" collapsed={navCollapsed}>
               <NavItem

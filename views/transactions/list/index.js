@@ -281,6 +281,21 @@ const TransactionListView = () => {
           </div>
         ),
       },
+      // {
+      //   id: "id",
+      //   header: ({ column }) => (
+      //     <DataTableColumnHeader
+      //       column={column}
+      //       title="ID"
+      //       onSort={(dir) => handleSort("uid", dir)}
+      //       sortDirection={sort.field === "uid" ? sort.order : null}
+      //     />
+      //   ),
+      //   accessorKey: "uid",
+      //   cell: ({ row }) => (
+      //     <span className="font-mono text-neutral-400 text-xs">#{row.original?.uid}</span>
+      //   ),
+      // },
       {
         id: "id",
         header: ({ column }) => (
@@ -292,10 +307,19 @@ const TransactionListView = () => {
           />
         ),
         accessorKey: "uid",
-        cell: ({ row }) => (
-          <span className="font-mono text-neutral-400 text-xs">#{row.original?.uid}</span>
-        ),
+        cell: ({ row }) => {
+          const { date, time } = formatDateTime(row.original.transactionTimestamp);
+          return (
+            <div>
+              <p className="font-mono text-xs text-neutral-500">{row.original.uid}</p>
+              <p className="text-xs text-neutral-400">
+                {date} · {time}
+              </p>
+            </div>
+          );
+        },
       },
+
       {
         id: "Flow Direction",
         header: "Flow Direction",

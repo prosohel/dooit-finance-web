@@ -50,6 +50,7 @@ import { CaseRequestForm } from "@/views/monitoring-and-cases/case-details/ecdd/
 import dynamic from "next/dynamic";
 import AssignAnalystForm from "@/views/monitoring-and-cases/case-details/AssignAnalystForm";
 import AIgeneratedAlerts from "./AIgeneratedAlerts";
+import { DataTableColumnHeader } from "@/components/DatatableColumnHeader";
 
 const ListView = ({}) => {
   const { alerts, fetching, totalItems, currentPage, limit, setCurrentPage, setLimit } =
@@ -244,15 +245,38 @@ const ListView = ({}) => {
         </>
       ),
     },
+    // {
+    //   id: "uid",
+    //   header: "Case ID",
+    //   accessorKey: "uid",
+    //   cell: ({ row }) => (
+    //     <div>
+    //       <p className="font-mono text-neutral-500 text-xs">{row?.original?.uid}</p>
+    //     </div>
+    //   ),
+    // },
     {
-      id: "uid",
-      header: "Case ID",
-      accessorKey: "uid",
-      cell: ({ row }) => (
-        <div>
-          <p className="font-mono text-neutral-500 text-xs">{row?.original?.uid}</p>
-        </div>
+      id: "id",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="ID"
+          // onSort={(dir) => handleSort("uid", dir)}   
+          // sortDirection={sort.field === "uid" ? sort.order : null}
+        />
       ),
+      accessorKey: "uid",
+      cell: ({ row }) => {
+        const { date, time } = formatDateTime(row.original.transactionTimestamp);
+        return (
+          <div>
+            <p className="font-mono text-xs text-neutral-500">{row.original.uid}</p>
+            <p className="text-xs text-neutral-400">
+              {date} · {time}
+            </p>
+          </div>
+        );
+      },
     },
 
     {
@@ -292,21 +316,21 @@ const ListView = ({}) => {
         </div>
       ),
     },
-    {
-      id: "transactionDate",
-      header: "Transaction Date",
-      accessorKey: "transaction.timestamp",
-      cell: ({ row }) => (
-        <div>
-          <p className="text-end text-neutral-600">
-            {formatDateTime(row?.original?.transaction?.timestamp)?.date}
-          </p>
-          <p className="text-neutral-300 text-xs text-end">
-            {formatDateTime(row?.original?.transaction?.timestamp)?.time}
-          </p>
-        </div>
-      ),
-    },
+    // {
+    //   id: "transactionDate",
+    //   header: "Transaction Date",
+    //   accessorKey: "transaction.timestamp",
+    //   cell: ({ row }) => (
+    //     <div>
+    //       <p className="text-end text-neutral-600">
+    //         {formatDateTime(row?.original?.transaction?.timestamp)?.date}
+    //       </p>
+    //       <p className="text-neutral-300 text-xs text-end">
+    //         {formatDateTime(row?.original?.transaction?.timestamp)?.time}
+    //       </p>
+    //     </div>
+    //   ),
+    // },
     {
       id: "analyst",
       header: "Analyst",
