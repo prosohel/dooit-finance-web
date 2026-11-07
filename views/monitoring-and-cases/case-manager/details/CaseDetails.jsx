@@ -70,65 +70,57 @@ function TabSkeleton() {
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-// Section navigation: a quiet vertical list. The active item gets a tinted
-// fill and a primary accent bar; everything else stays muted so the content
-// panel, not the nav, holds the eye. Colour-only transitions — this is clicked
-// tens of times a session, so no motion beyond that.
+// Section navigation: a 2-column feature grid in the left rail. Each cell
+// stacks icon, title and a one-line description; cells are divided by
+// hairlines only, so the grid reads as one quiet block. A short marker sits on
+// each cell's left hairline at title height: muted on hover, primary when
+// active, alongside a faint primary tint. Motion is colour only, plus a small
+// press scale on the content, because this nav is clicked tens of times a session.
 const navItemClass =
-  "group relative h-20 px-4 w-full justify-start gap-2.5 rounded-md border-0 bg-transparent py-4 text-[13px] font-medium text-muted-foreground shadow-none transition-colors hover:bg-muted/70 hover:text-foreground before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-primary before:opacity-0 data-[state=active]:bg-primary/[0.07] data-[state=active]:text-heading data-[state=active]:shadow-none data-[state=active]:before:opacity-100 flex flex-col";
+  "group relative flex h-full w-full min-w-0 flex-col items-start justify-start gap-3 whitespace-normal rounded-none border-0 border-r border-b border-border bg-transparent px-4 pt-5 pb-5 text-left font-normal text-muted-foreground shadow-none transition-colors duration-150 ease-out hover:bg-muted/40 data-[state=active]:bg-primary/[0.04] data-[state=active]:text-muted-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-border dark:data-[state=active]:bg-primary/10 before:absolute before:-left-px before:top-[49px] before:h-[18px] before:w-[3px] before:-translate-x-1/2 before:rounded-full before:bg-transparent before:transition-colors before:duration-150 hover:before:bg-muted-foreground/30 data-[state=active]:before:bg-primary";
 
 // Collapsed rail: icon-only square, with the label in a tooltip.
 const navIconClass =
-  "size-9 shrink-0 flex-none rounded-md border-0 bg-transparent p-0 text-muted-foreground shadow-none transition-colors hover:bg-muted/70 hover:text-foreground data-[state=active]:bg-primary/[0.07] data-[state=active]:text-primary data-[state=active]:shadow-none";
+  "size-9 shrink-0 flex-none rounded-lg border-0 bg-transparent p-0 text-muted-foreground shadow-none transition-[color,background-color,transform] duration-150 ease-out hover:bg-muted/70 hover:text-foreground active:scale-[0.95] data-[state=active]:bg-primary/[0.08] data-[state=active]:text-primary data-[state=active]:shadow-none";
 
 function NavItem({ value, icon: Icon, label, meta, hint, collapsed }) {
-  // if (collapsed) {
-  //   return (
-  //     <Tooltip>
-  //       <TooltipTrigger asChild>
-  //         <TabsTrigger value={value} aria-label={label} className={navIconClass}>
-  //           <Icon className="size-4" />
-  //         </TabsTrigger>
-  //       </TooltipTrigger>
-  //       <TooltipContent side="right">
-  //         <p className="font-medium">{label}</p>
-  //         <p className="opacity-80">{hint}</p>
-  //       </TooltipContent>
-  //     </Tooltip>
-  //   );
-  // }
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <TabsTrigger value={value} aria-label={label} className={navIconClass}>
+            <Icon className="size-4" />
+          </TabsTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          <p className="font-medium">{label}</p>
+          <p className="opacity-80">{hint}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
   return (
     <TabsTrigger value={value} title={hint} className={navItemClass}>
-      <Icon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground group-data-[state=active]:text-primary" />
-      <span className="min-w-0 flex-1 truncate text-left">{label}</span>
-      {meta != null && (
-        <span className="rounded-md bg-muted px-1.5 py-px text-[11px] font-medium tabular-nums text-muted-foreground group-data-[state=active]:bg-primary/10 group-data-[state=active]:text-primary">
-          {meta}
+      <span className="flex w-full flex-col gap-3 transition-transform duration-150 ease-out group-active:scale-[0.98] motion-reduce:group-active:scale-100">
+        <span className="flex items-center justify-between">
+          <Icon
+            stroke={1.6}
+            className="size-[18px] text-foreground/70 transition-colors group-hover:text-foreground group-data-[state=active]:text-primary"
+          />
+          {meta != null && (
+            <span className="text-[11px] font-semibold tabular-nums text-muted-foreground group-data-[state=active]:text-primary">
+              {meta}
+            </span>
+          )}
         </span>
-      )}
+        <span className="flex flex-col gap-1">
+          <span className="text-[13px] leading-[18px] font-semibold text-heading group-data-[state=active]:text-primary">
+            {label}
+          </span>
+          {hint && <span className="line-clamp-2 text-xs leading-snug">{hint}</span>}
+        </span>
+      </span>
     </TabsTrigger>
-  );
-}
-
-function NavGroup({ label, collapsed, children }) {
-  return (
-    // In the rail, a hairline replaces the group label — except above the first group.
-    <div
-      className={
-        collapsed
-          ? "flex flex-col items-center gap-1 [&:first-child>[data-divider]]:hidden"
-          : "flex flex-col gap-0.5"
-      }
-    >
-      {collapsed ? (
-        <span aria-hidden data-divider className="my-1 h-px w-5 bg-border" />
-      ) : (
-        <span className="px-2.5 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-          {label}
-        </span>
-      )}
-      {children}
-    </div>
   );
 }
 
@@ -151,6 +143,7 @@ export default function CaseDetails({ caseId }) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [rfiOpen, setRfiOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState("investigation-hub");
 
   // Regulatory filings live on their own endpoint so the case document stays
   // lean; they load alongside the case rather than blocking it.
@@ -493,133 +486,158 @@ export default function CaseDetails({ caseId }) {
       />
 
       <Tabs
-        defaultValue="investigation-hub"
+        value={activeTab}
+        onValueChange={setActiveTab}
         variant=""
         className="w-full flex-row items-start gap-6"
       >
         <nav
           aria-label="Case sections"
-          className={`sticky top-4 shrink-0 ${navCollapsed ? "w-9" : "w-[232px]"}`}
+          className={`sticky top-4 shrink-0 ${navCollapsed ? "w-9" : "w-[300px]"}`}
         >
           <div
-            className={`mb-2 flex items-center ${navCollapsed ? "justify-center" : "justify-between pl-2.5"}`}
+            className={`mb-2 flex items-center ${navCollapsed ? "flex-col gap-1" : "justify-between pl-1"}`}
           >
             {!navCollapsed && (
               <span className="text-xs font-semibold text-heading">Case sections</span>
             )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => setNavCollapsed((c) => !c)}
-                  aria-label={navCollapsed ? "Expand case navigation" : "Collapse case navigation"}
-                  aria-expanded={!navCollapsed}
-                  className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color,transform] duration-150 ease-out hover:bg-muted/70 hover:text-foreground active:scale-[0.95]"
-                >
-                  {navCollapsed ? (
-                    <IconLayoutSidebarLeftExpand className="size-4" />
-                  ) : (
-                    <IconLayoutSidebarLeftCollapse className="size-4" />
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">{navCollapsed ? "Expand" : "Collapse"}</TooltipContent>
-            </Tooltip>
+            <div className={`flex items-center gap-1 ${navCollapsed ? "flex-col-reverse" : ""}`}>
+              {/* Files lives outside the section grid so evidence is always one
+                  click away. It's a plain button driving the controlled Tabs,
+                  because a TabsTrigger can't render outside TabsList. */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("files")}
+                    aria-label="Files"
+                    aria-current={activeTab === "files" ? "page" : undefined}
+                    className={`flex h-8 items-center gap-1.5 rounded-md border text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100 ${
+                      navCollapsed ? "w-8 justify-center" : "px-2.5"
+                    } ${
+                      activeTab === "files"
+                        ? "border-primary/30 bg-primary/[0.08] text-primary"
+                        : "border-border bg-background text-heading hover:bg-muted/60"
+                    }`}
+                  >
+                    <IconFolder
+                      stroke={1.6}
+                      className={`size-4 ${activeTab === "files" ? "text-primary" : "text-foreground/70"}`}
+                    />
+                    {!navCollapsed && "Files"}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side={navCollapsed ? "right" : "bottom"}>
+                  Evidence & attachments
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setNavCollapsed((c) => !c)}
+                    aria-label={
+                      navCollapsed ? "Expand case navigation" : "Collapse case navigation"
+                    }
+                    aria-expanded={!navCollapsed}
+                    className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color,transform] duration-150 ease-out hover:bg-muted/70 hover:text-foreground active:scale-[0.95]"
+                  >
+                    {navCollapsed ? (
+                      <IconLayoutSidebarLeftExpand className="size-4" />
+                    ) : (
+                      <IconLayoutSidebarLeftCollapse className="size-4" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{navCollapsed ? "Expand" : "Collapse"}</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
+          {/* 9 sections in 2 columns: the last cell spans both so the grid
+              never ends on an empty cell. */}
           <TabsList
-            className={` h-auto w-full  grid grid-cols-2 rounded-none bg-transparent border p-0 ${navCollapsed ? "gap-1" : "gap-4"}`}
+            className={
+              navCollapsed
+                ? "flex h-auto w-full flex-col items-center gap-1 rounded-none border-0 bg-transparent p-0"
+                : "grid h-auto w-full grid-cols-2 gap-0 [&>*:last-child:nth-child(odd)]:col-span-2 rounded-none border-0 border-t border-l border-border bg-transparent p-0"
+            }
           >
-            <NavGroup label="Investigate" collapsed={navCollapsed}>
-              <NavItem
-                collapsed={navCollapsed}
-                value="investigation-hub"
-                icon={IconBriefcase}
-                label="Investigation Hub"
-                hint="Steps, POIs & findings"
-              />
-              <NavItem
-                collapsed={navCollapsed}
-                value="alerts"
-                icon={IconAlertTriangle}
-                label="Alerts"
-                meta={caseData.alerts?.length || 0}
-                hint={`${plural(caseData.alerts?.length || 0, "triggered rule hit")}`}
-              />
-              <NavItem
-                collapsed={navCollapsed}
-                value="customer-profile"
-                icon={IconUser}
-                label="Customer Profile"
-                hint={
-                  [caseData.customerName, caseData.customerType].filter(Boolean).join(" · ") ||
-                  "Primary customer"
-                }
-              />
-              <NavItem
-                collapsed={navCollapsed}
-                value="transactions"
-                icon={IconCreditCard}
-                label="Transactions"
-                meta={caseData.transactions?.length || 0}
-                hint={`${plural(caseData.transactions?.length || 0, "transaction")} linked to this case`}
-              />
-              <NavItem
-                collapsed={navCollapsed}
-                value="relation-graph"
-                icon={IconSitemap}
-                label="Relation Graph"
-                meta={partyCount}
-                hint={`${partyCount} ${partyCount === 1 ? "party" : "parties"} · entity connections`}
-              />
-            </NavGroup>
-
-            <NavGroup label="Evidence" collapsed={navCollapsed}>
-              <NavItem
-                collapsed={navCollapsed}
-                value="files"
-                icon={IconFolder}
-                label="Files"
-                hint="Evidence & attachments"
-              />
-              <NavItem
-                collapsed={navCollapsed}
-                value="source-of-funds"
-                icon={IconCoins}
-                label="Source of Funds"
-                hint="Declared sources · OCR & verification"
-              />
-              <NavItem
-                collapsed={navCollapsed}
-                value="tbml-osint"
-                icon={FingerprintIcon}
-                label="TBML OSINT"
-                hint="Trade-based ML & open-source intel"
-              />
-            </NavGroup>
-
-            <NavGroup label="Filings & record" collapsed={navCollapsed}>
-              <NavItem
-                collapsed={navCollapsed}
-                value="reports"
-                icon={IconFileStack}
-                label="Reports"
-                meta={reportsLoading ? "…" : rfis.length}
-                hint={
-                  reportsLoading
-                    ? "SMR, TTR & RFI filings"
-                    : `${plural(rfis.length, "RFI")} · SMR, TTR & RFI filings`
-                }
-              />
-              <NavItem
-                collapsed={navCollapsed}
-                value="case-activity"
-                icon={IconClipboardList}
-                label="Case Activity"
-                meta={notes.length}
-                hint={`${plural(notes.length, "note")} · notes, audit & analysis`}
-              />
-            </NavGroup>
+            <NavItem
+              collapsed={navCollapsed}
+              value="investigation-hub"
+              icon={IconBriefcase}
+              label="Investigation Hub"
+              hint="Steps, POIs & findings"
+            />
+            <NavItem
+              collapsed={navCollapsed}
+              value="alerts"
+              icon={IconAlertTriangle}
+              label="Alerts"
+              meta={caseData.alerts?.length || 0}
+              hint={`${plural(caseData.alerts?.length || 0, "triggered rule hit")}`}
+            />
+            <NavItem
+              collapsed={navCollapsed}
+              value="customer-profile"
+              icon={IconUser}
+              label="Customer Profile"
+              hint={
+                [caseData.customerName, caseData.customerType].filter(Boolean).join(" · ") ||
+                "Primary customer"
+              }
+            />
+            <NavItem
+              collapsed={navCollapsed}
+              value="transactions"
+              icon={IconCreditCard}
+              label="Transactions"
+              meta={caseData.transactions?.length || 0}
+              hint={`${plural(caseData.transactions?.length || 0, "transaction")} linked to this case`}
+            />
+            <NavItem
+              collapsed={navCollapsed}
+              value="relation-graph"
+              icon={IconSitemap}
+              label="Relation Graph"
+              meta={partyCount}
+              hint={`${partyCount} ${partyCount === 1 ? "party" : "parties"} · entity connections`}
+            />
+            <NavItem
+              collapsed={navCollapsed}
+              value="source-of-funds"
+              icon={IconCoins}
+              label="Source of Funds"
+              hint="Declared sources · OCR & verification"
+            />
+            <NavItem
+              collapsed={navCollapsed}
+              value="tbml-osint"
+              icon={FingerprintIcon}
+              label="TBML OSINT"
+              hint="Trade-based ML & open-source intel"
+            />
+            <NavItem
+              collapsed={navCollapsed}
+              value="reports"
+              icon={IconFileStack}
+              label="Reports"
+              meta={reportsLoading ? "…" : rfis.length}
+              hint={
+                reportsLoading
+                  ? "SMR, TTR & RFI filings"
+                  : `${plural(rfis.length, "RFI")} · SMR, TTR & RFI filings`
+              }
+            />
+            <NavItem
+              collapsed={navCollapsed}
+              value="case-activity"
+              icon={IconClipboardList}
+              label="Case Activity"
+              meta={notes.length}
+              hint={`${plural(notes.length, "note")} · notes, audit & analysis`}
+            />
           </TabsList>
         </nav>
 
