@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IconPlus } from "@tabler/icons-react";
 import OptionRow from "../shared/OptionRow";
+import DecisionCard from "../shared/DecisionCard";
 import { TYPOLOGY_GROUPS } from "../data/investigationHubData";
 
 /**
@@ -14,6 +15,10 @@ import { TYPOLOGY_GROUPS } from "../data/investigationHubData";
 export default function OptionsStep({ step, activeStep, wizard }) {
   const { sel, setRadio, toggleMulti, typoDraft, setTypoDraft, addTypology, customTypologies } = wizard;
   const selVal = sel[activeStep];
+
+  if (step.optionDetails && !step.multi) {
+    return <DecisionGroup step={step} value={selVal} onSelect={(opt) => setRadio(activeStep, opt)} />;
+  }
 
   const groups = step.grouped
     ? [
@@ -69,6 +74,45 @@ export default function OptionsStep({ step, activeStep, wizard }) {
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Single-choice options rendered as decision cards. Behaves like a native
+ * radio group: one tab stop, arrow keys move (and select) between choices.
+ */
+function DecisionGroup({ step, value, onSelect }) {
+  const options = step.options || [];
+  const focusIndex = Math.max(0, options.indexOf(value));
+
+  const onKeyDown = (e, i) => {
+    const delta = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!delta) return;
+    e.preventDefault();
+    const next = (i + delta + options.length) % options.length;
+    onSelect(options[next]);
+    e.currentTarget.parentElement?.children[next]?.focus();
+  };
+
+  return (
+    <div role="radiogroup" aria-label={step.title} className="flex max-w-[620px] flex-col gap-2">
+      {options.map((opt, i) => {
+        const detail = step.optionDetails[opt] || {};
+        return (
+          <DecisionCard
+            key={opt}
+            label={opt}
+            description={detail.description}
+            icon={detail.icon}
+            tone={detail.tone}
+            selected={value === opt}
+            onSelect={() => onSelect(opt)}
+            tabIndex={i === focusIndex ? 0 : -1}
+            onKeyDown={(e) => onKeyDown(e, i)}
+          />
+        );
+      })}
     </div>
   );
 }

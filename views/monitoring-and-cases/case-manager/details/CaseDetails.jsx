@@ -45,6 +45,7 @@ import CreateRFIModal from "./modals/CreateRFIModal";
 import ReassignCaseModal from "./modals/ReassignCaseModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import NetworkGraph from "@/views/onboarding/customer-queue/details/d3/Networkgraph";
 import { transformToGraph } from "@/views/onboarding/customer-queue/details/d3/lib/transformgraphData";
 import partyEntities from "@/views/onboarding/customer-queue/details/demo.json";
@@ -144,6 +145,7 @@ export default function CaseDetails({ caseId }) {
   const [rfiOpen, setRfiOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("investigation-hub");
+  const [filesOpen, setFilesOpen] = useState(false);
 
   // Regulatory filings live on their own endpoint so the case document stays
   // lean; they load alongside the case rather than blocking it.
@@ -503,26 +505,27 @@ export default function CaseDetails({ caseId }) {
             )}
             <div className={`flex items-center gap-1 ${navCollapsed ? "flex-col-reverse" : ""}`}>
               {/* Files lives outside the section grid so evidence is always one
-                  click away. It's a plain button driving the controlled Tabs,
-                  because a TabsTrigger can't render outside TabsList. */}
+                  click away: it opens in a modal over whichever section the
+                  analyst is in, so they never lose their place. */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    onClick={() => setActiveTab("files")}
+                    onClick={() => setFilesOpen(true)}
                     aria-label="Files"
-                    aria-current={activeTab === "files" ? "page" : undefined}
+                    aria-haspopup="dialog"
+                    aria-expanded={filesOpen}
                     className={`flex h-8 items-center gap-1.5 rounded-md border text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100 ${
                       navCollapsed ? "w-8 justify-center" : "px-2.5"
                     } ${
-                      activeTab === "files"
+                      filesOpen
                         ? "border-primary/30 bg-primary/[0.08] text-primary"
                         : "border-border bg-background text-heading hover:bg-muted/60"
                     }`}
                   >
                     <IconFolder
                       stroke={1.6}
-                      className={`size-4 ${activeTab === "files" ? "text-primary" : "text-foreground/70"}`}
+                      className={`size-4 ${filesOpen ? "text-primary" : "text-foreground/70"}`}
                     />
                     {!navCollapsed && "Files"}
                   </button>
@@ -682,11 +685,6 @@ export default function CaseDetails({ caseId }) {
             />
           </TabsContent>
 
-          <TabsContent value="files">
-            <Suspense fallback={<TabSkeleton />}>
-              <FilesTab caseData={caseData} caseId={caseId} />
-            </Suspense>
-          </TabsContent>
 
           <TabsContent value="source-of-funds">
             <Suspense fallback={<TabSkeleton />}>
@@ -718,6 +716,20 @@ export default function CaseDetails({ caseId }) {
           </TabsContent>
         </div>
       </Tabs>
+
+      <Dialog open={filesOpen} onOpenChange={setFilesOpen}>
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[1100px]">
+          <DialogTitle className="sr-only">Case files</DialogTitle>
+          <DialogDescription className="sr-only">
+            Evidence and attachments for this case.
+          </DialogDescription>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <Suspense fallback={<TabSkeleton />}>
+              <FilesTab caseData={caseData} caseId={caseId} embedded />
+            </Suspense>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <CreateRFIModal open={rfiOpen} onOpenChange={setRfiOpen} onSubmit={handleCreateRFI} />
       <ReassignCaseModal

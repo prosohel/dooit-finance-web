@@ -89,7 +89,7 @@ export function Fact({ label, value }) {
 }
 
 export function ApiOwnedNote({ children }) {
-  return <p className="rounded-lg bg-muted/50 px-3 py-2 text-[11.5px] text-muted-foreground">{children}</p>;
+  return <p className="border-l-2 border-black/[0.08] py-0.5 pl-3 text-[11.5px] text-muted-foreground">{children}</p>;
 }
 
 export const fmtDate = (v) => (v ? String(v).slice(0, 10) : "—");

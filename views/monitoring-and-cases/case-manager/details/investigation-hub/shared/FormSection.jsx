@@ -9,7 +9,7 @@ import FormFieldInput from "./FormFieldInput";
  */
 export default function FormSection({ heading, note, fields }) {
   return (
-    <div className={heading ? "rounded-xl border border-border p-5" : ""}>
+    <div className={heading ? "rounded-xl border border-dashed border-black/[0.12] p-5" : ""}>
       {heading && <div className="mb-4 text-[15px] font-bold text-heading">{heading}</div>}
       {note && <div className="mb-3.5 text-xs italic text-muted-foreground">{note}</div>}
       <div className="grid gap-4 sm:grid-cols-2">

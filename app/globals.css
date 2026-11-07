@@ -344,32 +344,37 @@ button[data-lit="true"]:before {
   display: none;
 } */
 div[data-slot="sidebar-content"] {
-  scrollbar-color: var(--color-gray-300) transparent;
+  scrollbar-color: rgb(16 24 40 / 0.08) transparent;
   /* -ms-overflow-style: none; */
 }
 
-/* App-wide visible scrollbar (Firefox) */
+/* App-wide scrollbar: a slim, low-contrast thumb on a transparent track that
+   darkens only when grabbed, so it signals "scrollable" without drawing the eye. */
+
+/* Firefox, and Chrome/Edge 121+ (standard properties take precedence there). */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-gray-400) transparent;
+  scrollbar-color: rgb(16 24 40 / 0.09) transparent;
 }
 
-/* App-wide visible scrollbar (Chrome/Edge/Safari) */
+/* Safari and older Chromium. A 10px gutter with a 3px transparent border
+   leaves a 4px thumb. */
 *::-webkit-scrollbar {
-  width: 18px;
-  height: 18px;
+  width: 10px;
+  height: 10px;
 }
-*::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: var(--color-gray-400);
-  border-radius: 10px;
-  border: 2px solid transparent;
+  background-color: rgb(16 24 40 / 0.09);
+  border-radius: 9999px;
+  border: 3px solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-gray-500);
+  background-color: rgb(16 24 40 / 0.18);
 }
 .css-1nmdiq5-menu {
   z-index: 9999999 !important;

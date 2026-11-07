@@ -13,7 +13,7 @@ export default function NarrativeStep({ wizard, caseId }) {
 
   return (
     <div>
-      <div className="mb-5 inline-flex gap-1 rounded-lg bg-muted/60 p-1">
+      <div className="mb-5 inline-flex gap-1 rounded-lg border border-black/[0.07] p-1">
         {[
           { key: "ecdd", label: "ECDD narrative" },
           { key: "gfs", label: "GFS narrative" },
@@ -25,7 +25,7 @@ export default function NarrativeStep({ wizard, caseId }) {
             className={cn(
               "rounded-md px-4 py-1.5 text-[12.5px] font-semibold transition-colors",
               narrativeTpl === tpl.key
-                ? "bg-white text-primary shadow-sm"
+                ? "bg-primary/[0.06] text-primary"
                 : "text-muted-foreground hover:text-heading",
             )}
           >

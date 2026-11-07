@@ -13,7 +13,7 @@ export default function RailHeading({ label, done, total, barClassName }) {
   return (
     <div className="shrink-0 px-5 pb-3 pt-5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80">
           {label}
         </span>
         <span className="text-xs tabular-nums text-muted-foreground">
@@ -23,7 +23,7 @@ export default function RailHeading({ label, done, total, barClassName }) {
         </span>
       </div>
       <div
-        className="mt-2.5 h-[3px] overflow-hidden rounded-full bg-border/60"
+        className="mt-2.5 h-[2px] overflow-hidden rounded-full bg-black/[0.05]"
         role="progressbar"
         aria-label={`${label} progress`}
         aria-valuenow={pct}

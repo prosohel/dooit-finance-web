@@ -111,7 +111,7 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
       )}
 
       {pendingLegacy.length > 0 && (
-        <div className="mb-4 rounded-xl border border-border bg-muted/40 px-4 py-3">
+        <div className="mb-4 rounded-xl border border-dashed border-black/[0.1] px-4 py-3">
           <div className="mb-2 flex items-center gap-2 text-xs font-bold text-heading">
             <IconHistory className="size-3.5" />
             Names recorded in an earlier version of this workspace

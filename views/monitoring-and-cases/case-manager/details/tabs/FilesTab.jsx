@@ -71,7 +71,9 @@ const sizeLabel = (bytes) =>
  * one record. Screening a trade document from this tab reads the bytes back from
  * the vault server-side; the analyst never has to find the file twice.
  */
-export default function FilesTab({ caseData, caseId }) {
+// `embedded` drops the card chrome and leaves room for the dialog's close
+// button when the list is shown inside the case's Files modal.
+export default function FilesTab({ caseData, caseId, embedded = false }) {
   const id = caseId || caseData?._id;
 
   const [files, setFiles] = useState([]);
@@ -153,8 +155,12 @@ export default function FilesTab({ caseData, caseId }) {
   }, [files, search]);
 
   return (
-    <Card className="border-border py-0 shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card className={embedded ? "gap-0 rounded-none border-0 py-0 shadow-none" : "border-border py-0 shadow-sm"}>
+      <div
+        className={`flex flex-col gap-3 border-b border-border py-4 pl-5 sm:flex-row sm:items-center sm:justify-between ${
+          embedded ? "pr-14" : "pr-5"
+        }`}
+      >
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-2 text-base font-semibold text-heading">
             <IconFile className="size-4" />

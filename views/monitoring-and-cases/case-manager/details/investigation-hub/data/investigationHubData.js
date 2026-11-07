@@ -12,6 +12,25 @@ export const INVESTIGATION_STEPS = [
     title: "Triage the alert",
     subtitle: "Decide whether this alert warrants a full investigation.",
     options: ["Proceed to investigation", "Escalate to senior analyst", "Dismiss as false positive"],
+    // Optional per-option detail: renders the options as rich decision cards.
+    // `icon` is a key resolved by the step renderer (data stays React-free).
+    optionDetails: {
+      "Proceed to investigation": {
+        icon: "investigate",
+        tone: "primary",
+        description: "Open a full investigation and work through every step.",
+      },
+      "Escalate to senior analyst": {
+        icon: "escalate",
+        tone: "warning",
+        description: "Hand the alert to a senior analyst before going further.",
+      },
+      "Dismiss as false positive": {
+        icon: "dismiss",
+        tone: "neutral",
+        description: "The activity is explained and not suspicious — close the alert.",
+      },
+    },
   },
   {
     key: "gather-information",

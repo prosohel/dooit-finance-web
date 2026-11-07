@@ -21,7 +21,7 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   const wizard = useInvestigationWizard(caseData, caseId);
 
   return (
-    <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl border border-border/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.08)]">
+    <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl border border-black/[0.06] bg-white">
       <StepsChecklistPanel wizard={wizard} />
 
       <StepWorkspacePanel
@@ -32,7 +32,6 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
         headerActions={
           <>
             <SaveIndicator wizard={wizard} />
-            <span aria-hidden className="h-4 w-px bg-border" />
             <OsintReportPanel caseData={caseData} />
           </>
         }
@@ -48,7 +47,8 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
  */
 function SaveIndicator({ wizard }) {
   const { loaded, saving, savedAt, saveError, saveNow } = wizard;
-  const quiet = "flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground";
+  const quiet =
+    "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs text-muted-foreground transition-colors duration-200";
 
   if (!loaded) {
     return (
@@ -63,7 +63,7 @@ function SaveIndicator({ wizard }) {
     return (
       <p
         role="alert"
-        className="flex max-w-[420px] items-center gap-2 rounded-lg border border-danger/20 bg-danger/5 py-1 pl-2.5 pr-1 text-xs leading-snug text-danger"
+        className="flex max-w-[420px] items-center gap-2 rounded-lg bg-danger/[0.06] py-1 pl-2.5 pr-1 text-xs leading-snug text-danger"
       >
         <IconAlertTriangle className="size-3.5 shrink-0" />
         <span className="py-0.5">
@@ -94,7 +94,9 @@ function SaveIndicator({ wizard }) {
         </>
       ) : savedAt ? (
         <>
-          <IconCheck className="size-3.5 text-success" strokeWidth={2.5} />
+          <span className="flex size-4 items-center justify-center rounded-full bg-success/12 text-success">
+            <IconCheck className="size-2.5" strokeWidth={3.5} />
+          </span>
           Saved <span className="tabular-nums">{dateShowFormatWithTime(savedAt)}</span>
         </>
       ) : (

@@ -165,7 +165,7 @@ function Summary({ start, end, backwards, flagged, outsideRange }) {
 
 function Note({ children }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/30 px-3.5 py-3 text-[13px] text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-black/[0.1] px-3.5 py-3 text-[13px] text-muted-foreground">
       {children}
     </div>
   );
