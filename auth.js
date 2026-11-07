@@ -2,6 +2,10 @@ import { jwtDecode } from "jwt-decode";
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
+// In a container the browser and this server reach the API by different addresses: the browser uses the
+// public NEXT_PUBLIC_API_BASE_URL, the server uses API_INTERNAL_URL when it is set (deploy/README.md).
+const API_URL = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
+
 class InvalidCredentialsError extends CredentialsSignin {
   constructor(message) {
     super();
@@ -17,7 +21,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: { token: {} },
       authorize: async ({ token }) => {
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}afc-os/handoff/exchange`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
+          const res = await fetch(`${API_URL}afc-os/handoff/exchange`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
           const data = await res.json();
           if (!data.success) return null;
           const decoded = jwtDecode(data.token);
@@ -38,7 +42,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       authorize: async (credentials, request) => {
         try {
-          const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}auth/login`;
+          const url = `${API_URL}auth/login`;
           console.log("log1 login url", url);
 
           // Forward the browser's identity so the API's device/audit telemetry

@@ -1,4 +1,6 @@
-export const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:6830/api/v1/";
+// In a container the browser and this server reach the API by different addresses: the browser uses the
+// public NEXT_PUBLIC_API_BASE_URL, the server uses API_INTERNAL_URL when it is set (deploy/README.md).
+export const BASE_URL = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:6830/api/v1/";
 export const AI_URL = process.env.NEXT_PUBLIC_AI_BASE_URL || "http://4.227.188.44:8000/";
 export const NISA_URL = process.env.NEXT_PUBLIC_NISA_BASE_URL || "http://localhost:8000/";
 export const IMAGE_SERVER_URL = process.env.NEXT_PUBLIC_IMAGE_SERVER_URL;

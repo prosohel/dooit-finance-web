@@ -12,16 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getInboxEvents, produceEvent, recordReceipt, uploadAttachment } from "@/app/dashboard/client/regulatory-inbox/actions";
 import { ACTIONS, describeEvent } from "./event-types";
+import { applyReceipt, countInbox, daysLeft, deadlineOf, filterInbox, isOpen, isUnread } from "./logic";
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—");
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
-const daysLeft = (d) => (d ? Math.ceil((new Date(d).getTime() - Date.now()) / 86_400_000) : null);
-
-/** Which payload field is the deadline, per event family. */
-const deadlineOf = (ev) => ev.payload?.deadline_date ?? ev.payload?.respond_by ?? ev.payload?.acknowledge_by ?? ev.payload?.acknowledge_due_at ?? ev.payload?.payment_due ?? ev.payload?.expiry ?? null;
-
 const TONE_STYLES = {
   urgent: "bg-[#fdf0f5] text-[#ca2f7f] border-[#f5b8d4]",
   action: "bg-[#fff7e6] text-[#b26b00] border-[#ffd591]",
@@ -33,9 +29,6 @@ const STATUS_LABEL = { queued: "Queued", delivered: "New", read: "Read", acknowl
 
 /** AFC OS `docType` → the label the RO saw when uploading (views/regulatory-inbox/uploads.jsx). */
 const DOC_KIND_LABEL = { risk_assessment: "ML/TF risk assessment", programme: "AML/CFT programme", procedure: "Transaction monitoring programme", policy: "Policies & procedures", customer_data: "Customer data dump", audit_report: "Audit or inspection report" };
-
-/** True once this tenant has replied (acknowledged receipt) or the event needs no reply. */
-const isOpen = (ev, meta) => !!meta.action && ev.status !== "acknowledged";
 
 // ── Payload rendering: one small block per event family ──────────────────────
 
@@ -311,33 +304,15 @@ export default function RegulatoryInboxView() {
     load();
   }, [load]);
 
-  const rows = useMemo(() => {
-    if (!events) return [];
-    return events
-      .map((ev) => ({ ev, meta: describeEvent(ev) }))
-      .filter(({ ev, meta }) => {
-        if (filter === "receipts") return meta.tone === "receipt";
-        if (meta.tone === "receipt") return false;
-        if (filter === "open") return isOpen(ev, meta);
-        return true;
-      });
-  }, [events, filter]);
-
-  const counts = useMemo(() => {
-    const all = (events ?? []).map((ev) => ({ ev, meta: describeEvent(ev) }));
-    return {
-      open: all.filter(({ ev, meta }) => isOpen(ev, meta)).length,
-      overdue: all.filter(({ ev, meta }) => isOpen(ev, meta) && daysLeft(deadlineOf(ev)) != null && daysLeft(deadlineOf(ev)) < 0).length,
-      unread: all.filter(({ ev, meta }) => meta.tone !== "receipt" && (ev.status === "delivered" || ev.status === "queued")).length,
-      receipts: all.filter(({ meta }) => meta.tone === "receipt").length,
-    };
-  }, [events]);
+  // The rules (which rows a tab shows, what counts as overdue) live in ./logic.js and are unit-tested there.
+  const rows = useMemo(() => filterInbox(events, filter), [events, filter]);
+  const counts = useMemo(() => countInbox(events), [events]);
 
   async function open(ev) {
     setSelected(ev);
-    if (ev.status === "delivered" || ev.status === "queued") {
+    if (isUnread(ev)) {
       const r = await recordReceipt(ev.eventId, "read");
-      if (r.success) setEvents((list) => list.map((e) => (e.eventId === ev.eventId ? { ...e, status: r.data.status, receipts: r.data.receipts } : e)));
+      if (r.success) setEvents((list) => applyReceipt(list, ev.eventId, r.data));
     }
   }
 

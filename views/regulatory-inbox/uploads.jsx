@@ -6,7 +6,9 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { UploadCloud, FileText, CheckCircle2, AlertTriangle, Loader2, ArrowLeft, RefreshCw, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getInboxEvents, produceEvent, uploadAttachment } from "@/app/dashboard/client/regulatory-inbox/actions";
+import { KINDS, MAX_FILES_PER_BATCH, buildReturnEvent, buildSubmissionEvent, isOnBehalf, kindLabel, latestClosedQuarter, newBatchId, submissionEvents, validateReturn } from "./logic";
 
 /**
  * Uploads & AI analysis — the Client Portal side of docs/77.
@@ -20,16 +22,6 @@ import { getInboxEvents, produceEvent, uploadAttachment } from "@/app/dashboard/
  *    which this page lists below (and the inbox shows too)
  */
 
-/** Portal kinds → AFC OS `docType` (Submission.DOC_TYPES). */
-const KINDS = [
-  { docType: "risk_assessment", label: "ML/TF risk assessment", hint: "XLSX, PDF" },
-  { docType: "programme", label: "AML/CFT programme", hint: "DOCX, PDF" },
-  { docType: "procedure", label: "Transaction monitoring programme", hint: "DOCX, PDF, XLSX" },
-  { docType: "policy", label: "Policies & procedures", hint: "DOCX, PDF" },
-  { docType: "customer_data", label: "Customer data dump", hint: "CSV, XLSX — only aggregates ever leave the analysis service" },
-  { docType: "audit_report", label: "Audit or inspection report", hint: "PDF" },
-];
-
 /** SHA-256 of a File, hex, computed in the browser (Web Crypto). */
 async function sha256Of(file) {
   const buf = await file.arrayBuffer();
@@ -38,7 +30,6 @@ async function sha256Of(file) {
 }
 
 const EVENT_TITLE = { "submission.received": "Uploaded on your behalf", "submission.analysed": "Analysis ready", "submission.failed": "Analysis failed" };
-const kindLabel = (docType) => KINDS.find((k) => k.docType === docType)?.label ?? docType ?? null;
 
 /** Shown on anything an MLTFPD officer uploaded for this organisation (docs/78 §8). */
 function OnBehalfBadge() {
@@ -51,6 +42,62 @@ function OnBehalfBadge() {
 
 const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 
+/**
+ * Quarterly AML/CFT compliance return (worklog 54): the three required figures go to AFC OS as a
+ * `return.submitted` event; the regulator's side validates them against the template, compares
+ * with the prior quarter and records whether the return was on time (due 30 days after quarter end).
+ */
+function QuarterlyReturnCard({ by }) {
+  const [period, setPeriod] = useState(latestClosedQuarter());
+  const [f, setF] = useState({ strCount: "", ctrCount: "", txVolumeBdt: "" });
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(null);
+  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
+
+  async function submit(e) {
+    e.preventDefault();
+    const problem = validateReturn(period, f);
+    if (problem) return toast.error(problem);
+    setBusy(true);
+    const r = await produceEvent(buildReturnEvent({ period, figures: f, by }));
+    setBusy(false);
+    if (!r.success) return toast.error(r.error || r.message || "The hub refused the return");
+    setSent({ eventId: r.data?.eventId, period });
+    toast.success(`Quarterly return for ${period} sent to Bangladesh Bank · ${r.data?.eventId ?? ""}`);
+  }
+
+  return (
+    <form onSubmit={submit} className="rounded-xl border border-[var(--smoke-300)] bg-white p-5">
+      <div className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-[var(--gray)]">Quarterly AML/CFT compliance return</div>
+      <p className="mb-3 text-[12px] text-[var(--gray)]">Due 30 days after the quarter ends. Figures are validated on the regulator&apos;s side and compared with your previous quarter; a late or missing return is recorded against your organisation.</p>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <label className="text-[12px] text-[var(--gray)]">
+          Period
+          <Input value={period} onChange={(e) => setPeriod(e.target.value.trim())} placeholder="2026-Q3" className="mt-1" />
+        </label>
+        <label className="text-[12px] text-[var(--gray)]">
+          STRs filed
+          <Input value={f.strCount} onChange={set("strCount")} inputMode="numeric" className="mt-1" />
+        </label>
+        <label className="text-[12px] text-[var(--gray)]">
+          CTRs filed
+          <Input value={f.ctrCount} onChange={set("ctrCount")} inputMode="numeric" className="mt-1" />
+        </label>
+        <label className="text-[12px] text-[var(--gray)]">
+          Transaction volume (BDT)
+          <Input value={f.txVolumeBdt} onChange={set("txVolumeBdt")} inputMode="numeric" className="mt-1" />
+        </label>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="text-[12px] text-[var(--gray)]">{sent ? `Sent for ${sent.period} · ${sent.eventId}. A second filing for the same quarter is refused by the register.` : "CTR = cash deposits or withdrawals of BDT 10 lakh or more in one account in one day."}</span>
+        <Button type="submit" size="sm" disabled={busy} className="gap-1.5">
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <UploadCloud className="size-3.5" />} File the return
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function RegulatoryUploadsView() {
   const { data: session } = useSession();
   const [docType, setDocType] = useState(KINDS[0].docType);
@@ -61,7 +108,7 @@ export default function RegulatoryUploadsView() {
   const loadEvents = useCallback(async () => {
     const r = await getInboxEvents({ limit: 300 });
     if (!r.success) return setEvents([]);
-    setEvents([...r.data].reverse().filter((e) => e.type.startsWith("submission.")));
+    setEvents(submissionEvents(r.data));
   }, []);
 
   useEffect(() => {
@@ -70,9 +117,9 @@ export default function RegulatoryUploadsView() {
 
   async function send(files) {
     if (!files.length) return;
-    if (files.length > 50) return toast.error("At most 50 files per batch");
+    if (files.length > MAX_FILES_PER_BATCH) return toast.error(`At most ${MAX_FILES_PER_BATCH} files per batch`);
     setBusy(true);
-    const batchId = `PORTAL-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const batchId = newBatchId();
     const by = session?.user?.name ?? "CAMLCO";
     const rows = files.map((f) => ({ name: f.name, size: f.size, state: "uploading" }));
     setQueue((q) => [...rows, ...q]);
@@ -86,14 +133,7 @@ export default function RegulatoryUploadsView() {
         fd.append("file", file);
         const up = await uploadAttachment(fd);
         if (!up.success) throw new Error(up.error);
-        up.data.sha256 = up.data.sha256 ?? sha256;
-        const ev = await produceEvent({
-          type: "submission.received",
-          to: "afcos",
-          subject: { kind: "Submission", uid: null },
-          payload: { doc_type: docType, file: { name: up.data.name, url: up.data.url, sha256: up.data.sha256, mimeType: up.data.mimeType, sizeBytes: file.size }, batch: { id: batchId, index: i + 1, count: files.length }, by },
-          idempotencyKey: `portal:submission:${batchId}:${i + 1}`,
-        });
+        const ev = await produceEvent(buildSubmissionEvent({ docType, upload: up.data, sha256, sizeBytes: file.size, batchId, index: i + 1, count: files.length, by }));
         if (!ev.success) throw new Error(ev.error || ev.message || "The hub refused the event");
         update({ state: "sent", eventId: ev.data?.eventId });
       } catch (err) {
@@ -123,6 +163,8 @@ export default function RegulatoryUploadsView() {
           <RefreshCw className="size-3.5" /> Refresh
         </Button>
       </div>
+
+      <QuarterlyReturnCard by={session?.user?.name ?? "CAMLCO"} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* Kind + drop */}
@@ -174,7 +216,7 @@ export default function RegulatoryUploadsView() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium text-[var(--heading)]">
                       {EVENT_TITLE[e.type] ?? e.type} <span className="font-mono text-[11px] text-[var(--gray)]">{e.payload?.submission_id}</span>
-                      {e.payload?.uploaded_by === "mltfpd" && <OnBehalfBadge />}
+                      {isOnBehalf(e) && <OnBehalfBadge />}
                     </div>
                     <div className="text-[11px] text-[var(--gray)]">
                       {fmtDateTime(e.occurredAt)}
