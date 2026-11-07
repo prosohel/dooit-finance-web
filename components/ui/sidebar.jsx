@@ -212,7 +212,7 @@ function Sidebar({
             : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
           // Adjust the padding for floating and inset variants.
           variant === 'floating' || variant === 'inset'
-            ? 'border-r p-3 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
+            ? 'p-3 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
             : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l',
           className
         )}
@@ -430,7 +430,7 @@ function SidebarMenuItem({ className, ...props }) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded px-2 hover:pl-4 transition-all duration-300 py-4  text-left  outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-white active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-white data-[active=true]:[&>svg]:fill-primary data-[active=true]:text-primary data-[active=true]:[&>svg]:text-white data-[active=true]:shadow data-[active=true]:shadow-primary/5   data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-semibold data-[active=true]:[&>svg]:text-primary  data-[active=true]:border-primary   data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 font-medium   text-neutral-700',
+  'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md px-2 py-4 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding,background-color,color,box-shadow,scale] duration-150 ease-snappy motion-safe:active:scale-[0.98] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-white active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-white data-[active=true]:[&>svg]:fill-primary data-[active=true]:text-primary data-[active=true]:[&>svg]:text-white data-[active=true]:shadow-[0_1px_2px_0_rgb(16_24_40/0.05)] data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-semibold data-[active=true]:[&>svg]:text-primary data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 font-medium   text-neutral-700',
   {
     variants: {
       variant: {
@@ -596,10 +596,10 @@ function SidebarMenuSubItem({ className, ...props }) {
       data-slot="sidebar-menu-sub-item"
       data-sidebar="menu-sub-item "
       className={cn(
-        'group/menu-sub-item relative pl-4 hover:pl-6 transition-all duration-300',
+        'group/menu-sub-item relative pl-4',
         // Tree line styles - vertical line and horizontal branch connector
-        'before:absolute before:left-0 before:top-0 before:h-full before:w-px before:bg-primary/20 before:rounded-full',
-        'after:absolute after:left-0 after:top-1/2 after:h-px after:w-3 after:-translate-y-1/2 after:bg-transparent after:rounded-bl-full after:border-b after:border-primary/20 after:border-l',
+        'before:absolute before:left-0 before:top-0 before:h-full before:w-0 before:border-l before:border-dashed before:border-primary/25',
+        'after:absolute after:left-0 after:top-1/2 after:h-px after:w-3 after:-translate-y-1/2 after:bg-transparent after:rounded-bl-full after:border-b after:border-dashed after:border-primary/25',
         // Last item: vertical line only goes to the middle
         'last:before:h-1/2',
         className
@@ -628,7 +628,7 @@ function SidebarMenuSubButton({
       data-size={size}
       data-active={isActive}
       className={cn(
-        'text-sidebar-foreground ring-sidebar-ring hover:bg-primary/5  py-1.5 rounded  hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground flex  min-w-0 -translate-x-px items-center gap-2 overflow-hidden  px-3 outline-hidden focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4  [&>svg]:shrink-0  text-[0.8rem]',
+        'text-sidebar-foreground ring-sidebar-ring hover:bg-primary/5 py-1.5 rounded-md transition-[background-color,color] duration-150 ease-snappy hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground flex  min-w-0 -translate-x-px items-center gap-2 overflow-hidden  px-3 outline-hidden focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4  [&>svg]:shrink-0  text-[0.8rem]',
         'data-[active=true]:bg-primary data-[active=true]:text-white data-[active=true]:[&>svg]:text-white    text-zinc-700 font-medium',
         // size === 'sm' && 'text-xs',
         // size === 'md' && 'text-[0.8rem]',

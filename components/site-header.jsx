@@ -1,6 +1,5 @@
 'use client';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import Link from 'next/link';
@@ -84,11 +83,7 @@ export function SiteHeader() {
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)  py-8 sticky top-0 z-10 bg-[#fefefe]">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <SidebarTrigger className="-ml-1" />
-        <Separator
-          orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
-        />
+        <SidebarTrigger className="-ml-1 mr-2 text-neutral-500 hover:text-neutral-900" />
 
         <div className=" w-full flex justify-center">
           <ul className="flex items-center gap-2 ">
@@ -97,9 +92,9 @@ export function SiteHeader() {
                 <Link
                   href={route.href}
                   className={cn(
-                    ' px-4 py-2  text-heading  font-semibold flex items-center gap-2 [&>svg]:size-4 [&>svg]:shrink-0 relative rounded-md text-[0.8rem]',
+                    'px-4 py-2 text-neutral-600 font-semibold flex items-center gap-2 [&>svg]:size-4 [&>svg]:shrink-0 relative rounded-md text-[0.8rem] transition-[color,background-color,box-shadow,scale] duration-150 ease-snappy hover:bg-neutral-100/70 hover:text-heading motion-safe:active:scale-[0.97]',
                     {
-                      'bg-white shadow-sm  font-bold rounded-md':
+                      'bg-white text-heading shadow-[0_1px_2px_0_rgb(16_24_40/0.06),0_0_0_1px_rgb(16_24_40/0.04)] font-bold hover:bg-white':
                         pathname === route.href,
                     }
                   )}
@@ -115,31 +110,23 @@ export function SiteHeader() {
           {isDooit ? null : (
             <Link href="/dashboard/client/track-progress" className="relative">
               <span className="absolute -top-1.5 -right-1.5 z-10 flex h-4 w-4 items-center justify-center">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span className="relative inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-white leading-none">
                   5
                 </span>
               </span>
               <span
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-white text-[0.75rem] font-bold transition-all duration-200 hover:scale-105 hover:brightness-110 cursor-pointer select-none"
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-white text-[0.75rem] font-bold transition-[filter,scale] duration-150 ease-snappy hover:brightness-110 motion-safe:active:scale-[0.96] cursor-pointer select-none"
                 style={{
                   background:
                     'linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #0891b2 100%)',
-                  boxShadow:
-                    '0 0 16px rgba(124,58,237,0.55), 0 2px 8px rgba(37,99,235,0.3)',
-                  animation: 'progressGlow 2.5s ease-in-out infinite',
+                  boxShadow: '0 2px 8px -2px rgba(37,99,235,0.35)',
                 }}
               >
                 <CircleDashed size={14} />
               </span>
             </Link>
           )}
-          <style>{`
-            @keyframes progressGlow {
-              0%, 100% { box-shadow: 0 0 16px rgba(124,58,237,0.55), 0 2px 8px rgba(37,99,235,0.3); }
-              50% { box-shadow: 0 0 26px rgba(124,58,237,0.85), 0 2px 14px rgba(8,145,178,0.5); }
-            }
-          `}</style>
           <EnvironmentBadge />
           <Button variant="secondary" size="sm">
             Help <IconHelpCircle />

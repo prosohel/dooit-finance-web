@@ -128,18 +128,20 @@ function NavParent({ item, pathname }) {
         <SidebarMenuButton
           tooltip={item.title}
           isActive={item.current}
-          className={'justify-between  '}
+          className="group/nav-parent justify-between"
         >
           <div className="flex items-center gap-2 [&>svg]:size-4 [&>svg]:shrink-0">
             {item.icon && <item.icon />}
             <span className="whitespace-nowrap">{item.title}</span>
           </div>
           <span>
-            <ChevronRightIcon className="size-4" />
+            {/* Points at the submenu while it is open. */}
+            <ChevronRightIcon className="size-4 text-neutral-400 transition-[rotate,color] duration-200 ease-snappy group-hover/nav-parent:text-neutral-600 group-data-[state=open]/nav-parent:rotate-90 motion-reduce:transition-none" />
           </span>
         </SidebarMenuButton>
       </CollapsibleTrigger>
-      <CollapsibleContent>
+      {/* Height is the only way to open a submenu without the items below jumping. */}
+      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up duration-200 ease-snappy motion-reduce:animate-none">
         <SidebarMenuSub>
           {item.children.map((child, index) => (
             <SidebarMenuSubItem key={child.title + index}>

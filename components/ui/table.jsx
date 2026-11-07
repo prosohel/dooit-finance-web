@@ -40,7 +40,7 @@ function TableFooter({ className, ...props }) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        'bg-muted/50 border-t font-medium [&>tr]:last:border-b-0',
+        'bg-muted/50 border-t border-dashed font-medium [&>tr]:last:border-b-0',
         className
       )}
       {...props}

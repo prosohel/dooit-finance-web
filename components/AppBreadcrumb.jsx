@@ -49,7 +49,7 @@ const Crumb = ({ crumb, isCurrent }) => {
     );
   }
   return (
-    <BreadcrumbLink asChild className="hover:text-primary">
+    <BreadcrumbLink asChild className="transition-colors duration-150 hover:text-primary">
       <Link href={crumb.href} className="inline-flex items-center gap-1.5">
         {crumb.home ? <House className="size-3.5 shrink-0" aria-hidden="true" /> : null}
         <CrumbLabel crumb={crumb} />
@@ -98,16 +98,15 @@ export default function AppBreadcrumb({ className }) {
       {parent ? (
         <>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={handleBack}
-            className="h-8 gap-1.5 px-2.5 text-[0.8rem]"
+            className="group/back h-8 gap-1.5 bg-neutral-100/70 px-2.5 text-[0.8rem] text-neutral-600 hover:bg-neutral-100 hover:text-heading"
             title="Go back"
           >
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeft className="size-3.5 transition-transform duration-150 ease-snappy group-hover/back:-translate-x-0.5 motion-reduce:transition-none" />
             Back
           </Button>
-          <span className="h-5 w-px bg-border" aria-hidden="true" />
         </>
       ) : null}
 

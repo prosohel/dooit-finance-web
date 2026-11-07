@@ -30,9 +30,9 @@ export default function CustomDatatable({
   };
   return (
     <>
-      <div className="overflow-hidden rounded-lg border ">
+      <div className="overflow-hidden rounded-lg border border-dashed border-neutral-200">
         <Table className={"text-xs"}>
-          <TableHeader className="bg-muted ">
+          <TableHeader className="bg-neutral-50/70">
             <TableRow>
               {columns.map((column) => (
                 <TableHead

@@ -27,7 +27,7 @@ function SheetOverlay({ className, ...props }) {
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-neutral-950/30 duration-300 ease-drawer',
         className
       )}
       {...props}
@@ -42,15 +42,17 @@ function SheetContent({ className, children, side = 'right', ...props }) {
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'bg-white data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 m-3 rounded-lg',
+          'bg-white data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-[0_24px_48px_-12px_rgb(16_24_40/0.18)] ease-drawer data-[state=closed]:duration-250 data-[state=open]:duration-400 m-3 rounded-xl',
+          // Reduced motion: drop the slide, keep a short fade.
+          'motion-reduce:[--tw-enter-translate-x:0] motion-reduce:[--tw-exit-translate-x:0] motion-reduce:[--tw-enter-translate-y:0] motion-reduce:[--tw-exit-translate-y:0] motion-reduce:data-[state=open]:fade-in-0 motion-reduce:data-[state=closed]:fade-out-0 motion-reduce:duration-200',
           side === 'right' &&
             'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-[calc(100vh-2rem)] w-3/4  sm:max-w-sm',
           side === 'left' &&
-            'data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-[calc(100vh-2rem)] w-3/4 border-r sm:max-w-sm',
+            'data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-[calc(100vh-2rem)] w-3/4 sm:max-w-sm',
           side === 'top' &&
-            'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b',
+            'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto',
           side === 'bottom' &&
-            'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t',
+            'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto',
           className
         )}
         {...props}

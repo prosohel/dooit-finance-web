@@ -82,7 +82,8 @@
   /* --accent: oklch(0.97 0 0); */
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: var(--color-neutral-200);
+  /* A step lighter than neutral-200: dividers should separate, not outline. */
+  --border: oklch(0.94 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
@@ -110,6 +111,10 @@
   border-width: 5px;
 }
 @theme inline {
+  /* Motion tokens. `ease-snappy` for anything entering, hovering or pressing;
+     `ease-drawer` for large surfaces that travel (sheets, the sidebar). */
+  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --font-sans: "Geist", "Geist Fallback";
   --font-mono: "Geist Mono", "Geist Mono Fallback";
   --font-heading: var(--font-mono);

@@ -7,7 +7,9 @@ function Card({ className, ...props }) {
     <div
       data-slot="card"
       className={cn(
-        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 ',
+        // A near-invisible hairline plus a 1px lift: enough to sit the card on a
+        // white page without drawing an outline around it.
+        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border border-neutral-900/[0.06] py-6 shadow-[0_1px_2px_0_rgb(16_24_40/0.03)]',
         className
       )}
       {...props}

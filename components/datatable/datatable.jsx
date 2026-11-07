@@ -271,7 +271,7 @@ export default function DataTable2({
 
       <div
         ref={tableContainerRef}
-        className="overflow-y-auto rounded-md border table-container"
+        className="overflow-y-auto rounded-lg border border-dashed border-neutral-200 table-container"
         onKeyDown={
           tableConfig.enableKeyboardNavigation ? handleKeyDown : undefined
         }
@@ -279,7 +279,7 @@ export default function DataTable2({
         <Table
           className={tableConfig.enableColumnResizing ? "resizable-table" : ""}
         >
-          <TableHeader>
+          <TableHeader className="bg-neutral-50/70">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
