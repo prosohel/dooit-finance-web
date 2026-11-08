@@ -23,6 +23,7 @@ import {
   IconLoader2,
   IconPennant,
   IconSearch,
+  IconSettingsCode,
   IconUserPlus,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
@@ -32,7 +33,7 @@ import { getCaseList } from "@/app/dashboard/client/monitoring-and-cases/case-li
 import { escalateAlertToCase } from "@/app/dashboard/client/monitoring-and-cases/case-manager/actions";
 import { getEcddByCaseNumber } from "@/app/dashboard/client/report-compliance/ecdd/actions";
 import EscalateDialog from "@/views/monitoring-and-cases/alert-details/EscalateDialog";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkle, Wand } from "lucide-react";
 const CustomResizableTable = dynamic(() => import("@/components/ui/CustomResizable"), {
   ssr: false,
 });
@@ -348,6 +349,17 @@ const ListView = ({}) => {
       ),
     },
     {
+      id: "origin",
+      header: "Origin",
+      accessorKey: "alertOrigin",
+      cell: ({ row }) => (
+        <StatusPill icon={<IconPennant />} variant={riskVariants[row?.original?.alertOrigin]}>
+          {row?.original?.alertOrigin}
+        </StatusPill>
+      ),
+    },
+
+    {
       id: "alertType",
       header: "Alert Type",
       accessorKey: "caseType",
@@ -410,19 +422,27 @@ const ListView = ({}) => {
   );
 };
 const AlertsTab = () => {
-  const { currentPage, limit, setAlerts, setFetching, setTotalItems } = useAlertStore();
+  const { currentPage, limit, setAlerts, setFetching, setTotalItems, setCurrentPage } =
+    useAlertStore();
+  // false = every alert, true = only alerts raised by the AI risk service.
+  const [aiOnly, setAiOnly] = useState(false);
+
+  const handleAiToggle = (value) => {
+    if (value === aiOnly) return;
+    setAiOnly(value);
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       setFetching(true);
-      // alertOrigin: "AI Based";
       try {
         const queryParams = {
           page: currentPage,
           limit: limit,
+          ...(aiOnly ? { alertOrigin: "AI Based" } : { alertOrigin: "Rule Based" }),
         };
         const response = await getCaseList(queryParams);
-        console.log("response", response);
 
         setAlerts(response?.data);
         setTotalItems(response?.totalRecords);
@@ -433,12 +453,30 @@ const AlertsTab = () => {
       }
     };
     fetchData();
-  }, [currentPage, limit]);
+  }, [currentPage, limit, aiOnly]);
 
   return (
     <div>
       <div className="flex items-center justify-between bg-white shadow-sm rounded-md p-4">
         <div className="flex items-center gap-2  ">
+          <ButtonGroup>
+            <Button
+              variant={aiOnly ? "outline" : "default"}
+              aria-pressed={!aiOnly}
+              onClick={() => handleAiToggle(false)}
+            >
+              <IconSettingsCode />
+              Rule Based
+            </Button>
+            <Button
+              variant={aiOnly ? "default" : "outline"}
+              aria-pressed={aiOnly}
+              onClick={() => handleAiToggle(true)}
+            >
+              <Wand className=" size-4" />
+              AI Based
+            </Button>
+          </ButtonGroup>
           <InputGroup className={"max-w-64"}>
             <InputGroupInput placeholder="Search..." />
             <InputGroupAddon>
@@ -512,18 +550,5 @@ const AlertsTab = () => {
 };
 
 export default function AlertListView() {
-  return (
-    <Tabs defaultValue="alerts">
-      <TabsList>
-        <TabsTrigger value="alerts">Alerts</TabsTrigger>
-        {/* <TabsTrigger value="ai-generated-alerts">AI Generated Alerts</TabsTrigger> */}
-      </TabsList>
-      <TabsContent value="alerts">
-        <AlertsTab />
-      </TabsContent>
-      {/* <TabsContent value="ai-generated-alerts">
-        <AIgeneratedAlerts />
-      </TabsContent> */}
-    </Tabs>
-  );
+  return <AlertsTab />;
 }

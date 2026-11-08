@@ -43,6 +43,7 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
   const router = useRouter();
   const [busy, setBusy] = useState(null); // 'review' | 'escalate' | 'dismiss'
   const [assignOpen, setAssignOpen] = useState(false);
+  console.log("alert", alert);
 
   const run = async (key, fn, okMessage) => {
     setBusy(key);
@@ -75,7 +76,11 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
       if (caseId) router.push(`/dashboard/client/monitoring-and-cases/case-manager/${caseId}`);
     });
   const handleDismiss = (reason) => (note) =>
-    run("dismiss", () => dismissAlert(alert.id, { reason, note }), reason === "false_positive" ? "Marked as false positive" : "Alert dismissed");
+    run(
+      "dismiss",
+      () => dismissAlert(alert.id, { reason, note }),
+      reason === "false_positive" ? "Marked as false positive" : "Alert dismissed",
+    );
 
   const canReview = alert.status === "new";
   const canEscalate = !alert.isClosed && !alert.linkedCase;
@@ -84,16 +89,29 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
     alert.customer?.name,
     alert.customer?.uid,
     alert.transaction?.uid ? `Transaction ${alert.transaction.uid}` : null,
-    alert.transaction?.amount !== null && alert.transaction ? fmtMoney(alert.transaction.amount, alert.transaction.currency) : null,
+    alert.transaction?.amount !== null && alert.transaction
+      ? fmtMoney(alert.transaction.amount, alert.transaction.currency)
+      : null,
   ].filter(Boolean);
 
   return (
     <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
       {/* meta row */}
       <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-neutral-500">
-        <span className="inline-flex items-center gap-1.5"><IconCalendar className="size-3.5" />Created: {fmtDate(alert.createdAt)}</span>
-        <span className="inline-flex items-center gap-1.5"><IconRefresh className="size-3.5" />Updated: {fmtDate(alert.updatedAt)}</span>
-        {alert.origin && <span className="inline-flex items-center gap-1.5"><IconBolt className="size-3.5" />Origin: {alert.origin}</span>}
+        <span className="inline-flex items-center gap-1.5">
+          <IconCalendar className="size-3.5" />
+          Created: {fmtDate(alert.createdAt)}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <IconRefresh className="size-3.5" />
+          Updated: {fmtDate(alert.updatedAt)}
+        </span>
+        {alert.origin && (
+          <span className="inline-flex items-center gap-1.5">
+            <IconBolt className="size-3.5" />
+            Origin: {alert.origin}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -105,23 +123,33 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
             <StatusPill icon={<IconAlertOctagon />} variant={variantOf(PRIORITY, alert.priority)}>
               {labelOf(PRIORITY, alert.priority)}
             </StatusPill>
-            {alert.caseType && <Badge variant="outline" className="text-xs">{alert.caseType}</Badge>}
+            {alert.caseType && (
+              <Badge variant="outline" className="text-xs">
+                {alert.caseType}
+              </Badge>
+            )}
             {alert.rule?.ruleId && (
               <StatusPill variant="muted">
-                Rule {alert.rule.ruleId}{alert.rule.version ? ` · v${alert.rule.version}` : ""}
+                Rule {alert.rule.ruleId}
+                {alert.rule.version ? ` · v${alert.rule.version}` : ""}
               </StatusPill>
             )}
           </div>
           <h1 className="text-xl font-bold text-heading">
             {alert.rule?.ruleName || alert.explanation || `Alert ${alert.uid || ""}`}
           </h1>
-          {subline.length > 0 && <p className="text-xs text-muted-foreground">{subline.join(" · ")}</p>}
+          {subline.length > 0 && (
+            <p className="text-xs text-muted-foreground">{subline.join(" · ")}</p>
+          )}
         </div>
 
         {/* risk / sla / ownership */}
         <div className="flex shrink-0 flex-col gap-3 xl:items-end">
           <div className="flex items-center gap-4">
-            <RiskScoreGauge score={alert.riskScore ?? 0} label={`Risk · ${alert.riskLabel || "—"}`} />
+            <RiskScoreGauge
+              score={alert.riskScore ?? 0}
+              label={`Risk · ${alert.riskLabel || "—"}`}
+            />
             {alert.slaDeadline && (
               <>
                 <div className="h-10 w-px bg-border" />
@@ -142,13 +170,20 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 text-primary hover:underline"
-                onClick={() => router.push(`/dashboard/client/monitoring-and-cases/case-manager/${alert.linkedCase.id}`)}
+                onClick={() =>
+                  router.push(
+                    `/dashboard/client/monitoring-and-cases/case-manager/${alert.linkedCase.id}`,
+                  )
+                }
               >
                 <IconLink className="size-3.5" />
                 Case <IdChip>{alert.linkedCase.uid || alert.linkedCase.id}</IdChip>
               </button>
             ) : (
-              <span className="inline-flex items-center gap-1.5"><IconLink className="size-3.5" />Not escalated</span>
+              <span className="inline-flex items-center gap-1.5">
+                <IconLink className="size-3.5" />
+                Not escalated
+              </span>
             )}
           </div>
         </div>
@@ -159,7 +194,11 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
         <div className="flex flex-wrap items-center gap-2">
           {canReview && (
             <Button size="sm" onClick={handleReview} disabled={busy === "review"}>
-              {busy === "review" ? <IconLoader2 className="size-4 animate-spin" /> : <IconEye className="size-4" />}
+              {busy === "review" ? (
+                <IconLoader2 className="size-4 animate-spin" />
+              ) : (
+                <IconEye className="size-4" />
+              )}
               Start review
             </Button>
           )}
@@ -173,7 +212,15 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
             <EscalateDialog alert={alert} busy={busy === "escalate"} onEscalate={handleEscalate} />
           )}
           {alert.linkedCase && (
-            <Button size="sm" variant="outline" onClick={() => router.push(`/dashboard/client/monitoring-and-cases/case-manager/${alert.linkedCase.id}`)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                router.push(
+                  `/dashboard/client/monitoring-and-cases/case-manager/${alert.linkedCase.id}`,
+                )
+              }
+            >
               <IconLink className="size-4" />
               Open case
             </Button>
@@ -188,7 +235,12 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
                 onConfirm={handleDismiss("dismissed")}
                 trigger={
                   <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="text-danger" disabled={busy === "dismiss"}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-danger"
+                      disabled={busy === "dismiss"}
+                    >
                       <IconX className="size-4" />
                       Dismiss
                     </Button>
