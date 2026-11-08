@@ -55,6 +55,7 @@ import { DataTableColumnHeader } from "@/components/DatatableColumnHeader";
 const ListView = ({}) => {
   const { alerts, fetching, totalItems, currentPage, limit, setCurrentPage, setLimit } =
     useAlertStore();
+  console.log("alerts", alerts);
   const [caseNumber, setCaseNumber] = useState(null);
   // Which row is mid-escalation, so only that button shows a spinner.
   const [escalatingId, setEscalatingId] = useState(null);
@@ -261,7 +262,7 @@ const ListView = ({}) => {
         <DataTableColumnHeader
           column={column}
           title="ID"
-          // onSort={(dir) => handleSort("uid", dir)}   
+          // onSort={(dir) => handleSort("uid", dir)}
           // sortDirection={sort.field === "uid" ? sort.order : null}
         />
       ),
@@ -414,6 +415,7 @@ const AlertsTab = () => {
   useEffect(() => {
     const fetchData = async () => {
       setFetching(true);
+      // alertOrigin: "AI Based";
       try {
         const queryParams = {
           page: currentPage,
@@ -514,14 +516,14 @@ export default function AlertListView() {
     <Tabs defaultValue="alerts">
       <TabsList>
         <TabsTrigger value="alerts">Alerts</TabsTrigger>
-        <TabsTrigger value="ai-generated-alerts">AI Generated Alerts</TabsTrigger>
+        {/* <TabsTrigger value="ai-generated-alerts">AI Generated Alerts</TabsTrigger> */}
       </TabsList>
       <TabsContent value="alerts">
         <AlertsTab />
       </TabsContent>
-      <TabsContent value="ai-generated-alerts">
+      {/* <TabsContent value="ai-generated-alerts">
         <AIgeneratedAlerts />
-      </TabsContent>
+      </TabsContent> */}
     </Tabs>
   );
 }
