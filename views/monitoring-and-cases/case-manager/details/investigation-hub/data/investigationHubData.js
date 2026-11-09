@@ -319,6 +319,14 @@ export const INVESTIGATION_STEPS = [
     title: "Should this case be monitored?",
     subtitle: "Decide whether continued monitoring is required after closure.",
     options: ["Yes — flag for ongoing monitoring", "No — no further monitoring"],
+    // Shown under the options once `when` is chosen; stored in
+    // selections[key] so it persists with the rest of the analyst's work.
+    followUp: {
+      when: "Yes — flag for ongoing monitoring",
+      key: "monitoring-period",
+      label: "Monitoring period",
+      options: ["3 months", "6 months", "12 months", "24 months"],
+    },
   },
 ];
 

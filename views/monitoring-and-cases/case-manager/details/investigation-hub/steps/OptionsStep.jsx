@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IconPlus } from "@tabler/icons-react";
+import { cn } from "@/lib/utils";
 import OptionRow from "../shared/OptionRow";
 import DecisionCard from "../shared/DecisionCard";
 import { TYPOLOGY_GROUPS } from "../data/investigationHubData";
@@ -65,6 +66,14 @@ export default function OptionsStep({ step, activeStep, wizard }) {
         </div>
       ))}
 
+      {step.followUp && selVal === step.followUp.when && (
+        <FollowUpChoice
+          followUp={step.followUp}
+          value={sel[step.followUp.key]}
+          onSelect={(opt) => setRadio(step.followUp.key, opt)}
+        />
+      )}
+
       {step.canAdd && (
         <div className="mt-4 flex gap-2.5">
           <Input
@@ -80,6 +89,58 @@ export default function OptionsStep({ step, activeStep, wizard }) {
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * A secondary single choice revealed by one of the step's options (e.g. the
+ * monitoring period once "flag for ongoing monitoring" is picked). Rendered
+ * as a compact segmented row of chips that behaves like a radio group.
+ */
+function FollowUpChoice({ followUp, value, onSelect }) {
+  const { options, label } = followUp;
+  const focusIndex = Math.max(0, options.indexOf(value));
+
+  const onKeyDown = (e, i) => {
+    const delta = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!delta) return;
+    e.preventDefault();
+    const next = (i + delta + options.length) % options.length;
+    onSelect(options[next]);
+    e.currentTarget.parentElement?.children[next]?.focus();
+  };
+
+  return (
+    <div className="ml-4 border-l-2 border-primary/20 pl-5 animate-in fade-in slide-in-from-top-1 duration-200">
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        {label}
+      </div>
+      <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+        {options.map((opt, i) => {
+          const selected = value === opt;
+          return (
+            <button
+              key={opt}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              tabIndex={i === focusIndex ? 0 : -1}
+              onClick={() => onSelect(opt)}
+              onKeyDown={(e) => onKeyDown(e, i)}
+              className={cn(
+                "rounded-full border px-3.5 py-1.5 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                "transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97]",
+                selected
+                  ? "border-primary bg-primary font-medium text-white"
+                  : "border-black/[0.12] bg-white text-heading [@media(hover:hover)]:hover:border-primary/40",
+              )}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
