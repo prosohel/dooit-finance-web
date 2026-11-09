@@ -19,7 +19,13 @@ const STEP_RENDERERS = {
 // `caseId` / `onCaseChange` let a step write to the case itself (the POI step
 // links customers and adds POIs) rather than only to the wizard's saved state.
 // `headerActions` sits at the right of the step title (save status, OSINT).
-export default function StepWorkspacePanel({ caseData, caseId, onCaseChange, wizard, headerActions }) {
+export default function StepWorkspacePanel({
+  caseData,
+  caseId,
+  onCaseChange,
+  wizard,
+  headerActions,
+}) {
   const { steps, activeStep, goPrev, goNext, saveNow } = wizard;
   const step = steps[activeStep];
   const StepBody = STEP_RENDERERS[step.kind];
@@ -49,9 +55,13 @@ export default function StepWorkspacePanel({ caseData, caseId, onCaseChange, wiz
                 </span>
               )}
             </div>
-            <h2 className="text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-heading">{step.title}</h2>
+            <h2 className="text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-heading">
+              {step.title}
+            </h2>
             {step.subtitle && (
-              <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">{step.subtitle}</p>
+              <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
+                {step.subtitle}
+              </p>
             )}
           </div>
           {headerActions && <div className="flex shrink-0 items-center gap-2">{headerActions}</div>}
@@ -110,11 +120,18 @@ function StepSegments({ steps, activeStep }) {
   return (
     <div aria-hidden className="flex gap-1">
       {steps.map((s, i) => (
-        <span key={s.key} className="relative h-[2px] flex-1 overflow-hidden rounded-full bg-black/[0.05]">
+        <span
+          key={s.key}
+          className="relative h-[2px] flex-1 overflow-hidden rounded-full bg-black/[0.05]"
+        >
           <span
             className={cn(
               "absolute inset-0 origin-left rounded-full transition-[transform,background-color] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-              s.done ? "scale-x-100 bg-primary" : i === activeStep ? "scale-x-100 bg-primary/30" : "scale-x-0 bg-primary",
+              s.done
+                ? "scale-x-100 bg-primary"
+                : i === activeStep
+                  ? "scale-x-100 bg-primary/30"
+                  : "scale-x-0 bg-primary",
             )}
           />
         </span>

@@ -19,6 +19,7 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   // `caseId` gives the wizard somewhere to save; without it the hub still
   // works, but only in memory (docs/74 C18).
   const wizard = useInvestigationWizard(caseData, caseId);
+  console.log("wizard", wizard);
 
   return (
     <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl border border-black/[0.06] bg-white">

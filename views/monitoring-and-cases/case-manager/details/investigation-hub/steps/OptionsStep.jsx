@@ -13,22 +13,28 @@ import { TYPOLOGY_GROUPS } from "../data/investigationHubData";
  * checklist grid with a free-text "add your own" row.
  */
 export default function OptionsStep({ step, activeStep, wizard }) {
-  const { sel, setRadio, toggleMulti, typoDraft, setTypoDraft, addTypology, customTypologies } = wizard;
+  const { sel, setRadio, toggleMulti, typoDraft, setTypoDraft, addTypology, customTypologies } =
+    wizard;
   const selVal = sel[activeStep];
 
   if (step.optionDetails && !step.multi) {
-    return <DecisionGroup step={step} value={selVal} onSelect={(opt) => setRadio(activeStep, opt)} />;
+    return (
+      <DecisionGroup step={step} value={selVal} onSelect={(opt) => setRadio(activeStep, opt)} />
+    );
   }
 
+  const isGrouped = step.grouped || Array.isArray(step.groups);
   const groups = step.grouped
     ? [
         ...TYPOLOGY_GROUPS,
-        ...(customTypologies.length ? [{ label: "Custom typologies", options: customTypologies }] : []),
+        ...(customTypologies.length
+          ? [{ label: "Custom typologies", options: customTypologies }]
+          : []),
       ]
-    : [{ label: "", options: step.options || [] }];
+    : step.groups || [{ label: "", options: step.options || [] }];
 
   return (
-    <div className="max-w-[660px]">
+    <div className="max-w-[660px] space-y-6">
       {groups.map((group) => (
         <div key={group.label || "default"}>
           {group.label && (
@@ -36,7 +42,7 @@ export default function OptionsStep({ step, activeStep, wizard }) {
               {group.label}
             </div>
           )}
-          <div className={step.grouped ? "grid gap-x-5 gap-y-2 sm:grid-cols-2" : ""}>
+          <div className={isGrouped ? "grid gap-x-5 gap-y-2 sm:grid-cols-2" : ""}>
             {group.options.map((opt) => {
               const selected = step.multi
                 ? Array.isArray(selVal) && selVal.includes(opt)
@@ -51,7 +57,7 @@ export default function OptionsStep({ step, activeStep, wizard }) {
                   selected={selected}
                   multi={step.multi}
                   onClick={onClick}
-                  dense={step.grouped}
+                  dense={isGrouped}
                 />
               );
             })}
