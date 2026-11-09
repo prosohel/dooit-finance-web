@@ -40,7 +40,7 @@ export default function StepWorkspacePanel({
   return (
     <section className="flex min-w-[460px] flex-1 flex-col overflow-hidden bg-white">
       <header className="shrink-0 px-8 pt-5">
-        <StepSegments steps={steps} activeStep={activeStep} />
+        {/* <StepSegments steps={steps} activeStep={activeStep} /> */}
 
         <div className="mt-5 flex items-start justify-between gap-6">
           <div className="min-w-0">
@@ -55,11 +55,11 @@ export default function StepWorkspacePanel({
                 </span>
               )}
             </div>
-            <h2 className="text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-heading">
+            <h2 className="text-sm font-semibold leading-[1.15] tracking-[-0.02em] text-heading mt-4">
               {step.title}
             </h2>
             {step.subtitle && (
-              <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
+              <p className="mt-1.5 max-w-[62ch] text-xs leading-relaxed text-muted-foreground">
                 {step.subtitle}
               </p>
             )}

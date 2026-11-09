@@ -35,6 +35,8 @@ const AUTOSAVE_DELAY_MS = 1500;
 
 // Report value → what the input shows.
 function toInput(field, value) {
+  // Older drafts stored a single value; read it as a one-item selection.
+  if (field.type === "multiselect") return value == null || value === "" ? [] : [].concat(value);
   if (value == null) return "";
   if (field.type === "date") return String(value).slice(0, 10);
   if (field.type === "list") return (Array.isArray(value) ? value : []).join("\n");
@@ -45,9 +47,22 @@ function toInput(field, value) {
 function fromInput(field, value) {
   if (field.type === "number") return value === "" ? null : Number(value);
   if (field.type === "date") return value || null;
-  if (field.type === "list") return value.split("\n").map((v) => v.trim()).filter(Boolean);
+  if (field.type === "list")
+    return value
+      .split("\n")
+      .map((v) => v.trim())
+      .filter(Boolean);
   if (field.type === "select" && value === "") return null;
   return value;
+}
+
+const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const isEmpty = (v) => (Array.isArray(v) ? v.length === 0 : !v);
+
+// How a value reads in a suggestion: option labels, joined for multiselects.
+function displayValue(field, value) {
+  const label = (o) => field.optionLabels?.[o] || o;
+  return Array.isArray(value) ? value.map(label).join(", ") : label(value);
 }
 
 /**
@@ -64,12 +79,19 @@ function fromInput(field, value) {
  * Each `sections[].fields[]` key must be in EDITABLE_FIELDS[type]
  * (api/services/reportDrafts.js) — keep the two in step.
  */
-export default function ReportNarrativeEditor({ caseId, type, label, sections, formPath, onOpenPois }) {
+export default function ReportNarrativeEditor({
+  caseId,
+  type,
+  label,
+  sections,
+  formPath,
+  onOpenPois,
+}) {
   const fields = useMemo(() => sections.flatMap((s) => s.fields), [sections]);
   const byKey = useMemo(() => Object.fromEntries(fields.map((f) => [f.key, f])), [fields]);
   const toValues = useCallback(
     (report) => Object.fromEntries(fields.map((f) => [f.key, toInput(f, report?.[f.key])])),
-    [fields]
+    [fields],
   );
 
   const [report, setReport] = useState(null);
@@ -92,7 +114,7 @@ export default function ReportNarrativeEditor({ caseId, type, label, sections, f
       setValues(toValues(doc));
       setEdited(doc?.editedFields || []);
     },
-    [toValues]
+    [toValues],
   );
 
   const load = useCallback(
@@ -102,7 +124,7 @@ export default function ReportNarrativeEditor({ caseId, type, label, sections, f
       applyReport(res.data);
       return res.data;
     },
-    [caseId, type, label, applyReport]
+    [caseId, type, label, applyReport],
   );
 
   useEffect(() => {
@@ -151,7 +173,7 @@ export default function ReportNarrativeEditor({ caseId, type, label, sections, f
   const refreshFromCase = async () => {
     if (
       !window.confirm(
-        "Recompute the figures and AI text from the case? Fields you have edited are kept exactly as they are."
+        "Recompute the figures and AI text from the case? Fields you have edited are kept exactly as they are.",
       )
     )
       return;
@@ -179,11 +201,13 @@ export default function ReportNarrativeEditor({ caseId, type, label, sections, f
         Object.entries(narrative)
           .filter(([k]) => byKey[k])
           .map(([k, v]) => [k, toInput(byKey[k], v)])
-          .filter(([k, v]) => v && v !== latest.current[k])
+          .filter(([k, v]) => !isEmpty(v) && !sameValue(v, latest.current[k])),
       );
       setSuggestions(offered);
-      if (meta.error) toast.error(`AI narrative unavailable: ${meta.error.message || meta.error.code}`);
-      else if (!Object.keys(offered).length) toast.info("No new suggestions — the narrative is up to date");
+      if (meta.error)
+        toast.error(`AI narrative unavailable: ${meta.error.message || meta.error.code}`);
+      else if (!Object.keys(offered).length)
+        toast.info("No new suggestions — the narrative is up to date");
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -202,7 +226,8 @@ export default function ReportNarrativeEditor({ caseId, type, label, sections, f
     return (
       <p className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
         <IconLoader2 className="size-4 animate-spin" />
-        Loading the case&apos;s {label} — a first draft is written from the case data, which can take up to 20 seconds…
+        Loading the case&apos;s {label} — a first draft is written from the case data, which can
+        take up to 20 seconds…
       </p>
     );
   }
@@ -229,11 +254,19 @@ export default function ReportNarrativeEditor({ caseId, type, label, sections, f
         <SaveStatus state={saveState} onRetry={flush} label={label} />
         <div className="ml-auto flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={suggest} disabled={suggesting}>
-            {suggesting ? <IconLoader2 className="size-3.5 animate-spin" /> : <IconSparkles className="size-3.5" />}
+            {suggesting ? (
+              <IconLoader2 className="size-3.5 animate-spin" />
+            ) : (
+              <IconSparkles className="size-3.5" />
+            )}
             Suggest narrative
           </Button>
           <Button size="sm" variant="outline" onClick={refreshFromCase} disabled={refreshing}>
-            {refreshing ? <IconLoader2 className="size-3.5 animate-spin" /> : <IconRefresh className="size-3.5" />}
+            {refreshing ? (
+              <IconLoader2 className="size-3.5 animate-spin" />
+            ) : (
+              <IconRefresh className="size-3.5" />
+            )}
             Refresh from case
           </Button>
           {report?._id && (
@@ -249,38 +282,43 @@ export default function ReportNarrativeEditor({ caseId, type, label, sections, f
 
       {aiError && (
         <Banner tone="warn">
-          The AI narrative could not be drafted ({aiError.message || aiError.code}). The figures are complete; write the
-          narrative yourself or try &ldquo;Suggest narrative&rdquo; again.
+          The AI narrative could not be drafted ({aiError.message || aiError.code}). The figures are
+          complete; write the narrative yourself or try &ldquo;Suggest narrative&rdquo; again.
         </Banner>
       )}
       {scope?.mismatch && (
         <Banner tone="warn">
-          The summary service saw {scope.theirTransactionCount} transaction(s) against this client&apos;s{" "}
-          {scope.ourTransactionCount}. Its narrative may describe activity outside this client — read it carefully.
+          The summary service saw {scope.theirTransactionCount} transaction(s) against this
+          client&apos;s {scope.ourTransactionCount}. Its narrative may describe activity outside
+          this client — read it carefully.
         </Banner>
       )}
 
-      {sections.map((section) => (
-        <div key={section.heading} className="rounded-xl border border-border p-5">
-          <div className="mb-4 text-[15px] font-bold text-heading">{section.heading}</div>
-          {section.persons && <PersonsOfInterest persons={persons} onOpenPois={onOpenPois} />}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {section.fields.map((f) => (
-              <Field
-                key={f.key}
-                id={`${type}-${f.key}`}
-                field={f}
-                value={values[f.key] ?? ""}
-                onChange={(v) => change(f.key, v)}
-                badge={edited.includes(f.key) ? "edited" : f.ai && aiUsed.has(f.key) ? "ai" : null}
-                suggestion={suggestions[f.key]}
-                onTake={() => takeSuggestion(f.key)}
-                onDismiss={() => dismissSuggestion(f.key)}
-              />
-            ))}
+      <div className="space-y-8 w-3/4">
+        {sections.map((section) => (
+          <div key={section.heading} className="">
+            <div className="mb-4 text-[15px] font-bold text-heading">{section.heading}</div>
+            {section.persons && <PersonsOfInterest persons={persons} onOpenPois={onOpenPois} />}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {section.fields.map((f) => (
+                <Field
+                  key={f.key}
+                  id={`${type}-${f.key}`}
+                  field={f}
+                  value={values[f.key] ?? (f.type === "multiselect" ? [] : "")}
+                  onChange={(v) => change(f.key, v)}
+                  badge={
+                    edited.includes(f.key) ? "edited" : f.ai && aiUsed.has(f.key) ? "ai" : null
+                  }
+                  suggestion={suggestions[f.key]}
+                  onTake={() => takeSuggestion(f.key)}
+                  onDismiss={() => dismissSuggestion(f.key)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -288,13 +326,20 @@ export default function ReportNarrativeEditor({ caseId, type, label, sections, f
 function Field({ id, field, value, onChange, badge, suggestion, onTake, onDismiss }) {
   return (
     <div className={cn("flex flex-col gap-1.5", field.full && "sm:col-span-2")}>
-      <label htmlFor={id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+      <label
+        htmlFor={id}
+        className="flex items-center gap-2 text-xs font-semibold text-muted-foreground"
+      >
         {field.label}
         {badge === "ai" && (
-          <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">AI draft</span>
+          <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">
+            AI draft
+          </span>
         )}
         {badge === "edited" && (
-          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Edited</span>
+          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            Edited
+          </span>
         )}
       </label>
 
@@ -319,6 +364,35 @@ function Field({ id, field, value, onChange, badge, suggestion, onTake, onDismis
             ))}
           </SelectContent>
         </Select>
+      ) : field.type === "multiselect" ? (
+        <div id={id} role="group" aria-label={field.label} className="flex flex-wrap gap-1.5">
+          {field.options.map((o) => {
+            const on = value.includes(o);
+            return (
+              <button
+                key={o}
+                type="button"
+                aria-pressed={on}
+                onClick={() =>
+                  onChange(
+                    on
+                      ? value.filter((v) => v !== o)
+                      : field.options.filter((x) => x === o || value.includes(x)),
+                  )
+                }
+                className={cn(
+                  "flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                  on
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50 hover:text-heading",
+                )}
+              >
+                {on && <IconCheck className="size-3" />}
+                {field.optionLabels?.[o] || o}
+              </button>
+            );
+          })}
+        </div>
       ) : (
         <Input
           id={id}
@@ -335,7 +409,7 @@ function Field({ id, field, value, onChange, badge, suggestion, onTake, onDismis
           <div className="mb-1 flex items-center gap-1 font-semibold">
             <IconSparkles className="size-3" /> Suggested
           </div>
-          <p className="whitespace-pre-wrap">{field.optionLabels?.[suggestion] || suggestion}</p>
+          <p className="whitespace-pre-wrap">{displayValue(field, suggestion)}</p>
           <div className="mt-2 flex gap-2">
             <Button size="sm" className="h-6 px-2 text-xs" onClick={onTake}>
               Use this
@@ -367,12 +441,24 @@ function PersonsOfInterest({ persons, onOpenPois }) {
       ) : (
         <div className="divide-y divide-border/70">
           {persons.map((p, i) => (
-            <div key={p.poi || p.customer || i} className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
+            <div
+              key={p.poi || p.customer || i}
+              className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs"
+            >
               <span className="font-semibold text-heading">{p.name}</span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10.5px] font-semibold">{p.role}</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10.5px] font-semibold">
+                {p.role}
+              </span>
               {p.relationship && <span className="text-muted-foreground">{p.relationship}</span>}
               <span className="ml-auto text-muted-foreground">
-                {[p.nationality || p.country, p.source === "alert" ? "from alert" : p.source === "manual" ? "manual" : "customer"]
+                {[
+                  p.nationality || p.country,
+                  p.source === "alert"
+                    ? "from alert"
+                    : p.source === "manual"
+                      ? "manual"
+                      : "customer",
+                ]
                   .filter(Boolean)
                   .join(" · ")}
               </span>
@@ -381,8 +467,8 @@ function PersonsOfInterest({ persons, onOpenPois }) {
         </div>
       )}
       <p className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">
-        Changed the persons of interest? &ldquo;Refresh from case&rdquo; updates this list, directors, beneficial owners and
-        related parties — unless you have edited those fields.
+        Changed the persons of interest? &ldquo;Refresh from case&rdquo; updates this list,
+        directors, beneficial owners and related parties — unless you have edited those fields.
       </p>
     </div>
   );
@@ -414,7 +500,9 @@ function SaveStatus({ state, onRetry, label }) {
     );
   }
   return (
-    <span className="text-xs text-muted-foreground">Changes save automatically to the case&apos;s {label}.</span>
+    <span className="text-xs text-muted-foreground">
+      Changes save automatically to the case&apos;s {label}.
+    </span>
   );
 }
 
@@ -423,7 +511,7 @@ function Banner({ tone, children }) {
     <div
       className={cn(
         "flex items-start gap-2 rounded-lg border px-3 py-2 text-xs",
-        tone === "warn" && "border-amber-200 bg-amber-50 text-amber-900"
+        tone === "warn" && "border-amber-200 bg-amber-50 text-amber-900",
       )}
     >
       <IconAlertTriangle className="mt-0.5 size-3.5 shrink-0" />

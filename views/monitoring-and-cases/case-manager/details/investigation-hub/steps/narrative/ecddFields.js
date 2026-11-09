@@ -86,7 +86,7 @@ export const ECDD_SECTIONS = [
       {
         key: "recommendationType",
         label: "Recommended action",
-        type: "select",
+        type: "multiselect",
         ai: true,
         options: ["SMR", "RFI", "Blacklist", "monitor", "offboard", "no_action"],
         optionLabels: {
