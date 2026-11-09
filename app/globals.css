@@ -455,3 +455,50 @@ div[data-slot="sidebar-content"] {
     animation: none;
   }
 }
+
+/* OSINT dock — game-style "life orb" docked to the right edge */
+.osint-orb {
+  background: radial-gradient(circle at 32% 28%, #e0f7ff 0%, #38bdf8 38%, #0284c7 72%, #075985 100%);
+  box-shadow:
+    inset 0 -3px 6px rgba(7, 89, 133, 0.55),
+    inset 0 2px 4px rgba(255, 255, 255, 0.7),
+    0 0 14px rgba(56, 189, 248, 0.55);
+  animation: osint-breathe 2.4s ease-in-out infinite;
+}
+.osint-orb-ring {
+  animation: osint-ring 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+.osint-orb-sweep {
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.55) 40deg, transparent 80deg);
+  animation: osint-sweep 2.4s linear infinite;
+}
+@keyframes osint-breathe {
+  50% {
+    box-shadow:
+      inset 0 -3px 6px rgba(7, 89, 133, 0.55),
+      inset 0 2px 4px rgba(255, 255, 255, 0.7),
+      0 0 22px rgba(56, 189, 248, 0.85);
+  }
+}
+@keyframes osint-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+@keyframes osint-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .osint-orb,
+  .osint-orb-ring,
+  .osint-orb-sweep {
+    animation: none;
+  }
+}

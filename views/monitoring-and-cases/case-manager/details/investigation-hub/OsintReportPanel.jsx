@@ -25,10 +25,19 @@ export default function OsintReportPanel({ caseData }) {
           type="button"
           title="Open OSINT report"
           aria-label="Open OSINT report"
-          className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-black/[0.08] bg-white pl-2 pr-2.5 text-xs font-medium text-heading transition-[background-color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:hover:bg-black/[0.025] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+          className="group fixed right-0 top-1/2 z-40 flex -translate-y-1/2 translate-x-1.5 flex-col items-center gap-2 rounded-l-2xl border border-r-0 border-sky-200/70 bg-white/95 py-3 pl-2 pr-3.5 shadow-[0_8px_24px_-6px_rgba(2,132,199,0.35)] backdrop-blur transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:hover:translate-x-0 active:scale-[0.96] focus-visible:translate-x-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
         >
-          <Radar className="size-3.5 text-sky-600" />
-          OSINT
+          {/* Life-orb: breathing glow, expanding pulse ring, radar sweep */}
+          <span className="relative flex size-9 items-center justify-center">
+            <span className="osint-orb-ring absolute inset-0 rounded-full border-2 border-sky-400" />
+            <span className="osint-orb relative flex size-9 items-center justify-center overflow-hidden rounded-full">
+              <span className="osint-orb-sweep absolute inset-0 rounded-full" />
+              <Radar className="relative size-4.5 text-white drop-shadow-[0_1px_1px_rgba(7,89,133,0.6)]" />
+            </span>
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-sky-700 [writing-mode:vertical-rl]">
+            OSINT
+          </span>
         </button>
       </SheetTrigger>
 

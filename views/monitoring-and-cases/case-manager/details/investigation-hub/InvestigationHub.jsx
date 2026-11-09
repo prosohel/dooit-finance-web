@@ -30,13 +30,11 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
         caseId={caseId}
         onCaseChange={onCaseChange}
         wizard={wizard}
-        headerActions={
-          <>
-            <SaveIndicator wizard={wizard} />
-            <OsintReportPanel caseData={caseData} />
-          </>
-        }
+        headerActions={<SaveIndicator wizard={wizard} />}
       />
+
+      {/* Docked to the viewport's right edge, outside the step header. */}
+      <OsintReportPanel caseData={caseData} />
     </div>
   );
 }
