@@ -201,7 +201,8 @@ export function ClientEditForm() {
       toast.success("Profile updated successfully");
       const response = await getLoggedInUser();
       if (response.success) {
-        setLoggedInUser(response.data);
+        // Same shape as useGetUser — the lock button reads isDataEncrypted.
+        setLoggedInUser({ ...response.data, isDataEncrypted: response.encryptionStatus });
       }
       router.push("/dashboard/client/profile");
     } else {

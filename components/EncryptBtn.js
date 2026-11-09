@@ -1,12 +1,24 @@
 'use client';
 
 import { toggleEncryption } from '@/app/dashboard/client/action';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import useGetUser from '@/hooks/useGetUser';
 import { Lock, Unlock } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export function EncryptDecryptFAB() {
   const [isAnimating, setIsAnimating] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const { loggedInUser, getUser } = useGetUser();
   const [isEncrypted, setIsEncrypted] = useState(
     loggedInUser?.isDataEncrypted || false
@@ -16,24 +28,51 @@ export function EncryptDecryptFAB() {
     setIsEncrypted(loggedInUser?.isDataEncrypted || false);
   }, [loggedInUser?.isDataEncrypted]);
 
+  // This rewrites the stored PII of every customer (and linked portal user) in
+  // the tenant, for all staff — not a per-viewer toggle — so confirm first.
   const handleToggle = async () => {
+    setConfirmOpen(false);
     setIsAnimating(true);
-    const payload = {
-      encrypted: !isEncrypted,
-    };
-    const res = await toggleEncryption(payload);
-    if (res.success) {
-      // Refresh the page to reflect changes
-      setIsEncrypted((prev) => !prev);
-      setIsAnimating(false);
-      window.location.reload();
+    try {
+      const res = await toggleEncryption({ encrypted: !isEncrypted });
+      if (res?.success) {
+        setIsEncrypted((prev) => !prev);
+        window.location.reload();
+        return;
+      }
+      toast.error(res?.error || res?.message || 'Could not change encryption');
+    } catch (err) {
+      console.error('Encryption toggle failed', err);
+      toast.error('Could not change encryption');
     }
-    // router.refresh();
+    setIsAnimating(false);
   };
 
   return (
+    <>
+    <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {isEncrypted ? 'Decrypt all customer data?' : 'Encrypt all customer data?'}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {isEncrypted
+              ? 'Names, emails, phone numbers and ID numbers of every customer you manage (and their portal accounts) will be stored in plain text again. This changes the data for all staff, not only your view.'
+              : 'Names, emails, phone numbers and ID numbers of every customer you manage (and their portal accounts) will be encrypted. Staff without the "View Decrypted" permission will see *** instead. This changes the data for all staff, not only your view.'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleToggle}>
+            {isEncrypted ? 'Decrypt data' : 'Encrypt data'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <button
-      onClick={handleToggle}
+      onClick={() => setConfirmOpen(true)}
+      disabled={isAnimating}
       className={`
         group fixed bottom-18 right-0 z-40 flex items-center  size-13
         rounded-md justify-center transition-all duration-300 ease-out overflow-hidden
@@ -45,6 +84,7 @@ export function EncryptDecryptFAB() {
         hover:scale-110 active:scale-95 text-white border border-white/20
       `}
       aria-label={isEncrypted ? 'Decrypt data' : 'Encrypt data'}
+      title={isEncrypted ? 'Data is encrypted — click to decrypt' : 'Data is not encrypted — click to encrypt'}
     >
       {/* Background Shimmer Effect */}
       <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -68,5 +108,6 @@ export function EncryptDecryptFAB() {
       {/* Subtle Bottom Glow Ring */}
       <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/30 group-hover:ring-white/50" />
     </button>
+    </>
   );
 }
