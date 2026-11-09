@@ -28,6 +28,14 @@ export function EncryptDecryptFAB() {
     setIsEncrypted(loggedInUser?.isDataEncrypted || false);
   }, [loggedInUser?.isDataEncrypted]);
 
+  // Only shown to users who may perform the action it offers — the API
+  // refuses anyone else (PRIVACY.ENCRYPT / PRIVACY.DECRYPT). Hidden until the
+  // logged-in user (with its permissions) has loaded.
+  const permissions = loggedInUser?.permissions ?? [];
+  if (!permissions.includes(isEncrypted ? 'PRIVACY.DECRYPT' : 'PRIVACY.ENCRYPT')) {
+    return null;
+  }
+
   // This rewrites the stored PII of every customer (and linked portal user) in
   // the tenant, for all staff — not a per-viewer toggle — so confirm first.
   const handleToggle = async () => {
