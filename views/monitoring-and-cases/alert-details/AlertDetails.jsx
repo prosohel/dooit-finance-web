@@ -80,6 +80,8 @@ export default function AlertDetails({ id, initialTab }) {
       setFetching(true);
       try {
         const res = await getCaseDetails(id);
+
+        console.log("alert by id", JSON.stringify(res, null, 2));
         if (res?.succeed && res?.data) {
           setRaw(res.data);
           setDetails(res.data);
@@ -106,10 +108,6 @@ export default function AlertDetails({ id, initialTab }) {
 
   useEffect(() => {
     load();
-    return () => {
-      setDetails(null);
-      setFetching(false);
-    };
   }, [load, setDetails, setFetching]);
 
   const alert = useMemo(() => adaptAlert(raw), [raw]);
@@ -122,7 +120,10 @@ export default function AlertDetails({ id, initialTab }) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-white p-10 text-center">
         <p className="text-sm font-medium text-heading">{error || "Alert not found"}</p>
-        <Button variant="outline" onClick={() => router.push("/dashboard/client/monitoring-and-cases/alerts")}>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/dashboard/client/monitoring-and-cases/alerts")}
+        >
           Back to alerts
         </Button>
       </div>
@@ -137,7 +138,10 @@ export default function AlertDetails({ id, initialTab }) {
       <AlertHeader alert={alert} onRefresh={refresh} onOpenTab={selectTab} />
 
       <div className="rounded-xl border border-border bg-white">
-        <nav className="flex gap-1 overflow-x-auto border-b border-border px-4" aria-label="Alert sections">
+        <nav
+          className="flex gap-1 overflow-x-auto border-b border-border px-4"
+          aria-label="Alert sections"
+        >
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -145,16 +149,24 @@ export default function AlertDetails({ id, initialTab }) {
               onClick={() => selectTab(tab.id)}
               className={cn(
                 "relative whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors",
-                activeTab === tab.id ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                activeTab === tab.id
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {tab.label}
-              {activeTab === tab.id && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}
+              {activeTab === tab.id && (
+                <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />
+              )}
             </button>
           ))}
         </nav>
         <div className="p-5">
-          {current.legacy ? <Active /> : <Active alert={alert} raw={raw} onRefresh={refresh} onOpenTab={selectTab} />}
+          {current.legacy ? (
+            <Active />
+          ) : (
+            <Active alert={alert} raw={raw} onRefresh={refresh} onOpenTab={selectTab} />
+          )}
         </div>
       </div>
     </div>
