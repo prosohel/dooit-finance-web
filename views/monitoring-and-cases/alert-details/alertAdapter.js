@@ -6,6 +6,8 @@
 // shows it falls through to its own empty state. Every path read here exists
 // on the Alert / Customer / Transaction / RuleEngine / Case models.
 
+import { adaptMonitoringResult } from "./monitoring/monitoringAdapter";
+
 const idOf = (ref) => (ref && typeof ref === "object" ? ref._id : ref) || null;
 const isObj = (v) => v && typeof v === "object";
 const str = (v) => (v === undefined || v === null || v === "" ? null : String(v));
@@ -365,6 +367,7 @@ export function adaptAlert(a) {
     analyst,
     rule: adaptRule(a.ruleRef, a),
     ruleMeta: adaptRuleMeta(a.ruleMeta),
+    monitoring: adaptMonitoringResult(a.monitoringResult), // AI-based alerts only
     customer: adaptCustomer(a.customer),
     transaction: adaptTransaction(a.transaction),
     linkedCase,

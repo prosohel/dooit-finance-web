@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import CollapsibleSection from "@/views/monitoring-and-cases/case-manager/details/components/CollapsibleSection";
+import MonitoringResult from "../monitoring/MonitoringResult";
 import { KYC_STATUS, AML_STATUS, TXN_STATUS, humanize } from "../alertAdapter";
 import { Field, FieldGrid, Mono, IdChip, RiskPill, EmptyState, SimpleTable, fmtDate, fmtMoney, labelOf, variantOf } from "../components";
 
@@ -17,7 +18,11 @@ export default function OverviewTab({ alert, onOpenTab }) {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
       <div className="flex flex-col gap-4 xl:col-span-2">
-        <WhyFired alert={alert} rule={rule} meta={ruleMeta} />
+        {alert.monitoring ? (
+          <MonitoringResult monitoring={alert.monitoring} />
+        ) : (
+          <WhyFired alert={alert} rule={rule} meta={ruleMeta} />
+        )}
         <TransactionSnapshot txn={txn} onOpenTab={onOpenTab} />
       </div>
       <div className="flex flex-col gap-4">

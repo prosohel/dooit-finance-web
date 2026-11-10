@@ -81,8 +81,10 @@ export default function AlertDetails({ id, initialTab }) {
       try {
         const res = await getCaseDetails(id);
 
-        console.log("alert by id", JSON.stringify(res, null, 2));
+        console.log("alert by id", res);
         if (res?.succeed && res?.data) {
+          const monitoringResult = res.data?.monitoringResult;
+          console.log("monitoringResult", JSON.stringify(monitoringResult, null, 2));
           setRaw(res.data);
           setDetails(res.data);
           setError(null);
