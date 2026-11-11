@@ -692,7 +692,7 @@ export default function CaseDetails({ caseId }) {
           </TabsContent>
 
           <TabsContent value="alerts">
-            <AlertDetailsPanel caseData={caseData} />
+            <AlertDetailsPanel caseData={caseData} caseId={caseId} onCaseChange={applyCaseUpdate} />
           </TabsContent>
 
           <TabsContent value="reports">
