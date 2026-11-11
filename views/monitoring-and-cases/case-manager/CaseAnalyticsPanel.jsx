@@ -60,10 +60,35 @@ const PERFORMANCE_SERIES = [
 ];
 
 const METRICS = [
-  { label: "Total Reviews", valueKey: "totalReviews", changeKey: "totalReviewsChange", icon: IconClipboardList, iconColor: "text-primary" },
-  { label: "Completed", valueKey: "completedReviews", changeKey: "completedReviewsChange", icon: IconCircleCheck, iconColor: "text-success" },
-  { label: "Open", valueKey: "openReviews", changeKey: "openReviewsChange", icon: IconAlertCircle, iconColor: "text-warning" },
-  { label: "Avg Review Time", valueKey: "avgReviewTimeDays", changeKey: "avgReviewTimeChange", icon: IconClock, iconColor: "text-primary-light", suffix: "days" },
+  {
+    label: "Total Reviews",
+    valueKey: "totalReviews",
+    changeKey: "totalReviewsChange",
+    icon: IconClipboardList,
+    iconColor: "text-primary",
+  },
+  {
+    label: "Completed",
+    valueKey: "completedReviews",
+    changeKey: "completedReviewsChange",
+    icon: IconCircleCheck,
+    iconColor: "text-success",
+  },
+  {
+    label: "Open",
+    valueKey: "openReviews",
+    changeKey: "openReviewsChange",
+    icon: IconAlertCircle,
+    iconColor: "text-warning",
+  },
+  {
+    label: "Avg Review Time",
+    valueKey: "avgReviewTimeDays",
+    changeKey: "avgReviewTimeChange",
+    icon: IconClock,
+    iconColor: "text-primary-light",
+    suffix: "days",
+  },
 ];
 
 // Fewer open cases and a shorter review time are improvements, so their arrows
@@ -79,7 +104,10 @@ function ChartTooltip({ active, payload, label }) {
       {label && <p className="mb-1 font-semibold text-heading">{label}</p>}
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center gap-2">
-          <span className="inline-block size-2 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span
+            className="inline-block size-2 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
           <span className="capitalize text-muted-foreground">{entry.name}:</span>
           <span className="font-medium text-heading">{entry.value}</span>
         </div>
@@ -127,7 +155,9 @@ export default function CaseAnalyticsPanel() {
   // The mock data stays as the initial value so the panel has shape before the
   // request lands, and as the fallback if it fails.
   const summary = analytics?.summary || caseAnalytics;
-  const types = analytics?.typeDistribution?.length ? analytics.typeDistribution : caseTypeDistribution;
+  const types = analytics?.typeDistribution?.length
+    ? analytics.typeDistribution
+    : caseTypeDistribution;
   const trend = analytics?.trend?.length ? analytics.trend : caseTrendData;
   const performance = analytics?.analystPerformance?.length
     ? analytics.analystPerformance
@@ -136,7 +166,7 @@ export default function CaseAnalyticsPanel() {
   const totalCases = types.reduce((sum, t) => sum + (t.count || 0), 0);
 
   return (
-    <Card className="gap-0 overflow-hidden border-border py-0 shadow-sm">
+    <Card className="gap-0 overflow-hidden border-border py-0 ">
       {/* ── Metrics: one row, divided rather than boxed ── */}
       <div className="grid grid-cols-2 divide-x divide-y divide-border md:grid-cols-4 md:divide-y-0">
         {METRICS.map((metric) => {
@@ -163,7 +193,7 @@ export default function CaseAnalyticsPanel() {
                 <span
                   className={cn(
                     "flex items-center gap-0.5 text-[11px] font-medium",
-                    improved ? "text-success" : "text-danger"
+                    improved ? "text-success" : "text-danger",
                   )}
                 >
                   <Arrow className="size-3" />
@@ -212,14 +242,19 @@ export default function CaseAnalyticsPanel() {
               </ResponsiveContainer>
               {/* The total belongs in the hole the donut already leaves. */}
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-sm font-semibold leading-none text-heading">{totalCases}</span>
+                <span className="text-sm font-semibold leading-none text-heading">
+                  {totalCases}
+                </span>
                 <span className="text-[8px] text-muted-foreground">cases</span>
               </div>
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               {types.map((item) => (
                 <div key={item.name} className="flex items-center gap-1.5 text-[10.5px]">
-                  <span className="size-2 shrink-0 rounded-sm" style={{ backgroundColor: item.color }} />
+                  <span
+                    className="size-2 shrink-0 rounded-sm"
+                    style={{ backgroundColor: item.color }}
+                  />
                   <span className="flex-1 truncate text-muted-foreground">{item.name}</span>
                   <span className="font-semibold text-heading">{item.value}%</span>
                 </div>
@@ -269,7 +304,13 @@ export default function CaseAnalyticsPanel() {
               <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={30} />
               <Tooltip content={<ChartTooltip />} />
               {PERFORMANCE_SERIES.map((s) => (
-                <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[2, 2, 0, 0]} />
+                <Bar
+                  key={s.key}
+                  dataKey={s.key}
+                  name={s.label}
+                  fill={s.color}
+                  radius={[2, 2, 0, 0]}
+                />
               ))}
             </BarChart>
           </ResponsiveContainer>

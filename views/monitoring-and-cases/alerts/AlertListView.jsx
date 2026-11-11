@@ -279,7 +279,7 @@ const ListView = ({}) => {
       cell: ({ row }) => (
         <div className="flex justify-between items-center gap-2 py-2 px-2">
           <div>
-            <p className="capitalize text-neutral-900 text-sm">
+            <p className="capitalize text-neutral-900 text-xs">
               {row?.original?.transaction?.sender?.name}
             </p>
             <p className="text-neutral-400 text-xs">
@@ -300,13 +300,14 @@ const ListView = ({}) => {
     },
     {
       id: "transactionAmount",
-      header: "Transaction Amount",
+      header: " Amount",
       accessorKey: "transaction.amount",
+      width: 100,
       cell: ({ row }) => (
-        <div>
-          <p className="text-end text-neutral-600">
+        <div className="text-end">
+          <span className="text-xs text-neutral-600 font-mono">
             {formatAUD(row?.original?.transaction?.amount)}
-          </p>
+          </span>
         </div>
       ),
     },
@@ -357,7 +358,7 @@ const ListView = ({}) => {
       accessorKey: "caseType",
       cell: ({ row }) => (
         <div>
-          <p className=" text-neutral-500">{row?.original?.caseType}</p>
+          <p className=" text-neutral-500 text-xs">{row?.original?.caseType}</p>
         </div>
       ),
     },
@@ -467,7 +468,7 @@ const AlertsTab = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between bg-white shadow-sm rounded-md p-4">
+      <div className="flex items-center justify-between bg-white  rounded-md ">
         <div className="flex items-center gap-2  ">
           <ButtonGroup>
             <Button
@@ -554,7 +555,11 @@ const AlertsTab = () => {
           </ButtonGroup>
         </div>
       </div>
-      <AiSummaryGraph />
+      {aiOnly && (
+        <div className="mt-2">
+          <AiSummaryGraph />
+        </div>
+      )}
       <ListView />
     </div>
   );

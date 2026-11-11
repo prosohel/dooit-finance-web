@@ -11,7 +11,7 @@
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CASE_TYPES, RISK_LABELS } from "../constants";
-import DetectionNetwork, { hasRelationships } from "./DetectionNetwork";
+import DetectionNetwork, { hasTransferData } from "./DetectionNetwork";
 import DistributionDonut from "./DistributionDonut";
 import DomainsChart from "./DomainsChart";
 import KpiRow from "./KpiRow";
@@ -45,11 +45,10 @@ export function MonitoringAnalyticsSkeleton() {
   );
 }
 
-export default function MonitoringAnalytics({ summary, relationships, subtitle }) {
-  // Relationship data may come from the summary or a separate request.
-  const graph = relationships ?? summary.relationships ?? summary.network;
-  const networkReady = hasRelationships(graph);
-  const network = <DetectionNetwork graph={graph} />;
+export default function MonitoringAnalytics({ summary, transactions, subtitle }) {
+  // The network is built from the detection items (sender → beneficiary).
+  const networkReady = hasTransferData(transactions);
+  const network = <DetectionNetwork transactions={transactions} />;
 
   // Severity order for risk (worst first) — the reverse of RISK_LABELS.
   const riskSlices = toSlices(summary.byRiskLabel, [...RISK_LABELS].reverse(), RISK_COLORS);
@@ -58,7 +57,7 @@ export default function MonitoringAnalytics({ summary, relationships, subtitle }
 
   return (
     <HintProvider>
-      <Card className="gap-0 overflow-hidden border-border py-0 shadow-sm">
+      <Card className="gap-0 overflow-hidden border-border py-0 ">
         <header className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-4">
           <h2 className="text-sm font-semibold text-heading">Monitoring analytics</h2>
           {subtitle && <span className="text-[11px] text-muted-foreground">{subtitle}</span>}

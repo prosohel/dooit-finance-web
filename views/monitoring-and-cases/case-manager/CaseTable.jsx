@@ -17,7 +17,8 @@ import {
   IconBell,
   IconArrowRight,
 } from "@tabler/icons-react";
-import { dateShowFormat } from "@/lib/utils";
+import { dateShowFormat, formatDateTime } from "@/lib/utils";
+import { DataTableColumnHeader } from "@/components/DatatableColumnHeader";
 
 const fmtAUD = (v) =>
   v == null
@@ -55,7 +56,14 @@ const STATUS_LABELS = {
   escalated: "Escalated",
 };
 
-export default function CaseTable({ cases, loading, currentPage, totalItems, limit, onPageChange }) {
+export default function CaseTable({
+  cases,
+  loading,
+  currentPage,
+  totalItems,
+  limit,
+  onPageChange,
+}) {
   const router = useRouter();
 
   const totalPages = Math.ceil((totalItems || 0) / (limit || 10));
@@ -66,7 +74,7 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
     (caseItem) => {
       router.push(`/dashboard/client/monitoring-and-cases/case-manager/${caseItem._id}`);
     },
-    [router]
+    [router],
   );
 
   const columns = [
@@ -80,7 +88,10 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
             variant="ghost"
             size="sm"
             className="h-7 w-7 p-0"
-            onClick={(e) => { e.stopPropagation(); handleRowClick(row.original); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRowClick(row.original);
+            }}
           >
             <IconEye className="size-4" />
           </Button>
@@ -91,7 +102,7 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
             onClick={(e) => {
               e.stopPropagation();
               router.push(
-                `/dashboard/client/monitoring-and-cases/case-manager/${row.original._id}/edit`
+                `/dashboard/client/monitoring-and-cases/case-manager/${row.original._id}/edit`,
               );
             }}
           >
@@ -100,27 +111,29 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
         </div>
       ),
     },
+
     {
-      // The case's own reference, first after the row actions — it is what an
-      // analyst quotes in a filing, an email or a ticket, and it was not on
-      // this table at all.
-      id: "uid",
-      header: "Case ID",
-      accessorKey: "uid",
-      size: 170,
-      cell: ({ row }) => (
-        <button
-          type="button"
-          className="text-left font-mono text-xs font-semibold text-heading hover:underline"
-          onClick={() => handleRowClick(row.original)}
-          title={row.original.uid || undefined}
-        >
-          {/* A case saved before uids were minted reliably has none; show a
-              short form of its id rather than an empty cell, marked so nobody
-              mistakes it for a real case reference (docs/74 C17). */}
-          {row.original.uid || `#${String(row.original._id || "").slice(-8)}`}
-        </button>
+      id: "id",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="ID"
+          // onSort={(dir) => handleSort("uid", dir)}
+          // sortDirection={sort.field === "uid" ? sort.order : null}
+        />
       ),
+      accessorKey: "uid",
+      cell: ({ row }) => {
+        const { date, time } = formatDateTime(row.original.updatedAt);
+        return (
+          <div>
+            <p className="font-mono text-xs text-neutral-500">{row.original.uid}</p>
+            <p className="text-xs text-neutral-400">
+              {date} · {time}
+            </p>
+          </div>
+        );
+      },
     },
     {
       id: "title",
@@ -130,11 +143,11 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
       cell: ({ row }) => (
         <button
           type="button"
-          className="text-left hover:underline"
+          className="text-left hover:underline py-3"
           onClick={() => handleRowClick(row.original)}
         >
-          <p className="font-semibold text-heading text-sm line-clamp-1">{row.original.title}</p>
-          <p className="text-xs text-muted-foreground font-mono">
+          <p className=" text-neutral-900 text-xs line-clamp-1">{row.original.title}</p>
+          <p className="text-xs text-neutral-400 font-mono">
             {row.original.type?.replace("_", " ")}
           </p>
         </button>
@@ -182,11 +195,9 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
       cell: ({ row }) => {
         const n = row.original.alertCount ?? row.original.linkedAlerts?.length ?? 0;
         return (
-          <div className="flex items-center gap-1 text-sm">
+          <div className="flex items-center gap-1 text-xs">
             <IconBell className="size-3.5 text-muted-foreground" />
-            <span className={n > 0 ? "font-semibold text-heading" : "text-muted-foreground"}>
-              {n}
-            </span>
+            <span className={n > 0 ? " text-heading" : "text-muted-foreground"}>{n}</span>
           </div>
         );
       },
@@ -196,9 +207,9 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
       header: "Net Activity",
       size: 130,
       cell: ({ row }) => (
-        <span className="text-sm font-medium text-heading">
-          {fmtAUD(row.original.netActivity)}
-        </span>
+        <div className="text-end">
+          <span className="text-xs text-neutral-500">{fmtAUD(row.original.netActivity)}</span>
+        </div>
       ),
     },
     {
@@ -234,18 +245,7 @@ export default function CaseTable({ cases, loading, currentPage, totalItems, lim
       accessorKey: "createdBy.name",
       size: 140,
       cell: ({ row }) => (
-        <span className="text-sm">{row.original.createdBy?.name || "—"}</span>
-      ),
-    },
-    {
-      id: "updatedAt",
-      header: "Last Updated",
-      accessorKey: "updatedAt",
-      size: 140,
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {dateShowFormat(row.original.updatedAt)}
-        </span>
+        <span className="text-xs text-neutral-500">{row.original.createdBy?.name || "—"}</span>
       ),
     },
   ];
