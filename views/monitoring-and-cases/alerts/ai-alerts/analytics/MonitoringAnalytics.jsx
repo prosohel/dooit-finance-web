@@ -13,10 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CASE_TYPES, RISK_LABELS } from "../constants";
 import DetectionNetwork, { hasTransferData } from "./DetectionNetwork";
 import DistributionDonut from "./DistributionDonut";
-import DomainsChart from "./DomainsChart";
 import KpiRow from "./KpiRow";
 import ScoreBandsChart from "./ScoreBandsChart";
-import TopRulesChart from "./TopRulesChart";
 import { CASE_COLORS, COLORS, HintProvider, RISK_COLORS } from "./shared";
 
 /** Object of counts → donut slices, in a fixed order, unknown keys last. */
@@ -53,7 +51,6 @@ export default function MonitoringAnalytics({ summary, transactions, subtitle })
   // Severity order for risk (worst first) — the reverse of RISK_LABELS.
   const riskSlices = toSlices(summary.byRiskLabel, [...RISK_LABELS].reverse(), RISK_COLORS);
   const caseSlices = toSlices(summary.byCaseType, CASE_TYPES, CASE_COLORS);
-  console.log("summary", summary);
 
   return (
     <HintProvider>

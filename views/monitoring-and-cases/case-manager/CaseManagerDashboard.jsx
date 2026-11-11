@@ -153,10 +153,8 @@ export default function CaseManagerDashboard() {
       {/* Page Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-heading">Case Manager</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Monitor and manage compliance cases
-          </p>
+          <h2 className="text-neutral-900">Case Manager</h2>
+          <p className="mt-0.5 text-xs text-neutral-500">Monitor and manage compliance cases</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleExport}>

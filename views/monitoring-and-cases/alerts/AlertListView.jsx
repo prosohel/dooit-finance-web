@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ import {
   IconSearch,
   IconSettingsCode,
   IconUserPlus,
+  IconX,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -54,6 +56,7 @@ import AssignAnalystForm from "@/views/monitoring-and-cases/case-details/AssignA
 import { DataTableColumnHeader } from "@/components/DatatableColumnHeader";
 import { getDailyAIsummary } from "@/app/dashboard/client/monitoring-and-cases/alerts/ai-actions";
 import AiSummaryGraph from "./ai-alerts/AiSummaryGraph";
+import { ALERT_STATUS, RISK_LABEL } from "@/views/monitoring-and-cases/alert-details/alertAdapter";
 
 const ListView = ({}) => {
   const { alerts, fetching, totalItems, currentPage, limit, setCurrentPage, setLimit } =
@@ -71,12 +74,6 @@ const ListView = ({}) => {
     Low: "info",
     Medium: "warning",
     High: "danger",
-  };
-  const statusVariants = {
-    Pending: "outline",
-    Approved: "success",
-    Rejected: "danger",
-    "In Review": "warning",
   };
   // ECDD action is view-or-create: open the existing report's review tab when
   // this alert already has one, otherwise start a new form pre-filled with it.
@@ -336,7 +333,7 @@ const ListView = ({}) => {
       header: "Risk",
       accessorKey: "risk",
       cell: ({ row }) => (
-        <StatusPill icon={<IconPennant />} variant={riskVariants[row?.original?.riskLabel]}>
+        <StatusPill icon={<IconPennant />} variant={RISK_LABEL[row?.original?.riskLabel]}>
           {row?.original?.riskLabel}
         </StatusPill>
       ),
@@ -367,7 +364,9 @@ const ListView = ({}) => {
       header: "Status",
       accessorKey: "status",
       cell: ({ row }) => (
-        <StatusPill variant={statusVariants[row.original.status]}>{row.original.status}</StatusPill>
+        <StatusPill variant={ALERT_STATUS[row.original.status]?.variant || "outline"}>
+          {ALERT_STATUS[row.original.status]?.label || row.original.status}
+        </StatusPill>
       ),
     },
   ];
@@ -414,12 +413,74 @@ const ListView = ({}) => {
     </div>
   );
 };
+// Radix Select can't hold an empty value, so "all" stands for "no filter".
+const ALL = "all";
+const ALERT_TYPES = ["Fraud", "AML", "Compliance", "TF"];
+const RISK_LEVELS = ["Critical", "High", "Medium", "Low"];
+const defaultFilters = {
+  status: ALL,
+  riskLabel: ALL,
+  caseType: ALL,
+  dateFrom: "",
+  dateTo: "",
+};
+
+// The search box feeds a Mongo $regex, so user input must be literal.
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// `uid` is the human-readable alert code (partial match); `_id` is the Mongo
+// ObjectId, which can only be matched exactly and must be 24 hex chars or the
+// API throws a CastError.
+const SEARCH_FIELDS = [
+  { value: "uid", label: "UID", placeholder: "Search by UID..." },
+  { value: "_id", label: "ID", placeholder: "Paste full alert ID..." },
+];
+const isObjectId = (s) => /^[a-f\d]{24}$/i.test(s);
+
+/**
+ * The alert list endpoint (advancedResults) hands query params straight to
+ * Mongo `find`, with `field[gte]` / `field[regex]` style keys becoming
+ * operators — so each filter maps onto a real alert field here.
+ */
+const buildFilterParams = (filters, search, searchField) => {
+  const params = {};
+  if (filters.status !== ALL) params.status = filters.status;
+  if (filters.riskLabel !== ALL) params.riskLabel = filters.riskLabel;
+  if (filters.caseType !== ALL) params.caseType = filters.caseType;
+  if (filters.dateFrom)
+    params["createdAt[gte]"] = new Date(`${filters.dateFrom}T00:00:00`).toISOString();
+  if (filters.dateTo)
+    params["createdAt[lte]"] = new Date(`${filters.dateTo}T23:59:59.999`).toISOString();
+  const q = search.trim();
+  if (q && searchField === "_id") {
+    params._id = q;
+  } else if (q) {
+    params["uid[regex]"] = escapeRegex(q);
+    params["uid[options]"] = "i";
+  }
+  return params;
+};
+
 const AlertsTab = () => {
   const { currentPage, limit, setAlerts, setFetching, setTotalItems, setCurrentPage } =
     useAlertStore();
   // false = every alert, true = only alerts raised by the AI risk service.
   const [aiOnly, setAiOnly] = useState(false);
-  const [aiAnalyticsSummary, setAiAnalyticsSummary] = useState(null);
+  const [filters, setFilters] = useState(defaultFilters);
+  const [rawSearch, setRawSearch] = useState("");
+  const [search, setSearch] = useState("");
+  const [searchField, setSearchField] = useState("uid");
+  const searchFieldMeta = SEARCH_FIELDS.find((f) => f.value === searchField);
+  // A partial ObjectId can't be queried — flag it instead of hitting the API.
+  const invalidIdSearch = searchField === "_id" && !!search.trim() && !isObjectId(search.trim());
+
+  const handleSearchFieldChange = (value) => {
+    setSearchField(value);
+    if (search.trim()) setCurrentPage(1);
+  };
+
+  const hasActiveFilters =
+    !!search.trim() || Object.keys(defaultFilters).some((k) => filters[k] !== defaultFilters[k]);
 
   const handleAiToggle = (value) => {
     if (value === aiOnly) return;
@@ -427,27 +488,63 @@ const AlertsTab = () => {
     setCurrentPage(1);
   };
 
+  const setFilter = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilters(defaultFilters);
+    setRawSearch("");
+    setSearch("");
+    setSearchField("uid");
+    setCurrentPage(1);
+  };
+
+  // Debounce typing so each keystroke doesn't hit the API.
   useEffect(() => {
+    const t = setTimeout(() => {
+      if (rawSearch === search) return;
+      setSearch(rawSearch);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [rawSearch]);
+
+  useEffect(() => {
+    // Drop responses from superseded requests so fast filter changes can't
+    // leave stale rows on screen.
+    let cancelled = false;
     const fetchData = async () => {
+      if (invalidIdSearch) {
+        setAlerts([]);
+        setTotalItems(0);
+        return;
+      }
       setFetching(true);
       try {
         const queryParams = {
           page: currentPage,
           limit: limit,
-          ...(aiOnly ? { alertOrigin: "AI Based" } : { alertOrigin: "Rule Based" }),
+          alertOrigin: aiOnly ? "AI Based" : "Rule Based",
+          ...buildFilterParams(filters, search, searchField),
         };
         const response = await getCaseList(queryParams);
+        if (cancelled) return;
 
-        setAlerts(response?.data);
-        setTotalItems(response?.totalRecords);
+        setAlerts(response?.data || []);
+        setTotalItems(response?.totalRecords || 0);
       } catch (error) {
-        console.error("Failed to get data", error);
+        if (!cancelled) console.error("Failed to get data", error);
       } finally {
-        setFetching(false);
+        if (!cancelled) setFetching(false);
       }
     };
     fetchData();
-  }, [currentPage, limit, aiOnly]);
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, limit, aiOnly, filters, search, searchField]);
 
   // useEffect(() => {
   //   const fetchAiSummary = async () => {
@@ -488,53 +585,99 @@ const AlertsTab = () => {
               AI Based
             </Button>
           </ButtonGroup>
-          <InputGroup className={"max-w-64"}>
-            <InputGroupInput placeholder="Search..." />
+          {/* <Select value={searchField} onValueChange={handleSearchFieldChange}>
+            <SelectTrigger aria-label="Search by" className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SEARCH_FIELDS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select> */}
+          <InputGroup
+            className={"max-w-64"}
+            // title={invalidIdSearch ? "Enter the full 24-character alert ID" : undefined}
+          >
+            <InputGroupInput
+              placeholder={searchFieldMeta?.placeholder}
+              value={rawSearch}
+              // aria-invalid={invalidIdSearch || undefined}
+              onChange={(e) => setRawSearch(e.target.value)}
+            />
             <InputGroupAddon>
               <IconSearch />
             </InputGroupAddon>
           </InputGroup>
+          {invalidIdSearch && (
+            <span className="text-xs text-destructive whitespace-nowrap">
+              ID must be 24 characters
+            </span>
+          )}
 
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="ID" />
-            </SelectTrigger>
-          </Select>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Name" />
-            </SelectTrigger>
-          </Select>
-          <Select>
+          <Select value={filters.status} onValueChange={(v) => setFilter("status", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Status" />
             </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All statuses</SelectItem>
+              {Object.entries(ALERT_STATUS).map(([value, { label }]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-          <Select>
+          <Select value={filters.riskLabel} onValueChange={(v) => setFilter("riskLabel", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Risk Level" />
             </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All risk levels</SelectItem>
+              {RISK_LEVELS.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Date Range" />
-            </SelectTrigger>
-          </Select>
-          <Select>
+          <Select value={filters.caseType} onValueChange={(v) => setFilter("caseType", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Alert Type" />
             </SelectTrigger>
-          </Select>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a country" />
-            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Bangladesh">Bangladesh</SelectItem>
-              <SelectItem value="India">India</SelectItem>
-              <SelectItem value="Australia">Australia</SelectItem>
+              <SelectItem value={ALL}>All alert types</SelectItem>
+              {ALERT_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <Input
+            type="date"
+            aria-label="From date"
+            className="w-auto"
+            value={filters.dateFrom}
+            max={filters.dateTo || undefined}
+            onChange={(e) => setFilter("dateFrom", e.target.value)}
+          />
+          <span className="text-xs text-muted-foreground">to</span>
+          <Input
+            type="date"
+            aria-label="To date"
+            className="w-auto"
+            value={filters.dateTo}
+            min={filters.dateFrom || undefined}
+            onChange={(e) => setFilter("dateTo", e.target.value)}
+          />
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <IconX /> Clear
+            </Button>
+          )}
         </div>
         <div>
           <ButtonGroup>
