@@ -50,13 +50,14 @@ import { useAlertStore } from "@/app/store/useAlertStore";
 import { CaseRequestForm } from "@/views/monitoring-and-cases/case-details/ecdd/RFIForm";
 import dynamic from "next/dynamic";
 import AssignAnalystForm from "@/views/monitoring-and-cases/case-details/AssignAnalystForm";
-import AIgeneratedAlerts from "./AIgeneratedAlerts";
+
 import { DataTableColumnHeader } from "@/components/DatatableColumnHeader";
+import { getDailyAIsummary } from "@/app/dashboard/client/monitoring-and-cases/alerts/ai-actions";
+import AiSummaryGraph from "./ai-alerts/AiSummaryGraph";
 
 const ListView = ({}) => {
   const { alerts, fetching, totalItems, currentPage, limit, setCurrentPage, setLimit } =
     useAlertStore();
-  console.log("alerts", alerts);
   const [caseNumber, setCaseNumber] = useState(null);
   // Which row is mid-escalation, so only that button shows a spinner.
   const [escalatingId, setEscalatingId] = useState(null);
@@ -101,16 +102,7 @@ const ListView = ({}) => {
 
     router.push(`/dashboard/client/report-compliance/ecdd/form?caseNumber=${uid}`);
   };
-  const handleGenerateSmr = (data) => {
-    router.push(
-      `/dashboard/client/report-compliance/smr-filing/smr/form?caseNumber=${data?.uid}&caseId=${data?._id}`,
-    );
-  };
-  const handleRfi = (data) => {
-    setCaseNumber(data?.uid);
 
-    setOpenRfi(true);
-  };
   const handleAssignToAnalyst = (data) => {
     setOpenAssignToAnalyst(true);
     setCaseNumber(data?._id);
@@ -426,6 +418,7 @@ const AlertsTab = () => {
     useAlertStore();
   // false = every alert, true = only alerts raised by the AI risk service.
   const [aiOnly, setAiOnly] = useState(false);
+  const [aiAnalyticsSummary, setAiAnalyticsSummary] = useState(null);
 
   const handleAiToggle = (value) => {
     if (value === aiOnly) return;
@@ -454,6 +447,23 @@ const AlertsTab = () => {
     };
     fetchData();
   }, [currentPage, limit, aiOnly]);
+
+  // useEffect(() => {
+  //   const fetchAiSummary = async () => {
+  //     try {
+  //       const response = await getDailyAIsummary();
+  //       console.log("AI summary response", response);
+  //       if (response?.ok) {
+  //         setAiAnalyticsSummary(response?.data);
+  //       } else {
+  //         console.error("Failed to get AI summary", response?.detail);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to get AI summary", error);
+  //     }
+  //   };
+  //   fetchAiSummary();
+  // }, []);
 
   return (
     <div>
@@ -544,6 +554,7 @@ const AlertsTab = () => {
           </ButtonGroup>
         </div>
       </div>
+      <AiSummaryGraph />
       <ListView />
     </div>
   );

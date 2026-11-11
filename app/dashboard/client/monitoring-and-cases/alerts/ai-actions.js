@@ -56,6 +56,17 @@ const tmFetch = async (path, params = {}, { method = "GET", body } = {}) => {
   }
 };
 
+export const getDailyAIsummary = async () => {
+  const currentDate = new Date();
+  const startDate = new Date(currentDate);
+  startDate.setDate(currentDate.getDate() - 5); // 7 days ago
+
+  const formattedDate = startDate.toISOString().split("T")[0];
+  console.log("Fetching AI summary for date:", formattedDate);
+  const res = await tmFetch(`/results/daily?date=${formattedDate}`);
+  return res;
+};
+
 /** Risky transactions in a date range (YYYY-MM-DD, Asia/Dhaka), with summary. */
 export const getAiResults = async (params) =>
   tmFetch("/results", { ...params, includeSummary: true });
