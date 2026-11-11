@@ -70,7 +70,7 @@ export default function MonitoringAnalytics({ summary, transactions, subtitle })
           {/* <div className="min-w-0 lg:col-span-7">
             <TopRulesChart rules={summary.topRules} total={summary.total} />
           </div> */}
-          <div className="grid grid-cols-1 divide-y divide-border border-t border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:col-span-6 lg:grid-cols-1 lg:divide-x-0 lg:divide-y lg:border-t-0 ">
+          <div className="grid grid-cols-1 divide-y divide-border border-t border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:col-span-6 lg:grid-cols-2 lg:divide-x-0 lg:divide-y lg:border-t-0 ">
             <DistributionDonut title="Risk distribution" data={riskSlices} />
             <DistributionDonut title="Case distribution" data={caseSlices} />
           </div>
