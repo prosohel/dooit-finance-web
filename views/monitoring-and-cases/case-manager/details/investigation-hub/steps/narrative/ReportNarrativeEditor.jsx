@@ -28,6 +28,7 @@ import {
   suggestCaseReportNarrative,
 } from "@/app/dashboard/client/monitoring-and-cases/case-manager/actions";
 import { cn } from "@/lib/utils";
+import NarrativeAiAssistant from "./NarrativeAiAssistant";
 
 // Long enough not to save on every keystroke; short enough that leaving the
 // step a moment later still keeps the text. Matches the hub's own autosave.
@@ -222,6 +223,18 @@ export default function ReportNarrativeEditor({
   const dismissSuggestion = (key) =>
     setSuggestions((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key)));
 
+  // From the floating AI assistant: staged as suggestions, never written
+  // straight into the form. Returns the keys actually offered.
+  const offerSuggestions = (changes) => {
+    const offered = Object.fromEntries(
+      Object.entries(changes)
+        .filter(([k]) => byKey[k])
+        .filter(([k, v]) => !isEmpty(v) && !sameValue(v, latest.current[k])),
+    );
+    setSuggestions((prev) => ({ ...prev, ...offered }));
+    return Object.keys(offered);
+  };
+
   if (loadState.loading) {
     return (
       <p className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
@@ -319,6 +332,16 @@ export default function ReportNarrativeEditor({
           </div>
         ))}
       </div>
+
+      {/* Room so the floating assistant never covers the last field. */}
+      <div aria-hidden className="h-16" />
+      <NarrativeAiAssistant
+        type={type}
+        label={label}
+        sections={sections}
+        values={values}
+        onSuggest={offerSuggestions}
+      />
     </div>
   );
 }
@@ -405,7 +428,7 @@ function Field({ id, field, value, onChange, badge, suggestion, onTake, onDismis
       )}
 
       {suggestion && (
-        <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-900">
+        <div className="nai-msg rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-900">
           <div className="mb-1 flex items-center gap-1 font-semibold">
             <IconSparkles className="size-3" /> Suggested
           </div>
