@@ -15,6 +15,8 @@ import {
   IconAlertTriangle,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
+  IconUserScan,
+  IconFolderPlus,
 } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -53,6 +55,7 @@ import { FingerprintIcon } from "lucide-react";
 import TbmlOsintReport from "./tabs/components/TbmlOsintReport";
 import useBreadcrumbLabel from "@/hooks/useBreadcrumbLabel";
 import AlertDetailsPanel from "./investigation-hub/AlertDetailsPanel";
+import { Button } from "@/components/ui/button";
 
 const FilesTab = lazy(() => import("./tabs/FilesTab"));
 // Pulls in the OCR detail dialog and its table — only loaded if the tab opens.
@@ -473,7 +476,7 @@ export default function CaseDetails({ caseId }) {
     setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n)));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <CaseHeader
         caseData={{ ...caseData, lastUpdated: caseData.lastUpdated }}
         status={status}
@@ -495,18 +498,15 @@ export default function CaseDetails({ caseId }) {
       >
         <nav
           aria-label="Case sections"
+          className="w-full flex"
           // className={`sticky top-4 shrink-0 ${navCollapsed ? "w-9" : "w-[300px]"}`}
         >
-          <div
+          {/* <div
             className={`mb-2 flex items-center ${navCollapsed ? "flex-col gap-1" : "justify-between pl-1"}`}
           >
-            {!navCollapsed && (
-              <span className="text-xs font-semibold text-heading">Case sections</span>
-            )}
-            <div className={`flex items-center gap-1 ${navCollapsed ? "flex-col-reverse" : ""}`}>
-              {/* Files lives outside the section grid so evidence is always one
-                  click away: it opens in a modal over whichever section the
-                  analyst is in, so they never lose their place. */}
+            <div
+              className={`flex items-center gap-1 w-full ${navCollapsed ? "flex-col-reverse" : ""}`}
+            >
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -555,92 +555,122 @@ export default function CaseDetails({ caseId }) {
                 <TooltipContent side="right">{navCollapsed ? "Expand" : "Collapse"}</TooltipContent>
               </Tooltip>
             </div>
-          </div>
+          </div> */}
 
           {/* 9 sections in 2 columns: the last cell spans both so the grid
               never ends on an empty cell. */}
-          <TabsList
-          // className={
-          //   navCollapsed
-          //     ? "flex h-auto w-full flex-col items-center gap-1 rounded-none border-0 bg-transparent p-0"
-          //     : "grid h-auto w-full grid-cols-2 gap-0 [&>*:last-child:nth-child(odd)]:col-span-2 rounded-none border-0 border-t border-l border-border bg-transparent p-0"
-          // }
-          >
-            <NavItem
-              collapsed={navCollapsed}
-              value="investigation-hub"
-              icon={IconBriefcase}
-              label="Investigation Hub"
-              hint="Steps, POIs & findings"
-            />
-            <NavItem
-              collapsed={navCollapsed}
-              value="alerts"
-              icon={IconAlertTriangle}
-              label="Alerts"
-              meta={caseData.alerts?.length || 0}
-              hint={`${plural(caseData.alerts?.length || 0, "triggered rule hit")}`}
-            />
-            <NavItem
-              collapsed={navCollapsed}
-              value="customer-profile"
-              icon={IconUser}
-              label="Customer Profile"
-              hint={
-                [caseData.customerName, caseData.customerType].filter(Boolean).join(" · ") ||
-                "Primary customer"
-              }
-            />
-            <NavItem
-              collapsed={navCollapsed}
-              value="transactions"
-              icon={IconCreditCard}
-              label="Transactions"
-              meta={caseData.transactions?.length || 0}
-              hint={`${plural(caseData.transactions?.length || 0, "transaction")} linked to this case`}
-            />
-            <NavItem
-              collapsed={navCollapsed}
-              value="relation-graph"
-              icon={IconSitemap}
-              label="Relation Graph"
-              meta={partyCount}
-              hint={`${partyCount} ${partyCount === 1 ? "party" : "parties"} · entity connections`}
-            />
-            <NavItem
-              collapsed={navCollapsed}
-              value="source-of-funds"
-              icon={IconCoins}
-              label="Source of Funds"
-              hint="Declared sources · OCR & verification"
-            />
-            <NavItem
-              collapsed={navCollapsed}
-              value="tbml-osint"
-              icon={FingerprintIcon}
-              label="TBML OSINT"
-              hint="Trade-based ML & open-source intel"
-            />
-            <NavItem
-              collapsed={navCollapsed}
-              value="reports"
-              icon={IconFileStack}
-              label="Reports"
-              meta={reportsLoading ? "…" : rfis.length}
-              hint={
-                reportsLoading
-                  ? "SMR, TTR & RFI filings"
-                  : `${plural(rfis.length, "RFI")} · SMR, TTR & RFI filings`
-              }
-            />
-            <NavItem
-              collapsed={navCollapsed}
-              value="case-activity"
-              icon={IconClipboardList}
-              label="Case Activity"
-              meta={notes.length}
-              hint={`${plural(notes.length, "note")} · notes, audit & analysis`}
-            />
+          <TabsList className={"flex flex-col items-start w-full pb-0"}>
+            <div className=" w-full p-1 flex items-center  gap-1">
+              <TabsTrigger
+                value={"investigation-hub"}
+                aria-label={"Investigation Hub"}
+                className={"size-9"}
+              >
+                <IconUserScan className="size-4" />
+              </TabsTrigger>
+              <div className="w-0.5 h-3/4 bg-border" />
+              <Button
+                type="button"
+                onClick={() => setFilesOpen(true)}
+                aria-label="Files"
+                variant={"outline"}
+                aria-haspopup="dialog"
+                aria-expanded={filesOpen}
+                size="icon"
+                className={"border-primary/20"}
+              >
+                <IconFolderPlus
+                  // stroke={1.6}
+                  className={`size-4 text-primary`}
+                />
+                {/* {!navCollapsed && "Files"} */}
+              </Button>
+
+              {/* <NavItem
+                collapsed={navCollapsed}
+                value="investigation-hub"
+                icon={IconBriefcase}
+                label="Investigation Hub"
+                hint="Steps, POIs & findings"
+              /> */}
+            </div>
+            <div className={"flex w-full h-full border-t bg-white"}>
+              {/* <NavItem
+                collapsed={navCollapsed}
+                value="investigation-hub"
+                icon={IconBriefcase}
+                label="Investigation Hub"
+                hint="Steps, POIs & findings"
+              /> */}
+              <NavItem
+                collapsed={navCollapsed}
+                value="alerts"
+                icon={IconAlertTriangle}
+                label="Alerts"
+                meta={caseData.alerts?.length || 0}
+                hint={`${plural(caseData.alerts?.length || 0, "triggered rule hit")}`}
+              />
+              <NavItem
+                collapsed={navCollapsed}
+                value="customer-profile"
+                icon={IconUser}
+                label="Customer Profile"
+                hint={
+                  [caseData.customerName, caseData.customerType].filter(Boolean).join(" · ") ||
+                  "Primary customer"
+                }
+              />
+              <NavItem
+                collapsed={navCollapsed}
+                value="transactions"
+                icon={IconCreditCard}
+                label="Transactions"
+                meta={caseData.transactions?.length || 0}
+                hint={`${plural(caseData.transactions?.length || 0, "transaction")} linked to this case`}
+              />
+              <NavItem
+                collapsed={navCollapsed}
+                value="relation-graph"
+                icon={IconSitemap}
+                label="Relation Graph"
+                meta={partyCount}
+                hint={`${partyCount} ${partyCount === 1 ? "party" : "parties"} · entity connections`}
+              />
+              <NavItem
+                collapsed={navCollapsed}
+                value="source-of-funds"
+                icon={IconCoins}
+                label="Source of Funds"
+                hint="Declared sources · OCR & verification"
+              />
+              <NavItem
+                collapsed={navCollapsed}
+                value="tbml-osint"
+                icon={FingerprintIcon}
+                label="TBML OSINT"
+                hint="Trade-based ML & open-source intel"
+              />
+              <NavItem
+                collapsed={navCollapsed}
+                value="reports"
+                icon={IconFileStack}
+                label="Reports"
+                meta={reportsLoading ? "…" : rfis.length}
+                hint={
+                  reportsLoading
+                    ? "SMR, TTR & RFI filings"
+                    : `${plural(rfis.length, "RFI")} · SMR, TTR & RFI filings`
+                }
+              />
+              <NavItem
+                collapsed={navCollapsed}
+                value="case-activity"
+                icon={IconClipboardList}
+                label="Case Activity"
+                meta={notes.length}
+                hint={`${plural(notes.length, "note")} · notes, audit & analysis`}
+              />
+            </div>
           </TabsList>
         </nav>
 

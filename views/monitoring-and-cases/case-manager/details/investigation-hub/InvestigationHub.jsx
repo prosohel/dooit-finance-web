@@ -22,17 +22,18 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   console.log("wizard", wizard);
 
   return (
-    <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl border border-black/[0.06] bg-white">
+    <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl bg-white">
       <StepsChecklistPanel wizard={wizard} />
 
-      <StepWorkspacePanel
-        caseData={caseData}
-        caseId={caseId}
-        onCaseChange={onCaseChange}
-        wizard={wizard}
-        headerActions={<SaveIndicator wizard={wizard} />}
-      />
-
+      <div className="border rounded-r-2xl border-black/[0.09] bg-white">
+        <StepWorkspacePanel
+          caseData={caseData}
+          caseId={caseId}
+          onCaseChange={onCaseChange}
+          wizard={wizard}
+          headerActions={<SaveIndicator wizard={wizard} />}
+        />
+      </div>
       {/* Docked to the viewport's right edge, outside the step header. */}
       <OsintReportPanel caseData={caseData} />
     </div>

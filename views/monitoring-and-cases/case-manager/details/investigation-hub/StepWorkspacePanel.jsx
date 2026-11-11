@@ -38,7 +38,7 @@ export default function StepWorkspacePanel({
   if (nav.step !== activeStep) setNav({ step: activeStep, dir: activeStep > nav.step ? 1 : -1 });
 
   return (
-    <section className="flex min-w-[460px] flex-1 flex-col overflow-hidden bg-white">
+    <section className="flex min-w-[460px] flex-1 flex-col overflow-hidden ">
       <header className="shrink-0 px-8 pt-5">
         {/* <StepSegments steps={steps} activeStep={activeStep} /> */}
 

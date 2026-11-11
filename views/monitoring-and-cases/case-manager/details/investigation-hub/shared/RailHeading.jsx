@@ -16,13 +16,13 @@ export default function RailHeading({ label, done, total, barClassName }) {
         <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80">
           {label}
         </span>
-        <span className="text-xs tabular-nums text-muted-foreground">
+        <span className="text-[10px] tabular-nums text-muted-foreground bg-yellow-400 px-3 py-1 rounded-full">
           <span className="font-semibold text-heading">{done}</span>
           <span className="mx-0.5 opacity-50">/</span>
           {total}
         </span>
       </div>
-      <div
+      {/* <div
         className="mt-2.5 h-[2px] overflow-hidden rounded-full bg-black/[0.05]"
         role="progressbar"
         aria-label={`${label} progress`}
@@ -37,7 +37,7 @@ export default function RailHeading({ label, done, total, barClassName }) {
           )}
           style={{ width: `${pct}%` }}
         />
-      </div>
+      </div> */}
     </div>
   );
 }

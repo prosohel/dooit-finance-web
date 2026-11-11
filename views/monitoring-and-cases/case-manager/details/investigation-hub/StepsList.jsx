@@ -19,8 +19,13 @@ export default function StepsList({ steps, activeStep, doneCount, goToStep }) {
   const highlightId = useId();
   const reduceMotion = useReducedMotion();
   return (
-    <div className="flex min-h-0 flex-[1.35] flex-col">
-      <RailHeading label="Investigation steps" done={doneCount} total={steps.length} barClassName="bg-primary" />
+    <div className="flex min-h-0 flex-[1.35] flex-col ">
+      <RailHeading
+        label="Investigation steps"
+        done={doneCount}
+        total={steps.length}
+        barClassName="bg-primary"
+      />
 
       <nav aria-label="Investigation steps" className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3">
         <ol>
@@ -35,7 +40,9 @@ export default function StepsList({ steps, activeStep, doneCount, goToStep }) {
                     aria-hidden
                     className={cn(
                       "absolute left-[21px] top-[26px] h-[calc(100%-16px)] border-l transition-colors duration-300",
-                      step.done ? "border-solid border-primary/40" : "border-dashed border-black/[0.14]",
+                      step.done
+                        ? "border-solid border-primary/40"
+                        : "border-dashed border-black/[0.14]",
                     )}
                   />
                 )}

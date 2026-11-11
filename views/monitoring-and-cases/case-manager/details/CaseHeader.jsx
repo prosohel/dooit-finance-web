@@ -138,7 +138,7 @@ export default function CaseHeader({
     .join(" · ");
 
   return (
-    <header className="overflow-hidden rounded-xl bg-neutral-50 py-4 px-6">
+    <header className="overflow-hidden rounded-xl ">
       <div className="flex flex-col gap-5  xl:flex-row xl:items-start xl:justify-between xl:gap-8">
         {/* Identity: who/what the case is. ID and state lead as an eyebrow so
             the title can carry the weight on its own line. */}
