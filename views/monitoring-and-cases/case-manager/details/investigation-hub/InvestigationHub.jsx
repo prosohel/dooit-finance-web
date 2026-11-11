@@ -25,7 +25,7 @@ export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
     <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl bg-white">
       <StepsChecklistPanel wizard={wizard} />
 
-      <div className="border rounded-r-2xl border-black/[0.09] bg-white">
+      <div className="border rounded-r-2xl border-black/[0.09] bg-white w-full overflow-y-auto">
         <StepWorkspacePanel
           caseData={caseData}
           caseId={caseId}
