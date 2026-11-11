@@ -491,11 +491,11 @@ export default function CaseDetails({ caseId }) {
         value={activeTab}
         onValueChange={setActiveTab}
         variant=""
-        className="w-full flex-row items-start gap-6"
+        // className="w-full flex-row items-start gap-6"
       >
         <nav
           aria-label="Case sections"
-          className={`sticky top-4 shrink-0 ${navCollapsed ? "w-9" : "w-[300px]"}`}
+          // className={`sticky top-4 shrink-0 ${navCollapsed ? "w-9" : "w-[300px]"}`}
         >
           <div
             className={`mb-2 flex items-center ${navCollapsed ? "flex-col gap-1" : "justify-between pl-1"}`}
@@ -560,11 +560,11 @@ export default function CaseDetails({ caseId }) {
           {/* 9 sections in 2 columns: the last cell spans both so the grid
               never ends on an empty cell. */}
           <TabsList
-            className={
-              navCollapsed
-                ? "flex h-auto w-full flex-col items-center gap-1 rounded-none border-0 bg-transparent p-0"
-                : "grid h-auto w-full grid-cols-2 gap-0 [&>*:last-child:nth-child(odd)]:col-span-2 rounded-none border-0 border-t border-l border-border bg-transparent p-0"
-            }
+          // className={
+          //   navCollapsed
+          //     ? "flex h-auto w-full flex-col items-center gap-1 rounded-none border-0 bg-transparent p-0"
+          //     : "grid h-auto w-full grid-cols-2 gap-0 [&>*:last-child:nth-child(odd)]:col-span-2 rounded-none border-0 border-t border-l border-border bg-transparent p-0"
+          // }
           >
             <NavItem
               collapsed={navCollapsed}
@@ -646,7 +646,7 @@ export default function CaseDetails({ caseId }) {
 
         {/* min-w-0 lets wide tables and graphs scroll inside the panel instead of
             pushing the layout past the viewport. */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <TabsContent value="investigation-hub">
             <InvestigationHub caseData={caseData} caseId={caseId} onCaseChange={applyCaseUpdate} />
           </TabsContent>
@@ -684,7 +684,6 @@ export default function CaseDetails({ caseId }) {
               collapsible={false}
             />
           </TabsContent>
-
 
           <TabsContent value="source-of-funds">
             <Suspense fallback={<TabSkeleton />}>

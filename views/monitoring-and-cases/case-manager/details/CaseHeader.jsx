@@ -138,8 +138,8 @@ export default function CaseHeader({
     .join(" · ");
 
   return (
-    <header className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex flex-col gap-5 px-5 pt-5 pb-4 xl:flex-row xl:items-start xl:justify-between xl:gap-8">
+    <header className="overflow-hidden rounded-xl bg-neutral-50 py-4 px-6">
+      <div className="flex flex-col gap-5  xl:flex-row xl:items-start xl:justify-between xl:gap-8">
         {/* Identity: who/what the case is. ID and state lead as an eyebrow so
             the title can carry the weight on its own line. */}
         <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -155,9 +155,9 @@ export default function CaseHeader({
             </StatusPill>
           </div>
 
-          <h1 className="truncate text-xl font-semibold tracking-tight text-heading">
+          <p className="truncate text-sm font-semibold text-neutral-900 tracking-tight ">
             {caseData.title || caseData.caseName}
-          </h1>
+          </p>
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {caseData.customerName && (
@@ -218,7 +218,7 @@ export default function CaseHeader({
       </div>
 
       {/* Toolbar: routine actions on the left, the state-changing one apart on the right. */}
-      <div className="flex flex-wrap items-center gap-2 border-t border-border bg-muted/30 px-5 py-2.5">
+      <div className="flex flex-wrap items-center gap-2  bg-muted/30  py-2.5">
         <Button size="sm" variant="outline" className={actionClass} onClick={onOpenAssign}>
           <IconUserCheck className="size-3.5" />
           Assign Case
