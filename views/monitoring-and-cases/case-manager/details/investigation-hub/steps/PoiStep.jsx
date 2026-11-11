@@ -63,8 +63,11 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
   };
 
   const removeCustomer = (poi) => {
-    if (!window.confirm(`Remove ${poi.name || poi.uid} from this case's persons of interest?`)) return;
-    run(poi.id, () => unlinkCustomer(caseId, poi.id), "Customer removed from case", { refreshAnalysis: true });
+    if (!window.confirm(`Remove ${poi.name || poi.uid} from this case's persons of interest?`))
+      return;
+    run(poi.id, () => unlinkCustomer(caseId, poi.id), "Customer removed from case", {
+      refreshAnalysis: true,
+    });
   };
 
   const removeExternal = (poi) => {
@@ -78,7 +81,13 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
   };
 
   // Legacy names not yet on the case (matched by name, case-insensitively).
-  const known = new Set([...customerPois, ...externalPois].map((p) => String(p.name || "").trim().toLowerCase()));
+  const known = new Set(
+    [...customerPois, ...externalPois].map((p) =>
+      String(p.name || "")
+        .trim()
+        .toLowerCase(),
+    ),
+  );
   const pendingLegacy = legacyPois.filter((p) => !known.has(String(p.name).trim().toLowerCase()));
 
   return (
@@ -117,11 +126,17 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
             Names recorded in an earlier version of this workspace
           </div>
           <p className="mb-2 text-xs text-muted-foreground">
-            These were only saved to the investigation notes, not the case. Add them to include them in reports.
+            These were only saved to the investigation notes, not the case. Add them to include them
+            in reports.
           </p>
           <div className="flex flex-wrap gap-2">
             {pendingLegacy.map((p) => (
-              <Button key={p.id || p.name} size="sm" variant="outline" onClick={() => openAdd("manual", { name: p.name })}>
+              <Button
+                key={p.id || p.name}
+                size="sm"
+                variant="outline"
+                onClick={() => openAdd("manual", { name: p.name })}
+              >
                 <IconPlus className="size-3.5" />
                 {p.name}
               </Button>
@@ -137,11 +152,17 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
       <div className="flex flex-col gap-3">
         {total === 0 && (
           <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            No persons of interest yet. Add the customer under investigation, parties from the alerts, or anyone else involved.
+            No persons of interest yet. Add the customer under investigation, parties from the
+            alerts, or anyone else involved.
           </p>
         )}
         {customerPois.map((poi) => (
-          <CustomerPoiCard key={`c:${poi.id}`} poi={poi} onRemove={removeCustomer} busy={busyId === poi.id} />
+          <CustomerPoiCard
+            key={`c:${poi.id}`}
+            poi={poi}
+            onRemove={removeCustomer}
+            busy={busyId === poi.id}
+          />
         ))}
         {externalPois.map((poi) => (
           <ExternalPoiCard
@@ -189,7 +210,11 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
             <PoiForm
               key={editing.id}
               initial={editing}
-              lockedFields={editing.source === "alert" ? ["account", "institution", "institutionCountry", "bic"] : []}
+              lockedFields={
+                editing.source === "alert"
+                  ? ["account", "institution", "institutionCountry", "bic"]
+                  : []
+              }
               submitLabel="Save changes"
               submitting={busyId === "edit"}
               onSubmit={saveEdit}

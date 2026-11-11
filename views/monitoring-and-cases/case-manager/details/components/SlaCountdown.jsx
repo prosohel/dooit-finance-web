@@ -27,7 +27,7 @@ export default function SlaCountdown({ deadline, className }) {
   const urgent = !overdue && hours < 2;
 
   return (
-    <div
+    <span
       className={cn(
         "flex items-center gap-1.5 text-xs font-semibold",
         overdue ? "text-danger" : urgent ? "text-danger" : "text-muted-foreground",
@@ -41,6 +41,6 @@ export default function SlaCountdown({ deadline, className }) {
           ? `Overdue by ${hours}h ${minutes}m`
           : `${hours}h ${minutes}m remaining`}
       </span>
-    </div>
+    </span>
   );
 }

@@ -27,10 +27,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { getInitials } from "@/lib/utils";
 import RiskScoreGauge from "@/views/monitoring-and-cases/case-manager/details/components/RiskScoreGauge";
-import SlaCountdown from "@/views/monitoring-and-cases/case-manager/details/components/SlaCountdown";
 import ReasonAlertDialog from "@/views/monitoring-and-cases/case-manager/details/components/ReasonAlertDialog";
 import AssignAnalystForm from "@/views/monitoring-and-cases/case-details/AssignAnalystForm";
 import EscalateDialog from "./EscalateDialog";
+import SlaEditor from "./SlaEditor";
 import {
   reviewAlert,
   dismissAlert,
@@ -43,6 +43,9 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
   const router = useRouter();
   const [busy, setBusy] = useState(null); // 'review' | 'escalate' | 'dismiss'
   const [assignOpen, setAssignOpen] = useState(false);
+  // Demo only: local SLA override, not persisted to the API.
+  const [slaOverride, setSlaOverride] = useState(null);
+  const slaDeadline = slaOverride ?? alert.slaDeadline;
   console.log("alert", alert);
 
   const run = async (key, fn, okMessage) => {
@@ -150,12 +153,12 @@ export default function AlertHeader({ alert, onRefresh, onOpenTab }) {
               score={alert.riskScore ?? 0}
               label={`Risk · ${alert.riskLabel || "—"}`}
             />
-            {alert.slaDeadline && (
-              <>
-                <div className="h-10 w-px bg-border" />
-                <SlaCountdown deadline={alert.slaDeadline} className="text-sm" />
-              </>
-            )}
+            <div className="h-10 w-px bg-border" />
+            <SlaEditor
+              deadline={slaDeadline}
+              originalDeadline={alert.slaDeadline}
+              onChange={setSlaOverride}
+            />
           </div>
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground xl:justify-end">
             <span className="inline-flex items-center gap-1.5">

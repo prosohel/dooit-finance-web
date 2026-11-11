@@ -129,15 +129,18 @@ export default function AddPoiDialog({
       onCaseChange?.(res.data, { refreshAnalysis: true });
       toast.success(`${name || "Customer"} added as a person of interest`);
       // Reflect it in the open lists without a reload.
-      const mark = (list) => list.map((c) => (String(c.id) === String(customerId) ? { ...c, alreadyPoi: true } : c));
+      const mark = (list) =>
+        list.map((c) => (String(c.id) === String(customerId) ? { ...c, alreadyPoi: true } : c));
       setCustomers(mark);
       setAlertGroups((groups) =>
         groups.map((g) => ({
           ...g,
           parties: g.parties.map((p) =>
-            p.customer && String(p.customer.id) === String(customerId) ? { ...p, alreadyPoi: true } : p
+            p.customer && String(p.customer.id) === String(customerId)
+              ? { ...p, alreadyPoi: true }
+              : p,
           ),
-        }))
+        })),
       );
     } catch (e) {
       toast.error(e.message);
@@ -149,7 +152,9 @@ export default function AddPoiDialog({
   const addExternal = async (payload) => {
     setBusyKey("form");
     try {
-      const body = draftParty ? { ...payload, fromAlert: { alertId: draftParty.alertId, slot: draftParty.slot } } : payload;
+      const body = draftParty
+        ? { ...payload, fromAlert: { alertId: draftParty.alertId, slot: draftParty.slot } }
+        : payload;
       const res = await addCasePoi(caseId, body);
       if (!res?.succeed) throw new Error(res?.message || "Could not add person of interest");
       onCaseChange?.(res.data);
@@ -169,11 +174,12 @@ export default function AddPoiDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className=" overflow-y-auto sm:max-w-2xl max-h-[60vh]">
         <DialogHeader>
           <DialogTitle>Add person of interest</DialogTitle>
           <DialogDescription>
-            Link an existing customer, pick a party from this case&apos;s alerts, or record someone who is not a customer.
+            Link an existing customer, pick a party from this case&apos;s alerts, or record someone
+            who is not a customer.
           </DialogDescription>
         </DialogHeader>
 
@@ -198,7 +204,9 @@ export default function AddPoiDialog({
             </div>
             <div className="mt-3 flex min-h-[180px] flex-col gap-1.5">
               {searching && <Muted icon={IconLoader2} spin text="Searching…" />}
-              {!searching && query.trim().length < 2 && <Muted text="Type at least two characters to search your customers." />}
+              {!searching && query.trim().length < 2 && (
+                <Muted text="Type at least two characters to search your customers." />
+              )}
               {!searching && query.trim().length >= 2 && customers.length === 0 && (
                 <Muted text="No customers match. Use Manual entry for someone who is not a customer." />
               )}
@@ -208,7 +216,13 @@ export default function AddPoiDialog({
                     key={c.id}
                     title={c.name}
                     meta={[c.uid, c.type, c.country, c.email].filter(Boolean).join(" · ")}
-                    extra={<ScreeningPills kycStatus={c.kycStatus} isPep={c.isPep} sanction={c.sanction} />}
+                    extra={
+                      <ScreeningPills
+                        kycStatus={c.kycStatus}
+                        isPep={c.isPep}
+                        sanction={c.sanction}
+                      />
+                    }
                     done={c.alreadyPoi}
                     busy={busyKey === `c:${c.id}`}
                     actionLabel="Add"
@@ -222,23 +236,33 @@ export default function AddPoiDialog({
           <TabsContent value="alerts" className="mt-3">
             <div className="flex min-h-[180px] flex-col gap-3">
               {loading && <Muted icon={IconLoader2} spin text="Loading alert parties…" />}
-              {!loading && alertGroups.length === 0 && <Muted text="No alerts are linked to this case yet." />}
+              {!loading && alertGroups.length === 0 && (
+                <Muted text="No alerts are linked to this case yet." />
+              )}
               {!loading &&
                 alertGroups.map((g) => (
                   <div key={g.alertId} className="overflow-hidden rounded-lg border border-border">
                     <div className="flex flex-wrap items-center gap-2 border-b border-border bg-amber-50 px-3 py-2 text-xs">
                       <IconFlag className="size-3.5 text-amber-700" />
-                      <span className="font-mono font-semibold text-amber-800">{g.alertUid || g.alertId}</span>
+                      <span className="font-mono font-semibold text-amber-800">
+                        {g.alertUid || g.alertId}
+                      </span>
                       {g.rule && <span className="text-heading/80">{g.rule}</span>}
                       {g.transaction && (
                         <span className="ml-auto text-muted-foreground">
                           {g.transaction.uid ? `${g.transaction.uid} · ` : ""}
-                          {g.transaction.amount != null ? formatAUD(g.transaction.amount, g.transaction.currency || "AUD") : ""}
+                          {g.transaction.amount != null
+                            ? formatAUD(g.transaction.amount, g.transaction.currency || "AUD")
+                            : ""}
                         </span>
                       )}
                     </div>
                     <div className="flex flex-col divide-y divide-border/70">
-                      {g.parties.length === 0 && <p className="px-3 py-2.5 text-xs text-muted-foreground">No parties recorded.</p>}
+                      {g.parties.length === 0 && (
+                        <p className="px-3 py-2.5 text-xs text-muted-foreground">
+                          No parties recorded.
+                        </p>
+                      )}
                       {g.parties.map((p) => {
                         const isCustomer = !!p.customer;
                         return (
@@ -250,17 +274,25 @@ export default function AddPoiDialog({
                             meta={
                               isCustomer
                                 ? [p.customer.uid, "Customer"].filter(Boolean).join(" · ")
-                                : [p.account, p.institution, p.institutionCountry].filter(Boolean).join(" · ") || "External party"
+                                : [p.account, p.institution, p.institutionCountry]
+                                    .filter(Boolean)
+                                    .join(" · ") || "External party"
                             }
                             extra={
                               isCustomer ? (
-                                <ScreeningPills kycStatus={p.customer.kycStatus} isPep={p.customer.isPep} sanction={p.customer.sanction} />
+                                <ScreeningPills
+                                  kycStatus={p.customer.kycStatus}
+                                  isPep={p.customer.isPep}
+                                  sanction={p.customer.sanction}
+                                />
                               ) : null
                             }
                             done={p.alreadyPoi}
                             busy={busyKey === `c:${p.customer?.id}`}
                             actionLabel={isCustomer ? "Add" : "Review & add"}
-                            onAction={() => (isCustomer ? linkCustomer(p.customer.id, p.name) : reviewParty(g, p))}
+                            onAction={() =>
+                              isCustomer ? linkCustomer(p.customer.id, p.name) : reviewParty(g, p)
+                            }
                           />
                         );
                       })}
@@ -276,17 +308,29 @@ export default function AddPoiDialog({
               <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                 <IconAlertTriangle className="mt-0.5 size-3.5 shrink-0" />
                 <div className="flex-1">
-                  From alert <span className="font-mono font-semibold">{draftParty.alertUid || draftParty.alertId}</span> ·{" "}
-                  {SLOT_LABELS[draftParty.slot]}. Account details come from the transaction and are locked; add anything else you know.
+                  From alert{" "}
+                  <span className="font-mono font-semibold">
+                    {draftParty.alertUid || draftParty.alertId}
+                  </span>{" "}
+                  · {SLOT_LABELS[draftParty.slot]}. Account details come from the transaction and
+                  are locked; add anything else you know.
                 </div>
-                <button type="button" className="font-semibold underline" onClick={() => setDraftParty(null)}>
+                <button
+                  type="button"
+                  className="font-semibold underline"
+                  onClick={() => setDraftParty(null)}
+                >
                   Clear
                 </button>
               </div>
             )}
             <PoiForm
               // Remount when switching between a picked party and a blank form.
-              key={draftParty ? `${draftParty.alertId}:${draftParty.slot}` : manualInitial?.name || "blank"}
+              key={
+                draftParty
+                  ? `${draftParty.alertId}:${draftParty.slot}`
+                  : manualInitial?.name || "blank"
+              }
               initial={
                 draftParty
                   ? {
@@ -314,11 +358,15 @@ export default function AddPoiDialog({
 
 function Row({ title, meta, badge, extra, done, busy, actionLabel, onAction, flush }) {
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 ${flush ? "" : "rounded-lg border border-border"}`}>
+    <div
+      className={`flex items-center gap-3 px-3 py-2.5 ${flush ? "" : "rounded-lg border border-border"}`}
+    >
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           {badge && (
-            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">{badge}</span>
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+              {badge}
+            </span>
           )}
           <span className="truncate text-sm font-semibold text-heading">{title}</span>
           {extra}
@@ -331,7 +379,11 @@ function Row({ title, meta, badge, extra, done, busy, actionLabel, onAction, flu
         </span>
       ) : (
         <Button size="sm" variant="outline" className="shrink-0" disabled={busy} onClick={onAction}>
-          {busy ? <IconLoader2 className="size-3.5 animate-spin" /> : <IconUserPlus className="size-3.5" />}
+          {busy ? (
+            <IconLoader2 className="size-3.5 animate-spin" />
+          ) : (
+            <IconUserPlus className="size-3.5" />
+          )}
           {actionLabel}
         </Button>
       )}

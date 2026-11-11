@@ -65,12 +65,14 @@ const toForm = (poi = {}) => ({
   ...Object.fromEntries(
     Object.keys(EMPTY)
       .filter((k) => poi[k] != null && typeof poi[k] !== "object")
-      .map((k) => [k, poi[k]])
+      .map((k) => [k, poi[k]]),
   ),
   aliases: (poi.aliases || []).join(", "),
   // <input type="date"> wants yyyy-mm-dd; anything else (the "***" mask shown
   // to a user without the decrypt grant) starts blank.
-  dateOfBirth: /^\d{4}-\d{2}-\d{2}/.test(String(poi.dateOfBirth || "")) ? String(poi.dateOfBirth).slice(0, 10) : "",
+  dateOfBirth: /^\d{4}-\d{2}-\d{2}/.test(String(poi.dateOfBirth || ""))
+    ? String(poi.dateOfBirth).slice(0, 10)
+    : "",
   idType: poi.idDocument?.type || "",
   idNumber: poi.idDocument?.number || "",
   idCountry: poi.idDocument?.country || "",
@@ -83,14 +85,21 @@ const toPayload = (f) => {
   return {
     kind: f.kind,
     name: f.name.trim(),
-    aliases: f.aliases.split(",").map((a) => a.trim()).filter(Boolean),
+    aliases: f.aliases
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean),
     role: f.role,
     relationship: f.relationship.trim(),
     dateOfBirth: individual ? f.dateOfBirth : "",
     nationality: individual ? f.nationality.trim() : "",
     occupation: individual ? f.occupation.trim() : "",
     idDocument: individual
-      ? { type: f.idType || null, number: f.idNumber.trim() || null, country: f.idCountry.trim() || null }
+      ? {
+          type: f.idType || null,
+          number: f.idNumber.trim() || null,
+          country: f.idCountry.trim() || null,
+        }
       : { type: null, number: null, country: null },
     registrationNumber: individual ? "" : f.registrationNumber.trim(),
     country: f.country.trim(),
@@ -108,8 +117,10 @@ const toPayload = (f) => {
 const validate = (f) => {
   const errors = {};
   if (!f.name.trim()) errors.name = "Name is required";
-  if (f.dateOfBirth && new Date(f.dateOfBirth) > new Date()) errors.dateOfBirth = "Cannot be in the future";
-  if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) errors.email = "Not a valid email";
+  if (f.dateOfBirth && new Date(f.dateOfBirth) > new Date())
+    errors.dateOfBirth = "Cannot be in the future";
+  if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim()))
+    errors.email = "Not a valid email";
   return errors;
 };
 
@@ -131,7 +142,14 @@ export default function PoiForm({
   const [errors, setErrors] = useState({});
   // Only open the long-tail sections by default when they already hold data.
   const [showMore, setShowMore] = useState(
-    () => !!(initial?.email || initial?.phone || initial?.account || initial?.institution || initial?.address)
+    () =>
+      !!(
+        initial?.email ||
+        initial?.phone ||
+        initial?.account ||
+        initial?.institution ||
+        initial?.address
+      ),
   );
 
   const set = (key) => (e) => {
@@ -153,7 +171,7 @@ export default function PoiForm({
     // because the user cannot decrypt them are then never written back.
     const before = toPayload(toForm(initial));
     const changed = Object.fromEntries(
-      Object.entries(payload).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k]))
+      Object.entries(payload).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k])),
     );
     onSubmit(changed);
   };
@@ -164,8 +182,8 @@ export default function PoiForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {masked && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          Some details are hidden (***) because your role cannot view protected data. Fields you leave untouched keep
-          their stored values.
+          Some details are hidden (***) because your role cannot view protected data. Fields you
+          leave untouched keep their stored values.
         </p>
       )}
       {/* Kind toggle */}
@@ -180,7 +198,9 @@ export default function PoiForm({
             onClick={() => set("kind")(value)}
             className={cn(
               "flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
-              form.kind === value ? "bg-white text-heading shadow-sm" : "text-muted-foreground hover:text-heading"
+              form.kind === value
+                ? "bg-white text-heading shadow-sm"
+                : "text-muted-foreground hover:text-heading",
             )}
           >
             {label}
@@ -189,8 +209,18 @@ export default function PoiForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={individual ? "Full name" : "Legal name"} required error={errors.name} className="sm:col-span-2">
-          <Input value={form.name} onChange={set("name")} disabled={locked("name")} autoFocus={!locked("name")} />
+        <Field
+          label={individual ? "Full name" : "Legal name"}
+          required
+          error={errors.name}
+          className="sm:col-span-2"
+        >
+          <Input
+            value={form.name}
+            onChange={set("name")}
+            disabled={locked("name")}
+            autoFocus={!locked("name")}
+          />
         </Field>
         <Field label="Role in the case">
           <Select value={form.role} onValueChange={set("role")}>
@@ -207,7 +237,11 @@ export default function PoiForm({
           </Select>
         </Field>
         <Field label="Relationship to subject">
-          <Input value={form.relationship} onChange={set("relationship")} placeholder="e.g. Sister, receiving account holder" />
+          <Input
+            value={form.relationship}
+            onChange={set("relationship")}
+            placeholder="e.g. Sister, receiving account holder"
+          />
         </Field>
         <Field label="Also known as" hint="Comma-separated" className="sm:col-span-2">
           <Input value={form.aliases} onChange={set("aliases")} />
@@ -262,7 +296,9 @@ export default function PoiForm({
         onClick={() => setShowMore((v) => !v)}
         className="flex items-center gap-1 self-start text-xs font-semibold text-primary"
       >
-        <IconChevronDown className={cn("size-3.5 transition-transform", showMore && "rotate-180")} />
+        <IconChevronDown
+          className={cn("size-3.5 transition-transform", showMore && "rotate-180")}
+        />
         Contact and account details
       </button>
 
@@ -289,10 +325,18 @@ export default function PoiForm({
               <Input value={form.account} onChange={set("account")} disabled={locked("account")} />
             </Field>
             <Field label="Financial institution">
-              <Input value={form.institution} onChange={set("institution")} disabled={locked("institution")} />
+              <Input
+                value={form.institution}
+                onChange={set("institution")}
+                disabled={locked("institution")}
+              />
             </Field>
             <Field label="Institution country">
-              <Input value={form.institutionCountry} onChange={set("institutionCountry")} disabled={locked("institutionCountry")} />
+              <Input
+                value={form.institutionCountry}
+                onChange={set("institutionCountry")}
+                disabled={locked("institutionCountry")}
+              />
             </Field>
             <Field label="BIC / SWIFT">
               <Input value={form.bic} onChange={set("bic")} disabled={locked("bic")} />
@@ -302,12 +346,23 @@ export default function PoiForm({
       )}
 
       <Field label="Investigator notes">
-        <Textarea rows={3} value={form.notes} onChange={set("notes")} placeholder="Why they are of interest, where the information came from" />
+        <Textarea
+          rows={3}
+          value={form.notes}
+          onChange={set("notes")}
+          placeholder="Why they are of interest, where the information came from"
+        />
       </Field>
 
       <div className="flex justify-end gap-2 border-t border-border pt-3">
         {onCancel && (
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={submitting}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onCancel}
+            disabled={submitting}
+          >
             Cancel
           </Button>
         )}
@@ -322,7 +377,9 @@ export default function PoiForm({
 function Section({ title, children }) {
   return (
     <div>
-      <div className="mb-2 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">{title}</div>
+      <div className="mb-2 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">{children}</div>
     </div>
   );

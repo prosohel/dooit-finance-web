@@ -44,15 +44,13 @@ const CustomDropZone = ({
 
   const iconBadgeClassName = cn(
     'flex shrink-0 items-center justify-center rounded-full p-3 transition-colors',
-    loading && 'bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400',
+    loading &&
+      'bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400',
     error && 'bg-destructive/10 text-destructive',
     hasUploadedFile &&
       !error &&
       'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400',
-    !loading &&
-      !error &&
-      !hasUploadedFile &&
-      'bg-primary/10 text-primary'
+    !loading && !error && !hasUploadedFile && 'bg-primary/10 text-primary'
   );
 
   const containerClassName = cn(
@@ -67,7 +65,8 @@ const CustomDropZone = ({
       !error &&
       'border-solid border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20',
     error && 'border-solid border-destructive/50 bg-destructive/5',
-    loading && 'border-solid border-amber-500/50 bg-amber-50/40 dark:bg-amber-950/20',
+    loading &&
+      'border-solid border-amber-500/50 bg-amber-50/40 dark:bg-amber-950/20',
     hasUploadedFile
       ? 'flex flex-row items-center justify-between gap-4'
       : 'flex flex-col items-center justify-center gap-3 min-h-[120px]',
@@ -161,7 +160,7 @@ const CustomDropZone = ({
         ) : hasLocalFile ? (
           <div className="mt-1 flex max-w-full items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
             <FileText className="size-4 shrink-0 text-muted-foreground" />
-            <span className="truncate text-sm font-medium text-foreground">
+            <span className="truncate text-sm font-medium text-foreground max-w-40">
               {file?.name}
             </span>
             <Button
