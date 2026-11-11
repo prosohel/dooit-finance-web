@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 /** Routes that are always accessible without a session. */
 const PUBLIC_ROUTE_PREFIXES = [
   "/auth", // login, register, OTP, password reset, etc.
+  "/sso", // AFC OS handoff landing (the ticket in the URL is the credential)
   "/accept-invite", // token-based invite acceptance flow
 ];
 

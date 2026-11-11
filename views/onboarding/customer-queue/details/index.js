@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn, dateShowFormat, dateShowFormatWithTime, fmt, KYC_HISTORY_STATUS } from "@/lib/utils";
 import { resolveCountry } from "@/lib/country";
+import { getCustomerIdentity } from "@/views/onboarding/customer-queue/customerIdentity";
 import { RelatedPartyDrawer } from "./RelatedPartyDrawer";
 import { AmlMatchesTable } from "./AmlMatchesTable";
 import RiskScoreCard from "@/components/RiskScoreCard";
@@ -1396,15 +1397,20 @@ export const DetailViewModal = ({ details, fetching, onUpdated }) => {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h4 className="font-semibold text-sm leading-tight">{details?.user?.name}</h4>
-                <p className="text-[11px] text-muted-foreground ">{details?.user?.email}</p>
+                {/* user is null for TM demo / manually imported customers — fall back to KYC */}
+                <h4 className="font-semibold text-sm leading-tight">
+                  {getCustomerIdentity(details).name || "—"}
+                </h4>
+                <p className="text-[11px] text-muted-foreground ">
+                  {getCustomerIdentity(details).email}
+                </p>
               </div>
             </div>
 
             <div>
               <StatRow label="UID" value={details?.uid ?? "—"} positive />
               <StatRow label="Country" value={details?.country ?? "—"} positive />
-              <StatRow label="Phone" value={details?.metadata?.phone ?? "—"} positive />
+              <StatRow label="Phone" value={getCustomerIdentity(details).phone || "—"} positive />
               <StatRow
                 label="Active"
                 value={details?.isActive ? "Active" : "Inactive"}

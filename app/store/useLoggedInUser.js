@@ -11,7 +11,15 @@ export const useLoggedInUserStore = create((set) => ({
         try {
           set({ fetching: true });
           const response = await getLoggedInUser();
-          set({ loggedInUser: response?.data ?? null });
+          // Keep the same shape useGetUser stores: the encrypt/decrypt lock
+          // button reads isDataEncrypted, and this fetch (site header, Nisa
+          // chat) races useGetUser's — dropping the flag made the button show
+          // "unlocked" and send encrypt on every click.
+          set({
+            loggedInUser: response?.data
+              ? { ...response.data, isDataEncrypted: response.encryptionStatus }
+              : null,
+          });
         } catch (error) {
           console.error("getLoggedInUser failed", error);
         } finally {

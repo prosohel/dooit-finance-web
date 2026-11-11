@@ -9,6 +9,8 @@ import {
 import { useCustomerStore } from "@/app/store/useCustomer";
 import CustomPagination from "@/components/CustomPagination";
 import { DataTableColumnHeader } from "@/components/DatatableColumnHeader";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getCustomerIdentity } from "@/views/onboarding/customer-queue/customerIdentity";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
@@ -57,6 +59,7 @@ import {
   IconPennant,
   IconSearch,
   IconUpload,
+  IconUser,
 } from "@tabler/icons-react";
 import { Filter, Plus, XCircle } from "lucide-react";
 
@@ -100,6 +103,20 @@ const getDisplayType = (customer) => {
   );
 };
 
+// Avatar that falls back to the name's initial (or a user icon) when there is
+// no selfie/photo URL or the image fails to load — never a broken <img>.
+const CustomerAvatar = ({ customer, className }) => {
+  const { photo, initial } = getCustomerIdentity(customer);
+  return (
+    <Avatar className={className}>
+      {photo && <AvatarImage src={photo} alt="" className="object-cover" />}
+      <AvatarFallback className="text-sm font-semibold text-muted-foreground">
+        {initial || <IconUser className="size-1/2" />}
+      </AvatarFallback>
+    </Avatar>
+  );
+};
+
 // Decode a base64 payload (returned by the export server action) into a file
 // download in the browser.
 const downloadBase64File = (base64, filename, mime) => {
@@ -139,23 +156,21 @@ const GridView = () => {
           className={"p-6 border border-neutral-100 "}
         >
           <ItemMedia className="size-20 rounded-full overflow-hidden">
-            <img
-              src={item.selfieUrl || item.user?.photoUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
+            <CustomerAvatar customer={item} className="size-full" />
           </ItemMedia>
           <ItemContent className="text-xs gap-2 ">
             <div className="flex items-center justify-between w-full">
               <div className="">
                 <ItemDescription className="text-[0.6rem] uppercase">Customer ID</ItemDescription>
-                <ItemTitle className={"font-mono"}>{item.user?.slug}</ItemTitle>
+                <ItemTitle className={"font-mono"}>#{item.uid}</ItemTitle>
               </div>
-              <Badge variant={riskLevelVariants[item.riskLevel]}>{item.riskLevel} Risk</Badge>
+              <Badge variant={riskLevelVariants[item.riskLabel]}>{item.riskLabel} Risk</Badge>
             </div>
             <div>
               <ItemDescription className="text-[0.6rem]  uppercase">Customer Name</ItemDescription>
-              <ItemTitle className={"text-base font-semibold"}>{item.user?.name}</ItemTitle>
+              <ItemTitle className={"text-base font-semibold"}>
+                {getCustomerIdentity(item).name || "—"}
+              </ItemTitle>
             </div>
           </ItemContent>
           {/* <ItemActions >
@@ -249,22 +264,18 @@ const ListView = ({ onExport, exporting, onRefresh }) => {
       ),
       size: 100,
       accessorKey: "user.name",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <div className="size-10 rounded-full overflow-hidden">
-            <img
-              src={row.original?.selfieUrl || row.original?.user?.photoUrl}
-              alt=""
-              className="w-full h-full object-cover"
-            />
+      cell: ({ row }) => {
+        const { name, email } = getCustomerIdentity(row.original);
+        return (
+          <div className="flex items-center gap-2">
+            <CustomerAvatar customer={row.original} className="size-10" />
+            <div>
+              <p className="font-bold">{name || "—"}</p>
+              {email && <p className="text-xs text-muted-foreground">{email}</p>}
+            </div>
           </div>
-          <div>
-            <p className="font-bold">{row.original?.user?.name}</p>
-            <p className="text-xs text-muted-foreground">{row.original?.user?.email}</p>
-          </div>
-        </div>
-      ),
-      size: 100,
+        );
+      },
     },
 
     {
