@@ -126,6 +126,20 @@ export async function reviewSofDocument(customerId, docId, payload) {
   return response.json();
 }
 
+// Staff upload of a SOF document on the customer's behalf — same OCR +
+// storage pipeline as the customer's QR upload.
+// formData: { docType, file, caseId? }
+export async function uploadSofDocumentAsStaff(customerId, formData) {
+  const response = await fetchWithAuth(
+    `sof-verification/${customerId}/documents`,
+    { method: "POST", body: formData },
+    false,
+    false,
+    true, // multipart — let fetch set the boundary Content-Type
+  );
+  return response.json();
+}
+
 // Re-run OCR on a stored document (e.g. after an OCR outage left it
 // needs_review) — the API pulls the file back from the vault itself.
 export async function reprocessSofDocument(customerId, docId) {

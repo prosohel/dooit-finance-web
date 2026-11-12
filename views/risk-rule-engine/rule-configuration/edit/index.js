@@ -12,7 +12,7 @@ export default function RuleEdit({ id }) {
     <div>
       <PageHeader>
         <PageTitle>Edit Rule</PageTitle>
-        <PageDescription>Update this rule's configuration.</PageDescription>
+        <PageDescription>Update this rule&apos;s configuration.</PageDescription>
       </PageHeader>
       <RuleForm
         mode="edit"

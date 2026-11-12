@@ -2030,7 +2030,7 @@ export default function AddCompany() {
               <DialogTitle>Beneficial trust details</DialogTitle>
               <DialogDescription>
                 {trustModalIndex !== null ? holders[trustModalIndex]?.name || "Untitled holder" : ""} holds this position on behalf of a
-                trust — complete the trust's own details. Saved as a linked TrustKyc record when this file is submitted.
+                trust — complete the trust&apos;s own details. Saved as a linked TrustKyc record when this file is submitted.
               </DialogDescription>
             </DialogHeader>
             {trustModalIndex !== null && (

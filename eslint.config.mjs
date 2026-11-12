@@ -1,4 +1,4 @@
-import { defineConfig } from "eslint/config";
+import { defineConfig, globalIgnores } from "eslint/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
@@ -12,7 +12,10 @@ const compat = new FlatCompat({
     allConfig: js.configs.all
 });
 
-export default defineConfig([{
+export default defineConfig([
+  // Build output and vendored editors are not our code: linting them reported ~700 "errors" that no one can fix here.
+  globalIgnores([".next/**", "out/**", "public/tinymce/**"]),
+  {
     extends: compat.extends("next/core-web-vitals"),
     files: ["**/*.js", "**/*.jsx"],
     rules: {

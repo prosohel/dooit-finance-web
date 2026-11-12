@@ -10,7 +10,10 @@ import { SMROverview } from "./smr-overview";
 import { ComplianceStatus } from "./compliance-status";
 import { TransactionChannels } from "./transaction-channel";
 import { executiveMetrics } from "@/lib/dashboard-data";
-import { Users, DollarSign, AlertCircle, FileText } from "lucide-react";
+import { Users, Banknote, AlertCircle, FileText } from "lucide-react";
+
+/** Taka, in crore for anything from one crore up and in lakh below that: "৳2.8 cr", "৳35 lakh". */
+const bdt = (n) => (n >= 1e7 ? `৳${(n / 1e7).toFixed(1)} cr` : `৳${Math.round(n / 1e5)} lakh`);
 
 export default function ClientDashboardPage() {
   return (
@@ -30,10 +33,10 @@ export default function ClientDashboardPage() {
             />
             <MetricCard
               title="Risk Exposure"
-              value={`$${(executiveMetrics.riskExposure.value / 1000000).toFixed(1)}M`}
+              value={bdt(executiveMetrics.riskExposure.value)}
               change={executiveMetrics.riskExposure.change}
               trend={executiveMetrics.riskExposure.trend}
-              icon={<DollarSign className="h-5 w-5" />}
+              icon={<Banknote className="h-5 w-5" />}
             />
             <MetricCard
               title="Open Alerts"

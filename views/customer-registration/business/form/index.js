@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { ChevronDown, Check, Plus, Trash } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -84,6 +85,8 @@ const formData = {
 };
 
 export default function KYCCompanyForm() {
+  // `router` was used after a successful onboarding but never created: the success path threw instead of redirecting.
+  const router = useRouter()
   const [expandedSections, setExpandedSections] = useState({
     general: true,
     directors: false,
