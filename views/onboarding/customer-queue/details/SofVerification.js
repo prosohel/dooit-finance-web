@@ -18,14 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import CustomDropZone from "@/components/ui/DropZone";
+import SofUploadDialog from "./SofUploadDialog";
 import {
   ShieldCheck,
   Mail,
@@ -37,7 +30,6 @@ import {
   Clock,
   ExternalLink,
   RefreshCw,
-  Upload,
 } from "lucide-react";
 import { IconLoader2 } from "@tabler/icons-react";
 import { cn, dateShowFormat } from "@/lib/utils";
@@ -47,7 +39,6 @@ import {
   sendSofVerificationEmail,
   reviewSofDocument,
   reprocessSofDocument,
-  uploadSofDocumentAsStaff,
 } from "@/app/dashboard/client/onboarding/customer-queue/actions";
 
 const DOC_TYPE_LABELS = {
@@ -56,12 +47,6 @@ const DOC_TYPE_LABELS = {
   bank_cheque: "Bank Cheque",
   bank_certificate: "Bank Certificate",
 };
-
-// Staff upload limits. Same formats the customer's QR page accepts; the size
-// cap is the Next.js server-action body limit (next.config.mjs → 10mb), which
-// the file passes through on its way to the API.
-const ACCEPTED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "webp", "heic", "heif"];
-const MAX_FILE_MB = 10;
 
 const STATUS_UI = {
   verified: { label: "Verified", icon: CheckCircle2, badge: "success" },
@@ -102,11 +87,6 @@ export default function SofVerification({ details, onUpdated, caseId }) {
   const [copied, setCopied] = useState(false);
   const [reviewingId, setReviewingId] = useState(null);
   const [email, setEmail] = useState("");
-
-  // Staff upload form (reviewer uploads a document the customer sent another way)
-  const [uploadDocType, setUploadDocType] = useState("");
-  const [uploadFile, setUploadFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     setEmail(customerEmail(details));
@@ -170,58 +150,6 @@ export default function SofVerification({ details, onUpdated, caseId }) {
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast.error("Could not copy link");
-    }
-  };
-
-  // Extension + size check before the file is accepted into the form.
-  const handleFileSelected = (picked) => {
-    if (!picked) return;
-    const ext = (picked.name?.split(".").pop() || "").toLowerCase();
-    if (!ACCEPTED_EXTENSIONS.includes(ext)) {
-      toast.error(`File type .${ext || "?"} is not supported. Upload a PDF or image.`);
-      return;
-    }
-    if (picked.size > MAX_FILE_MB * 1024 * 1024) {
-      toast.error(`File is too large — the limit is ${MAX_FILE_MB} MB.`);
-      return;
-    }
-    setUploadFile(picked);
-  };
-
-  // Upload runs the same OCR verification as a customer upload; the response
-  // is the full updated session, so it simply replaces our state.
-  const handleUpload = async () => {
-    if (!uploadFile || !uploadDocType || uploading) return;
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("docType", uploadDocType);
-      formData.append("file", uploadFile);
-      if (caseId) formData.append("caseId", caseId);
-
-      const res = await uploadSofDocumentAsStaff(customerId, formData);
-      if (res?.success) {
-        setSof(res.data);
-        // The new document is the last one on the session. Rejected = OCR
-        // says it's not a valid bank document; it stays in the list with the
-        // reason, but the file itself isn't stored.
-        const newDoc = res.data?.documents?.at(-1);
-        if (newDoc?.status === "rejected") {
-          toast.error(res.message || "Document could not be verified");
-        } else {
-          toast.success(res.message || "Document uploaded");
-        }
-        setUploadDocType("");
-        setUploadFile(null);
-        onUpdated?.();
-      } else {
-        toast.error(res?.error || res?.message || "Upload failed");
-      }
-    } catch (error) {
-      console.error("Staff SOF upload failed", error);
-      toast.error("Upload failed");
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -340,62 +268,24 @@ export default function SofVerification({ details, onUpdated, caseId }) {
 
       <Card className="border-border/50 lg:col-span-2">
         <div className="p-6">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-6">
-            <FileText className="size-5 text-primary" />
-            Uploaded Documents
-            <Badge variant="secondary">{documents.length}</Badge>
-          </h3>
-
-          {/* Staff upload — for a document the customer sent by email or
-              handed over in branch. Verified by the same OCR as a QR upload. */}
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 mb-6 space-y-3">
-            <div>
-              <p className="text-sm font-semibold">Upload on the customer&apos;s behalf</p>
-              <p className="text-xs text-muted-foreground">
-                PDF or image, up to {MAX_FILE_MB} MB. It is checked by OCR and
-                added to the customer&apos;s documents, same as a QR upload.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-[200px_1fr] items-start">
-              <Select value={uploadDocType} onValueChange={setUploadDocType} disabled={uploading}>
-                <SelectTrigger className="w-full text-xs">
-                  <SelectValue placeholder="Document type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <CustomDropZone
-                fileTypes={ACCEPTED_EXTENSIONS}
-                handleChange={handleFileSelected}
-                file={uploadFile}
-                setFile={setUploadFile}
-                loading={uploading}
-                disabled={uploading}
-                className="min-h-[90px] py-3"
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                onClick={handleUpload}
-                disabled={!uploadFile || !uploadDocType || uploading}
-              >
-                {uploading ? (
-                  <IconLoader2 className="size-4 animate-spin" />
-                ) : (
-                  <Upload className="size-4" />
-                )}
-                {uploading ? "Verifying..." : "Upload & Verify"}
-              </Button>
-            </div>
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-6">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <FileText className="size-5 text-primary" />
+              Uploaded Documents
+              <Badge variant="secondary">{documents.length}</Badge>
+            </h3>
+            {/* Staff upload in a modal — for a document the customer sent by
+                email or handed over in branch. The returned session replaces
+                our state, so the new document shows straight away. */}
+            <SofUploadDialog
+              customerId={customerId}
+              caseId={caseId}
+              docTypeLabels={DOC_TYPE_LABELS}
+              onUploaded={(updatedSof) => {
+                setSof(updatedSof);
+                onUpdated?.();
+              }}
+            />
           </div>
 
           {fetching ? (
