@@ -10,7 +10,7 @@ export default function ClientLayout({ children }) {
   return (
     <SidebarProvider
       style={{
-        "--sidebar-width": "calc(var(--spacing) * 72)",
+        "--sidebar-width": "calc(var(--spacing) * 64)",
         // Sets a 60px rail: 36px menu buttons between the inset variant's 12px padding.
         "--sidebar-width-icon": "2.625rem",
         "--header-height": "calc(var(--spacing) * 12)",
