@@ -638,7 +638,7 @@ export default function ClientSidebar({ ...props }) {
   ];
 
   return (
-    <Sidebar collapsible="offcanvas" {...props} className={"border-0 overflow-x-hidden"}>
+    <Sidebar collapsible="offcanvas" {...props} className={"border-0 overflow-x-hidden "}>
       <SidebarHeader className="group-data-[collapsible=icon]:px-0">
         <SidebarMenu>
           <SidebarMenuItem>
