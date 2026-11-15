@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { StatusPill } from "@/components/ui/StatusPill";
 import { cn } from "@/lib/utils";
 import { RISK_LABEL } from "../alertAdapter";
+import RuleIcon from "./RuleIcon";
 import { EmptyState, fmtDate } from "../components";
 
 const EXPAND_ALL_UP_TO = 3;
@@ -73,6 +74,7 @@ function RuleCard({ rule, defaultOpen }) {
           />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <RuleIcon rule={rule} />
               <span className="text-sm font-semibold text-heading">{rule.name}</span>
               {rule.ruleId && <span className="font-mono text-xs text-muted-foreground">{rule.ruleId}</span>}
               {rule.version !== null && <span className="text-[11px] text-muted-foreground/80">v{rule.version}</span>}
