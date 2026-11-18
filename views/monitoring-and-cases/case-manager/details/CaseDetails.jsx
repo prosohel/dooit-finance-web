@@ -17,6 +17,7 @@ import {
   IconLayoutSidebarLeftExpand,
   IconUserScan,
   IconFolderPlus,
+  IconUsers,
 } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -42,6 +43,7 @@ import CustomerProfileTab from "./tabs/CustomerProfileTab";
 import CaseReportsSection from "./sections/CaseReportsSection";
 import TransactionAnalysisSection from "./sections/TransactionAnalysisSection";
 import CaseActivityView from "./CaseActivityView";
+import AnalystHistorySection from "./sections/AnalystHistorySection";
 import InvestigationHub from "./investigation-hub/InvestigationHub";
 import CreateRFIModal from "./modals/CreateRFIModal";
 import ReassignCaseModal from "./modals/ReassignCaseModal";
@@ -471,6 +473,15 @@ export default function CaseDetails({ caseId }) {
     }
   };
   const partyCount = (caseData.pois?.length || 0) + (caseData.externalPois?.length || 0);
+  // Distinct people on the case's record — the Analyst History nav count.
+  const analystCount = new Set(
+    [
+      ...auditLog.map((l) => l.user),
+      ...notes.map((n) => n.author),
+      ...rfis.map((r) => r.sentBy),
+      ...(assignment?.history || []).map((h) => h.by || h.analyst),
+    ].filter(Boolean),
+  ).size;
 
   const handleTogglePin = (id) =>
     setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n)));
@@ -488,6 +499,7 @@ export default function CaseDetails({ caseId }) {
         onGenerateSTR={handleGenerateSTR}
         onCloseCase={handleCloseCase}
         onReopenCase={handleReopenCase}
+        engagement={{ auditLog, notes, rfis, assignment }}
       />
 
       <Tabs
@@ -670,6 +682,14 @@ export default function CaseDetails({ caseId }) {
                 meta={notes.length}
                 hint={`${plural(notes.length, "note")} · notes, audit & analysis`}
               />
+              {/* <NavItem
+                collapsed={navCollapsed}
+                value="analyst-history"
+                icon={IconUsers}
+                label="Analyst History"
+                meta={analystCount}
+                hint={`${plural(analystCount, "analyst")} · who did what, and when`}
+              /> */}
             </div>
           </TabsList>
         </nav>
@@ -678,7 +698,19 @@ export default function CaseDetails({ caseId }) {
             pushing the layout past the viewport. */}
         <div className="min-w-0">
           <TabsContent value="investigation-hub">
+            {/* <div className="col-span-10"> */}
             <InvestigationHub caseData={caseData} caseId={caseId} onCaseChange={applyCaseUpdate} />
+            {/* </div> */}
+            {/* <div className="col-span-2"> */}
+            {/* <AnalystHistorySection
+                  auditLog={auditLog}
+                  notes={notes}
+                  rfis={rfis}
+                  assignment={assignment}
+                  assignedAnalyst={assignedAnalyst}
+                  sectionRef={setSectionRef("analyst-history")}
+                /> */}
+            {/* </div> */}
           </TabsContent>
           <TabsContent value="tbml-osint">
             <TbmlOsintReport caseId={caseId} caseData={caseData} />
@@ -740,6 +772,16 @@ export default function CaseDetails({ caseId }) {
               setSectionRef={setSectionRef}
             />
           </TabsContent>
+          {/* <TabsContent value="analyst-history">
+            <AnalystHistorySection
+              auditLog={auditLog}
+              notes={notes}
+              rfis={rfis}
+              assignment={assignment}
+              assignedAnalyst={assignedAnalyst}
+              sectionRef={setSectionRef("analyst-history")}
+            />
+          </TabsContent> */}
           <TabsContent value="relation-graph">
             <NetworkGraph data={graphData} onNodeClick={() => {}} />
           </TabsContent>

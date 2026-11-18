@@ -35,6 +35,7 @@ import { dateShowFormatWithTime, getInitials } from "@/lib/utils";
 import RiskScoreGauge from "./components/RiskScoreGauge";
 import SlaCountdown from "./components/SlaCountdown";
 import ReasonAlertDialog from "./components/ReasonAlertDialog";
+import EngagedAnalysts from "./components/EngagedAnalysts";
 
 // Keyed lowercase to match the Case model enums
 // (low | medium | high | critical). Values are normalised before lookup so
@@ -79,6 +80,8 @@ export default function CaseHeader({
   onGenerateSTR,
   onCloseCase,
   onReopenCase,
+  // { auditLog, notes, rfis, assignment } — drives the Engaged avatar stack.
+  engagement,
 }) {
   const router = useRouter();
   const [exporting, setExporting] = useState(false);
@@ -201,7 +204,7 @@ export default function CaseHeader({
               )}
             </dd>
           </div>
-          <div className="flex items-center gap-2.5 pl-5">
+          <div className="flex items-center gap-2.5 pl-5 pr-5">
             <Avatar className="size-8">
               <AvatarFallback className="bg-primary/10 text-[0.65rem] font-semibold text-primary">
                 {getInitials(assignedAnalyst)}
@@ -214,6 +217,15 @@ export default function CaseHeader({
               </dd>
             </div>
           </div>
+          {engagement && (
+            <div className="pl-5 empty:hidden">
+              <EngagedAnalysts
+                {...engagement}
+                assignedAnalyst={assignedAnalyst}
+                labelClassName={statLabelClass}
+              />
+            </div>
+          )}
         </dl>
       </div>
 

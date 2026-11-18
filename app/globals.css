@@ -622,3 +622,65 @@ div[data-slot="sidebar-content"] {
     animation: none;
   }
 }
+
+/* Analyst History — case activity feed.
+   Rows rise in once when the tab opens (40ms stagger, first 10 only); filter
+   changes swap instantly because analysts filter repeatedly. Press feedback
+   on chips/contributor cards; colour changes use plain `ease`. */
+.ah-rise {
+  animation: ah-rise 240ms var(--ease-snappy) var(--ah-delay, 0ms) both;
+}
+@keyframes ah-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.ah-press {
+  transition:
+    transform 120ms var(--ease-snappy),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease;
+}
+.ah-press:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ah-rise {
+    animation-name: ah-fade;
+  }
+  .ah-press:active {
+    transform: none;
+  }
+}
+@keyframes ah-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Engaged analysts — header avatar stack. On hover the faces part slightly
+   (3px per face) to show the stack is one clickable thing; press scales it.
+   Hover-only on fine pointers, and no movement under reduced motion. */
+.eg-trigger {
+  transition: transform 120ms var(--ease-snappy);
+}
+.eg-trigger:active {
+  transform: scale(0.97);
+}
+.eg-face {
+  transition: transform 200ms var(--ease-snappy);
+}
+@media (hover: hover) and (pointer: fine) {
+  .eg-trigger:hover .eg-face {
+    transform: translateX(calc(var(--i, 0) * 3px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eg-trigger:active,
+  .eg-trigger:hover .eg-face {
+    transform: none;
+  }
+}
