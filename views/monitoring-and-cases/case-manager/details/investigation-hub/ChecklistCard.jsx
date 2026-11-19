@@ -8,7 +8,7 @@ export default function ChecklistCard({ checklist, checkedCount, toggleCheck }) 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* The rail's one seam: dashed and inset, so it divides without boxing. */}
-      <span aria-hidden className="mx-5 my-1 shrink-0 border-t border-dashed border-black/[0.09]" />
+      <span aria-hidden className="mx-5 my-1 shrink-0 border border-dashed " />
       <RailHeading
         label="Checklist"
         done={checkedCount}

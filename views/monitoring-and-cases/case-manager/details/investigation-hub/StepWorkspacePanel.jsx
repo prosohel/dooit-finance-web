@@ -110,32 +110,3 @@ export default function StepWorkspacePanel({
     </section>
   );
 }
-
-/**
- * One hairline segment per step: solid when done, a soft tint for the step
- * in hand. A glanceable overview of the whole investigation; the rail is
- * the accessible source of truth, so this is decorative.
- */
-function StepSegments({ steps, activeStep }) {
-  return (
-    <div aria-hidden className="flex gap-1">
-      {steps.map((s, i) => (
-        <span
-          key={s.key}
-          className="relative h-[2px] flex-1 overflow-hidden rounded-full bg-black/[0.05]"
-        >
-          <span
-            className={cn(
-              "absolute inset-0 origin-left rounded-full transition-[transform,background-color] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
-              s.done
-                ? "scale-x-100 bg-primary"
-                : i === activeStep
-                  ? "scale-x-100 bg-primary/30"
-                  : "scale-x-0 bg-primary",
-            )}
-          />
-        </span>
-      ))}
-    </div>
-  );
-}

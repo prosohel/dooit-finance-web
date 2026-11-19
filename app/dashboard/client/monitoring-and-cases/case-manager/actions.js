@@ -133,10 +133,15 @@ export const getCaseReports = async (caseId) => {
 // Returns our persisted report document, so callers map OUR field names.
 // A dismissal is scoped to one alert, so it needs `alertId` (and optionally a
 // `dismissalType` industry template code).
-export const draftCaseReport = async (ref, type, { alertId, dismissalType, regenerate } = {}) => {
+// `customerId` / `poiId` scope the draft to one person of interest (ECDD).
+export const draftCaseReport = async (
+  ref,
+  type,
+  { alertId, dismissalType, regenerate, customerId, poiId } = {},
+) => {
   const res = await fetchWithAuth(`cases/${ref}/reports/${type}/draft`, {
     method: 'POST',
-    body: JSON.stringify({ alertId, dismissalType, regenerate }),
+    body: JSON.stringify({ alertId, dismissalType, regenerate, customerId, poiId }),
   });
   return res.json();
 };

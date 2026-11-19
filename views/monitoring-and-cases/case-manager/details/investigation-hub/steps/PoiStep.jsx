@@ -80,6 +80,15 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
     if (ok) setEditing(null);
   };
 
+  // Per-person ECDD: the form drafts from the case, scoped to this POI.
+  const ecddHref = (param, id) =>
+    caseId && id
+      ? `/dashboard/client/report-compliance/ecdd/form?${new URLSearchParams({
+          caseNumber: caseId,
+          [param]: id,
+        })}`
+      : null;
+
   // Legacy names not yet on the case (matched by name, case-insensitively).
   const known = new Set(
     [...customerPois, ...externalPois].map((p) =>
@@ -162,6 +171,7 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
             poi={poi}
             onRemove={removeCustomer}
             busy={busyId === poi.id}
+            ecddHref={ecddHref("customer", poi.id)}
           />
         ))}
         {externalPois.map((poi) => (
@@ -171,6 +181,7 @@ export default function PoiStep({ caseData, caseId, onCaseChange, wizard }) {
             onEdit={setEditing}
             onRemove={removeExternal}
             busy={busyId === poi.id}
+            ecddHref={ecddHref("poi", poi.id)}
           />
         ))}
       </div>

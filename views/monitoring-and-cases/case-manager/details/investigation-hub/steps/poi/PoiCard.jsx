@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   IconBuilding,
   IconChevronDown,
+  IconFileSearch,
   IconFlag,
   IconLoader2,
   IconPencil,
@@ -49,6 +50,23 @@ export function ScreeningPills({ kycStatus, isPep, sanction }) {
   );
 }
 
+/** Opens the ECDD form, drafted for this one person, in a new tab. */
+function EcddButton({ href }) {
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Run ECDD for this person"
+      className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10"
+    >
+      <IconFileSearch className="size-3.5" />
+      ECDD
+    </a>
+  );
+}
+
 function RemoveButton({ onClick, busy, title = "Remove from case" }) {
   return (
     <button
@@ -64,7 +82,7 @@ function RemoveButton({ onClick, busy, title = "Remove from case" }) {
 }
 
 /** A POI who is one of our customers (Case.customer / linkedCustomers). */
-export function CustomerPoiCard({ poi, onRemove, busy }) {
+export function CustomerPoiCard({ poi, onRemove, busy, ecddHref }) {
   return (
     <div className="rounded-xl border border-border">
       <div className="flex items-center gap-3.5 px-4 py-3.5">
@@ -83,6 +101,7 @@ export function CustomerPoiCard({ poi, onRemove, busy }) {
         <Pill className={poi.isPrimary ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary"}>
           {poi.isPrimary ? "Primary subject" : "Linked customer"}
         </Pill>
+        <EcddButton href={ecddHref} />
         {/* The primary POI anchors the case and cannot be unlinked (API rule). */}
         {!poi.isPrimary && onRemove && <RemoveButton onClick={() => onRemove(poi)} busy={busy} />}
       </div>
@@ -91,7 +110,7 @@ export function CustomerPoiCard({ poi, onRemove, busy }) {
 }
 
 /** A POI who is not a customer (Case.externalPois). */
-export function ExternalPoiCard({ poi, onEdit, onRemove, busy }) {
+export function ExternalPoiCard({ poi, onEdit, onRemove, busy, ecddHref }) {
   const [open, setOpen] = useState(false);
   const entity = poi.kind === "entity";
   const Icon = entity ? IconBuilding : IconUser;
@@ -132,6 +151,7 @@ export function ExternalPoiCard({ poi, onEdit, onRemove, busy }) {
           </div>
         </div>
         <Pill className={ROLE_STYLE[poi.role] || "bg-primary/10 text-primary"}>{poi.roleLabel || "Associated party"}</Pill>
+        <EcddButton href={ecddHref} />
         {onEdit && (
           <button
             type="button"

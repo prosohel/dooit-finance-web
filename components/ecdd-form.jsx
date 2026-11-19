@@ -103,7 +103,9 @@ const formSchema = z.object({
   date: z.string().min(1, 'Date is required'),
 });
 
-export function ECDDForm({ caseNumber, id }) {
+// `customer` / `poi` arrive from the Investigation Hub's per-POI ECDD button
+// and scope the draft to that person.
+export function ECDDForm({ caseNumber, id, customer: customerId, poi: poiId }) {
   const [formData, setFormData] = useState({
     isPEP: 'No',
     isSanctioned: 'No',
@@ -202,7 +204,7 @@ export function ECDDForm({ caseNumber, id }) {
       // New report — draft it from the case.
       prefillFromDraft();
     }
-  }, [id, caseNumber]);
+  }, [id, caseNumber, customerId, poiId]);
 
   /**
    * Draft this case's ECDD and load it into the form.
@@ -216,7 +218,7 @@ export function ECDDForm({ caseNumber, id }) {
   const prefillFromDraft = async () => {
     setFetching(true);
     try {
-      const response = await draftEcddReport(caseNumber);
+      const response = await draftEcddReport(caseNumber, { customerId, poiId });
       if (response?.succeed && response.data) {
         reset(mapReportToForm(response.data));
         setPersonsOfInterest(response.data.personsOfInterest || []);

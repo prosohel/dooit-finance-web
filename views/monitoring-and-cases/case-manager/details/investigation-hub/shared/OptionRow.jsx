@@ -18,14 +18,14 @@ export default function OptionRow({ label, selected, multi, onClick, dense = fal
       onClick={onClick}
       className={cn(
         "flex items-start gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-        "transition-[background-color,border-color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.99]",
+        "transition-[background-color,border-color,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.99] ",
         dense
           ? "rounded-md px-2 py-1.5 text-[13px] [@media(hover:hover)]:hover:bg-black/[0.03]"
           : "mb-1 w-full items-center rounded-lg border px-4 py-3 text-[13.5px] text-heading",
         !dense &&
           (selected
             ? "border-primary/50 bg-primary/[0.04]"
-            : "border-dashed border-transparent border-b-black/[0.08] bg-transparent [@media(hover:hover)]:hover:bg-black/[0.02]"),
+            : "  bg-transparent [@media(hover:hover)]:hover:bg-black/[0.02]"),
       )}
     >
       <span
@@ -58,7 +58,11 @@ export default function OptionRow({ label, selected, multi, onClick, dense = fal
       <span
         className={cn(
           "leading-snug",
-          dense ? (selected ? "font-medium text-heading" : "text-muted-foreground") : selected && "font-medium",
+          dense
+            ? selected
+              ? "font-medium text-heading"
+              : "text-muted-foreground"
+            : selected && "font-medium",
         )}
       >
         {label}

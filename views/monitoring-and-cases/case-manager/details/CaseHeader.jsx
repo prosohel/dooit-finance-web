@@ -217,20 +217,11 @@ export default function CaseHeader({
               </dd>
             </div>
           </div>
-          {engagement && (
-            <div className="pl-5 empty:hidden">
-              <EngagedAnalysts
-                {...engagement}
-                assignedAnalyst={assignedAnalyst}
-                labelClassName={statLabelClass}
-              />
-            </div>
-          )}
         </dl>
       </div>
 
       {/* Toolbar: routine actions on the left, the state-changing one apart on the right. */}
-      <div className="flex flex-wrap items-center gap-2  bg-muted/30  py-2.5">
+      <div className="flex flex-wrap items-center gap-2    py-2.5">
         <Button size="sm" variant="outline" className={actionClass} onClick={onOpenAssign}>
           <IconUserCheck className="size-3.5" />
           Assign Case

@@ -35,7 +35,7 @@ export default function OptionsStep({ step, activeStep, wizard }) {
     : step.groups || [{ label: "", options: step.options || [] }];
 
   return (
-    <div className="max-w-[660px] space-y-6">
+    <div className="max-w-[660px] space-y-6 ">
       {groups.map((group) => (
         <div key={group.label || "default"}>
           {group.label && (
@@ -113,7 +113,7 @@ function FollowUpChoice({ followUp, value, onSelect }) {
 
   return (
     <div className="ml-4 border-l-2 border-primary/20 pl-5 animate-in fade-in slide-in-from-top-1 duration-200">
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground ">
         {label}
       </div>
       <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">

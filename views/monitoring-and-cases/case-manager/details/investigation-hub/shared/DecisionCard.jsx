@@ -1,6 +1,11 @@
 "use client";
 
-import { IconArrowUpRight, IconCircleX, IconShieldSearch, IconCircleDot } from "@tabler/icons-react";
+import {
+  IconArrowUpRight,
+  IconCircleX,
+  IconShieldSearch,
+  IconCircleDot,
+} from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 const ICONS = {
@@ -22,7 +27,16 @@ const TONES = {
  * label and a one-line consequence. Used when a step's options carry
  * `optionDetails` — e.g. triage, where each choice changes what happens next.
  */
-export default function DecisionCard({ label, description, icon, tone = "primary", selected, onSelect, tabIndex, onKeyDown }) {
+export default function DecisionCard({
+  label,
+  description,
+  icon,
+  tone = "primary",
+  selected,
+  onSelect,
+  tabIndex,
+  onKeyDown,
+}) {
   const Icon = ICONS[icon] || IconCircleDot;
   const t = TONES[tone] || TONES.primary;
 
@@ -53,9 +67,13 @@ export default function DecisionCard({ label, description, icon, tone = "primary
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-semibold leading-tight tracking-[-0.005em] text-heading">{label}</span>
+        <span className="block text-[14px] font-semibold leading-tight tracking-[-0.005em] text-heading">
+          {label}
+        </span>
         {description && (
-          <span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground">{description}</span>
+          <span className="mt-1 block text-[12.5px] leading-snug text-muted-foreground">
+            {description}
+          </span>
         )}
       </span>
 
