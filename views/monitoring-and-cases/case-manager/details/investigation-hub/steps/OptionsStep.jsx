@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { IconPlus } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import OptionRow from "../shared/OptionRow";
@@ -66,13 +67,21 @@ export default function OptionsStep({ step, activeStep, wizard }) {
         </div>
       ))}
 
-      {step.followUp && selVal === step.followUp.when && (
-        <FollowUpChoice
-          followUp={step.followUp}
-          value={sel[step.followUp.key]}
-          onSelect={(opt) => setRadio(step.followUp.key, opt)}
-        />
-      )}
+      {step.followUp &&
+        selVal === step.followUp.when &&
+        (step.followUp.type === "text" ? (
+          <FollowUpText
+            followUp={step.followUp}
+            value={sel[step.followUp.key]}
+            onChange={(text) => setRadio(step.followUp.key, text)}
+          />
+        ) : (
+          <FollowUpChoice
+            followUp={step.followUp}
+            value={sel[step.followUp.key]}
+            onSelect={(opt) => setRadio(step.followUp.key, opt)}
+          />
+        ))}
 
       {step.canAdd && (
         <div className="mt-4 flex gap-2.5">
@@ -89,6 +98,32 @@ export default function OptionsStep({ step, activeStep, wizard }) {
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * A free-text field revealed by one of the step's options (e.g. the reason
+ * for dismissing a case). Stored in selections[followUp.key].
+ */
+function FollowUpText({ followUp, value, onChange }) {
+  const id = `follow-up-${followUp.key}`;
+  return (
+    <div className="ml-4 border-l-2 border-primary/20 pl-5 animate-in fade-in slide-in-from-top-1 duration-200">
+      <label
+        htmlFor={id}
+        className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground"
+      >
+        {followUp.label}
+      </label>
+      <Textarea
+        id={id}
+        autoFocus
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={followUp.placeholder}
+        className="min-h-24 resize-y text-sm"
+      />
     </div>
   );
 }

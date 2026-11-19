@@ -293,6 +293,13 @@ export const INVESTIGATION_STEPS = [
     title: "Investigation decision",
     subtitle: "Choose the outcome of this investigation.",
     options: ["File SMR / SAR", "Issue Request for Information (RFI)", "Dismiss — no further action"],
+    followUp: {
+      when: "Dismiss — no further action",
+      key: "dismissal-reason",
+      type: "text",
+      label: "Dismissal reason",
+      placeholder: "Explain why this case is being dismissed and no further action is required…",
+    },
   },
   {
     key: "manager-review",
