@@ -218,6 +218,19 @@ export function useInvestigationWizard(caseData, caseId) {
     if (typeof key === "number") markDone(key);
   };
 
+  // Lower-level writes for flows that must be able to put things back exactly
+  // as they were (e.g. undoing a dismissal): merge selections without marking
+  // anything done, and set a step's done flag either way.
+  const setSelections = (patch) => setSel((prev) => ({ ...prev, ...patch }));
+
+  const setStepDone = (i, done) =>
+    setStepsDone((prev) => {
+      if (!!prev[i] === !!done) return prev;
+      const next = prev.slice();
+      next[i] = !!done;
+      return next;
+    });
+
   const toggleMulti = (key, opt) => {
     setSel((prev) => {
       const cur = Array.isArray(prev[key]) ? prev[key].slice() : [];
@@ -302,6 +315,8 @@ export function useInvestigationWizard(caseData, caseId) {
 
     sel,
     setRadio,
+    setSelections,
+    setStepDone,
     toggleMulti,
 
     typoDraft,

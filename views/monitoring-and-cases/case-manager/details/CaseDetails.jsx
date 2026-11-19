@@ -513,62 +513,6 @@ export default function CaseDetails({ caseId }) {
           className="w-full flex"
           // className={`sticky top-4 shrink-0 ${navCollapsed ? "w-9" : "w-[300px]"}`}
         >
-          {/* <div
-            className={`mb-2 flex items-center ${navCollapsed ? "flex-col gap-1" : "justify-between pl-1"}`}
-          >
-            <div
-              className={`flex items-center gap-1 w-full ${navCollapsed ? "flex-col-reverse" : ""}`}
-            >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => setFilesOpen(true)}
-                    aria-label="Files"
-                    aria-haspopup="dialog"
-                    aria-expanded={filesOpen}
-                    className={`flex h-8 items-center gap-1.5 rounded-md border text-xs font-medium transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.96] motion-reduce:active:scale-100 ${
-                      navCollapsed ? "w-8 justify-center" : "px-2.5"
-                    } ${
-                      filesOpen
-                        ? "border-primary/30 bg-primary/[0.08] text-primary"
-                        : "border-border bg-background text-heading hover:bg-muted/60"
-                    }`}
-                  >
-                    <IconFolder
-                      stroke={1.6}
-                      className={`size-4 ${filesOpen ? "text-primary" : "text-foreground/70"}`}
-                    />
-                    {!navCollapsed && "Files"}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side={navCollapsed ? "right" : "bottom"}>
-                  Evidence & attachments
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => setNavCollapsed((c) => !c)}
-                    aria-label={
-                      navCollapsed ? "Expand case navigation" : "Collapse case navigation"
-                    }
-                    aria-expanded={!navCollapsed}
-                    className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-[color,background-color,transform] duration-150 ease-out hover:bg-muted/70 hover:text-foreground active:scale-[0.95]"
-                  >
-                    {navCollapsed ? (
-                      <IconLayoutSidebarLeftExpand className="size-4" />
-                    ) : (
-                      <IconLayoutSidebarLeftCollapse className="size-4" />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">{navCollapsed ? "Expand" : "Collapse"}</TooltipContent>
-              </Tooltip>
-            </div>
-          </div> */}
-
           {/* 9 sections in 2 columns: the last cell spans both so the grid
               never ends on an empty cell. */}
           <TabsList className={"flex flex-col items-start w-full pb-0"}>
@@ -576,9 +520,9 @@ export default function CaseDetails({ caseId }) {
               <TabsTrigger
                 value={"investigation-hub"}
                 aria-label={"Investigation Hub"}
-                className={"size-9"}
+                // className={"size-9"}
               >
-                <IconUserScan className="size-4" />
+                <IconUserScan className="size-4" /> Investigate
               </TabsTrigger>
               <div className="w-0.5 h-3/4 bg-border" />
               <Button

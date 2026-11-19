@@ -3,10 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { IconPlus } from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { IconHistory, IconPlus } from "@tabler/icons-react";
+import { cn, dateShowFormatWithTime } from "@/lib/utils";
 import OptionRow from "../shared/OptionRow";
 import DecisionCard from "../shared/DecisionCard";
+import DismissFalsePositiveDialog from "../shared/DismissFalsePositiveDialog";
 import { TYPOLOGY_GROUPS } from "../data/investigationHubData";
 
 /**
@@ -20,9 +22,7 @@ export default function OptionsStep({ step, activeStep, wizard }) {
   const selVal = sel[activeStep];
 
   if (step.optionDetails && !step.multi) {
-    return (
-      <DecisionGroup step={step} value={selVal} onSelect={(opt) => setRadio(activeStep, opt)} />
-    );
+    return <DecisionStep step={step} activeStep={activeStep} wizard={wizard} />;
   }
 
   const isGrouped = step.grouped || Array.isArray(step.groups);
@@ -181,8 +181,73 @@ function FollowUpChoice({ followUp, value, onSelect }) {
 }
 
 /**
+ * A decision step. Options flagged `confirm` (dismissing as a false positive)
+ * do not select on click: they open a dialog that documents the decision, and
+ * only a confirmed dismissal selects the card.
+ */
+function DecisionStep({ step, activeStep, wizard }) {
+  const { sel, setRadio, dismissal } = wizard;
+  const value = sel[activeStep];
+  const record = sel.triageDismissal;
+  const [confirming, setConfirming] = useState(null); // the option awaiting confirmation
+
+  const select = (opt) => {
+    const gated = step.optionDetails[opt]?.confirm === "dismissFalsePositive" && dismissal;
+    // Already dismissed and on record: re-clicking the card changes nothing.
+    if (gated && !(value === opt && record?.decision === opt)) setConfirming(opt);
+    else if (!gated) setRadio(activeStep, opt);
+  };
+
+  return (
+    <div className="max-w-[620px]">
+      <DecisionGroup step={step} value={value} onSelect={select} />
+
+      {record && value === record.decision && <DismissalRecord record={record} />}
+
+      {dismissal && (
+        <DismissFalsePositiveDialog
+          open={!!confirming}
+          onOpenChange={(open) => !open && setConfirming(null)}
+          alertCount={dismissal.openAlertCount}
+          onConfirm={({ reason, comments }) =>
+            dismissal.dismiss({ stepIndex: activeStep, option: confirming, reason, comments })
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+/** What was decided and why, under the cards, once the dismissal is written. */
+function DismissalRecord({ record }) {
+  const failed = record.failedAlertIds?.length > 0;
+  return (
+    <p
+      className={cn(
+        "mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs leading-relaxed animate-in fade-in duration-200",
+        failed ? "bg-danger/[0.06] text-danger" : "bg-black/[0.025] text-muted-foreground",
+      )}
+    >
+      <IconHistory className="mt-0.5 size-3.5 shrink-0" />
+      <span className="min-w-0">
+        {failed ? (
+          `${record.failedAlertIds.length} alert${record.failedAlertIds.length > 1 ? "s" : ""} could not be dismissed and remain open. `
+        ) : (
+          <span className="font-medium text-heading">Dismissed as false positive · </span>
+        )}
+        {record.reason}
+        {record.comments && <span className="text-muted-foreground"> — {record.comments}</span>}
+        <span className="tabular-nums"> · {dateShowFormatWithTime(record.dismissedAt)}</span>
+      </span>
+    </p>
+  );
+}
+
+/**
  * Single-choice options rendered as decision cards. Behaves like a native
- * radio group: one tab stop, arrow keys move (and select) between choices.
+ * radio group: one tab stop, arrow keys move (and select) between choices —
+ * except onto a choice that needs confirming, which arrows only focus, so a
+ * stray keypress never opens a dialog.
  */
 function DecisionGroup({ step, value, onSelect }) {
   const options = step.options || [];
@@ -193,7 +258,7 @@ function DecisionGroup({ step, value, onSelect }) {
     if (!delta) return;
     e.preventDefault();
     const next = (i + delta + options.length) % options.length;
-    onSelect(options[next]);
+    if (!step.optionDetails[options[next]]?.confirm) onSelect(options[next]);
     e.currentTarget.parentElement?.children[next]?.focus();
   };
 

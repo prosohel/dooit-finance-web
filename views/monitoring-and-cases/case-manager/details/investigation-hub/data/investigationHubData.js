@@ -29,6 +29,9 @@ export const INVESTIGATION_STEPS = [
         icon: "dismiss",
         tone: "neutral",
         description: "The activity is explained and not suspicious — close the alert.",
+        // Closing an alert is never a single click: picking this option opens
+        // the dismissal dialog, and the choice only sticks once confirmed.
+        confirm: "dismissFalsePositive",
       },
     },
   },
@@ -335,6 +338,16 @@ export const INVESTIGATION_STEPS = [
       options: ["3 months", "6 months", "12 months", "24 months"],
     },
   },
+];
+
+// Why an alert was closed as a false positive. Recorded on every dismissed
+// alert and in the case audit trail, so the wording is the reviewer-facing one.
+export const FALSE_POSITIVE_REASONS = [
+  "Legitimate business activity",
+  "Expected transaction behavior",
+  "Verified customer activity",
+  "Previously reviewed / duplicate alert",
+  "Other",
 ];
 
 export const TYPOLOGY_GROUPS = [

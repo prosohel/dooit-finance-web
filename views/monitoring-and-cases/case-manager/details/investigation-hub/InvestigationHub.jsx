@@ -7,6 +7,7 @@ import StepWorkspacePanel from "./StepWorkspacePanel";
 import OsintReportPanel from "./OsintReportPanel";
 import StepsChecklistPanel from "./StepsChecklistPanel";
 import { useInvestigationWizard } from "./hooks/useInvestigationWizard";
+import { useFalsePositiveDismissal } from "./hooks/useFalsePositiveDismissal";
 
 /**
  * The step-driven investigation workspace: one card split into the step list
@@ -18,8 +19,16 @@ import { useInvestigationWizard } from "./hooks/useInvestigationWizard";
 export default function InvestigationHub({ caseData, caseId, onCaseChange }) {
   // `caseId` gives the wizard somewhere to save; without it the hub still
   // works, but only in memory (docs/74 C18).
-  const wizard = useInvestigationWizard(caseData, caseId);
-  console.log("wizard", wizard);
+  const baseWizard = useInvestigationWizard(caseData, caseId);
+  // Lives here, not in the step, so a dismissal waiting out its Undo window
+  // survives moving between steps.
+  const dismissal = useFalsePositiveDismissal({
+    caseData,
+    caseId,
+    onCaseChange,
+    wizard: baseWizard,
+  });
+  const wizard = { ...baseWizard, dismissal };
 
   return (
     <div className="flex h-[calc(100vh-300px)] min-h-[620px] overflow-hidden rounded-2xl bg-white">
